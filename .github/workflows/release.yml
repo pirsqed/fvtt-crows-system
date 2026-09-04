@@ -1,0 +1,40 @@
+name: Release
+
+# Tag a commit as vX.Y.Z (matching the version in system.json) to publish a release
+# with the system zip and manifest attached. The manifest's "download" URL points at
+# releases/latest/download/fvtt-crows-system.zip, so Foundry installs pick up the newest tag.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check that the tag matches system.json
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          VERSION=$(python3 -c "import json; print(json.load(open('system.json'))['version'])")
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "Tag v$TAG does not match system.json version $VERSION" >&2
+            exit 1
+          fi
+
+      - name: Build the system zip
+        run: |
+          zip -r fvtt-crows-system.zip . \
+            -x ".git/*" ".github/*" "tools/out/*" "tools/__pycache__/*" "packs/*.json" "assets/monsters/*"
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            fvtt-crows-system.zip
+            system.json
+          generate_release_notes: true

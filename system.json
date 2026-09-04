@@ -9,9 +9,14 @@
   },
   "authors": [
     {
-      "name": "pirsqed"
+      "name": "Jeff Corder (pirsqed)",
+      "url": "https://github.com/pirsqed"
     }
   ],
+  "url": "https://github.com/pirsqed/fvtt-crows-system",
+  "manifest": "https://raw.githubusercontent.com/pirsqed/fvtt-crows-system/main/system.json",
+  "download": "https://github.com/pirsqed/fvtt-crows-system/releases/latest/download/fvtt-crows-system.zip",
+  "bugs": "https://github.com/pirsqed/fvtt-crows-system/issues",
   "readme": "README.md",
   "grid": {
     "distance": 5,
