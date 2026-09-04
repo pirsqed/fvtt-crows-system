@@ -1,0 +1,199 @@
+<div class="crows-hourglass-hud {{#if isCollapsed}}collapsed{{/if}} {{#if isUrgent}}urgent{{/if}} {{#if isRunning}}running{{else}}paused{{/if}}">
+  <!-- Draggable & Collapsible Header -->
+  <div class="hourglass-header flexrow">
+    <div class="header-title flexrow">
+      <i class="fas fa-hourglass-half hourglass-spin-icon"></i>
+      <span class="dungeon-title">DUNGEON TURN {{turn}}</span>
+    </div>
+    <div class="header-actions flexrow">
+      {{#if isGM}}
+      <a class="timer-btn btn-settings" title="Timer Settings (Duration & EN)"><i class="fas fa-cog"></i></a>
+      {{/if}}
+      <a class="timer-btn btn-collapse" title="Collapse / Expand"><i class="fas {{#if isCollapsed}}fa-chevron-up{{else}}fa-chevron-down{{/if}}"></i></a>
+    </div>
+  </div>
+
+  <!-- Body Content -->
+  <div class="hourglass-body flexcol">
+    
+    <!-- Greed Bonus Banner -->
+    <div class="greed-banner {{#if greedBonus}}active{{/if}}">
+      {{#if greedBonus}}
+        <i class="fas fa-coins"></i> <strong>+{{greedBonus}}% GREED BONUS</strong>
+      {{else}}
+        <span class="standard-loot"><i class="fas fa-shield-alt"></i> Standard Loot</span>
+      {{/if}}
+    </div>
+
+    <!-- The Hourglass Visual -->
+    <div class="hourglass-visual-container">
+      <svg class="hourglass-svg" viewBox="0 0 100 160" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- Metal Gradients -->
+          <linearGradient id="crows-brass" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#d97706" />
+            <stop offset="40%" stop-color="#b45309" />
+            <stop offset="70%" stop-color="#78350f" />
+            <stop offset="100%" stop-color="#451a03" />
+          </linearGradient>
+          <linearGradient id="crows-gold-rim" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#fef08a" />
+            <stop offset="50%" stop-color="#d97706" />
+            <stop offset="100%" stop-color="#78350f" />
+          </linearGradient>
+
+          <!-- Sand Gradients -->
+          <linearGradient id="crows-sand-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#fde047" />
+            <stop offset="50%" stop-color="#eab308" />
+            <stop offset="100%" stop-color="#ca8a04" />
+          </linearGradient>
+          <linearGradient id="crows-sand-crimson" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#f87171" />
+            <stop offset="50%" stop-color="#dc2626" />
+            <stop offset="100%" stop-color="#991b1b" />
+          </linearGradient>
+
+          <!-- Glass Glow & Shadow -->
+          <radialGradient id="crows-glass-glare" cx="30%" cy="30%" r="70%">
+            <stop offset="0%" stop-color="rgba(255, 255, 255, 0.4)" />
+            <stop offset="60%" stop-color="rgba(255, 255, 255, 0.05)" />
+            <stop offset="100%" stop-color="rgba(0, 0, 0, 0.3)" />
+          </radialGradient>
+
+          <!-- Top Bulb Sand Clip -->
+          <clipPath id="top-bulb-clip">
+            <path d="M 22 25 L 78 25 L 54 76 Q 50 80 46 76 Z" />
+          </clipPath>
+
+          <!-- Bottom Bulb Sand Clip -->
+          <clipPath id="bottom-bulb-clip">
+            <path d="M 46 84 Q 50 80 54 84 L 78 135 L 22 135 Z" />
+          </clipPath>
+        </defs>
+
+        <!-- Outer Wooden / Brass Frame Columns -->
+        <rect x="14" y="20" width="6" height="120" rx="3" fill="url(#crows-brass)" stroke="#1e1b4b" stroke-width="1"/>
+        <rect x="80" y="20" width="6" height="120" rx="3" fill="url(#crows-brass)" stroke="#1e1b4b" stroke-width="1"/>
+
+        <!-- Glass Bulbs Background (Dark Void) -->
+        <path d="M 22 25 L 78 25 L 54 76 Q 50 80 46 76 Z" fill="rgba(10, 15, 25, 0.85)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+        <path d="M 46 84 Q 50 80 54 84 L 78 135 L 22 135 Z" fill="rgba(10, 15, 25, 0.85)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+
+        <!-- TOP BULB SAND (Drains from top to bottom) -->
+        <g clip-path="url(#top-bulb-clip)">
+          <rect class="sand-top-level" x="15" y="{{topSandY}}" width="70" height="70" 
+                fill="{{#if isUrgent}}url(#crows-sand-crimson){{else}}url(#crows-sand-gold){{/if}}"/>
+        </g>
+
+        <!-- FALLING SAND TRICKLE (Active stream when running) -->
+        {{#if isRunning}}
+        <line x1="50" y1="76" x2="50" y2="135" 
+              class="sand-stream {{#if isUrgent}}urgent{{/if}}" 
+              stroke="{{#if isUrgent}}#ef4444{{else}}#fde047{{/if}}" 
+              stroke-width="2.5" 
+              stroke-dasharray="4,2"/>
+        {{/if}}
+
+        <!-- BOTTOM BULB SAND (Mounds up from bottom) -->
+        <g clip-path="url(#bottom-bulb-clip)">
+          <!-- Rising sand block -->
+          <rect class="sand-bottom-level" x="15" y="{{bottomSandY}}" width="70" height="70" 
+                fill="{{#if isUrgent}}url(#crows-sand-crimson){{else}}url(#crows-sand-gold){{/if}}"/>
+          <!-- Dynamic Sand Cone Mound -->
+          {{#if hasBottomSand}}
+          <ellipse cx="50" cy="{{bottomSandY}}" rx="{{bottomSandWidth}}" ry="5" 
+                   fill="{{#if isUrgent}}#f87171{{else}}#fef08a{{/if}}"/>
+          {{/if}}
+        </g>
+
+        <!-- Glass Reflections & Glare Arcs -->
+        <path d="M 26 30 Q 32 55 45 74" fill="none" stroke="rgba(255,255,255,0.4)" stroke-width="2" stroke-linecap="round"/>
+        <path d="M 26 130 Q 32 105 45 86" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-linecap="round"/>
+
+        <!-- Ornate Top & Bottom Caps -->
+        <!-- Top Cap -->
+        <rect x="10" y="14" width="80" height="12" rx="4" fill="url(#crows-brass)" stroke="#fef08a" stroke-width="0.8"/>
+        <line x1="12" y1="20" x2="88" y2="20" stroke="url(#crows-gold-rim)" stroke-width="1.5"/>
+        <circle cx="50" cy="14" r="4" fill="url(#crows-gold-rim)"/>
+
+        <!-- Bottom Cap -->
+        <rect x="10" y="134" width="80" height="12" rx="4" fill="url(#crows-brass)" stroke="#fef08a" stroke-width="0.8"/>
+        <line x1="12" y1="140" x2="88" y2="140" stroke="url(#crows-gold-rim)" stroke-width="1.5"/>
+        <circle cx="50" cy="146" r="4" fill="url(#crows-gold-rim)"/>
+      </svg>
+    </div>
+
+    <!-- Digital Time Readout (GM Only) -->
+    {{#if isGM}}
+    <div class="time-display {{#if isUrgent}}pulse{{/if}}">
+      <span class="digital-clock">{{formattedTime}}</span>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill {{#if isUrgent}}urgent{{/if}}" style="width: {{progressPercent}}%;"></div>
+      </div>
+    </div>
+
+    <!-- Encounter DC & Status Info (GM Only) -->
+    <div class="timer-meta-bar flexrow">
+      <span class="meta-item" title="Encounter Number (1d10 check at turn end)"><i class="fas fa-skull"></i> EN: <strong>{{en}}</strong></span>
+      <span class="meta-item" title="Turn Duration"><i class="fas fa-stopwatch"></i> <strong>{{durationMinutes}}m</strong></span>
+      <span class="meta-item status-tag {{#if isRunning}}running{{else}}paused{{/if}}">
+        {{#if isRunning}}<i class="fas fa-play"></i> RUNNING{{else}}<i class="fas fa-pause"></i> PAUSED{{/if}}
+      </span>
+    </div>
+    {{/if}}
+
+    <!-- GM Control Buttons -->
+    {{#if isGM}}
+    <div class="gm-controls-grid">
+      <!-- Play/Pause Toggle -->
+      <button type="button" class="btn-timer-action btn-toggle-run {{#if isRunning}}running{{/if}}" title="{{#if isRunning}}Pause Dungeon Turn{{else}}Start / Resume Dungeon Turn{{/if}}">
+        {{#if isRunning}}<i class="fas fa-pause"></i> Pause{{else}}<i class="fas fa-play"></i> Start{{/if}}
+      </button>
+
+      <!-- Next Turn / Resolve Turn -->
+      <button type="button" class="btn-timer-action btn-next-turn" title="End Turn: Rolls Encounter Check, Prompts Usage Dice, and advances turn">
+        <i class="fas fa-forward"></i> End Turn
+      </button>
+
+      <!-- Reset Current Turn -->
+      <button type="button" class="btn-timer-action btn-reset-turn" title="Reset Current Turn to Full Duration">
+        <i class="fas fa-redo-alt"></i> Reset
+      </button>
+
+      <!-- Manual Encounter Roll -->
+      <button type="button" class="btn-timer-action btn-roll-en" title="Roll 1d10 Encounter Check against EN {{en}}">
+        <i class="fas fa-dice-d10"></i> Check EN
+      </button>
+    </div>
+
+    <!-- Settings Drawer (Hidden by default, toggled via gear icon) -->
+    <div class="timer-settings-drawer {{#if showSettings}}visible{{/if}}">
+      <div class="settings-group flexrow">
+        <label>Duration:</label>
+        <div class="btn-group flexrow">
+          <button type="button" class="btn-preset {{#if (eq durationMinutes 20)}}active{{/if}}" data-minutes="20">20m</button>
+          <button type="button" class="btn-preset {{#if (eq durationMinutes 30)}}active{{/if}}" data-minutes="30">30m</button>
+          <button type="button" class="btn-preset {{#if (eq durationMinutes 60)}}active{{/if}}" data-minutes="60">60m</button>
+        </div>
+      </div>
+
+      <div class="settings-group flexrow">
+        <label>Encounter DC (EN):</label>
+        <div class="btn-group flexrow">
+          <button type="button" class="btn-en {{#if (eq en 9)}}active{{/if}}" data-en="9">EN 9 (Std)</button>
+          <button type="button" class="btn-en {{#if (eq en 8)}}active{{/if}}" data-en="8">EN 8 (Crowded)</button>
+          <button type="button" class="btn-en {{#if (eq en 7)}}active{{/if}}" data-en="7">EN 7 (Chaos)</button>
+        </div>
+      </div>
+
+      <div class="settings-group flexrow">
+        <label>Set Turn #:</label>
+        <input type="number" class="input-turn-num" value="{{turn}}" min="1" max="99" style="width: 50px; text-align: center;" />
+        <button type="button" class="btn-apply-turn">Set</button>
+      </div>
+    </div>
+    {{/if}}
+
+  </div>
+</div>

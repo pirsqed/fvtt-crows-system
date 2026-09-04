@@ -1,0 +1,43 @@
+{
+  "id": "fvtt-crows-system",
+  "title": "Crows (Unofficial)",
+  "description": "An unofficial system for Crows, the survival-horror dungeon crawler by MCDM Productions, built against the public playtest. Ships with no game content: run the included Python tools on your own copy of the playtest packet to generate and import it.",
+  "version": "1.2.0",
+  "compatibility": {
+    "minimum": 12,
+    "verified": 14
+  },
+  "authors": [
+    {
+      "name": "pirsqed"
+    }
+  ],
+  "readme": "README.md",
+  "grid": {
+    "distance": 5,
+    "units": "ft"
+  },
+  "esmodules": [
+    "crows.mjs"
+  ],
+  "styles": [
+    "styles/crows.css"
+  ],
+  "packs": [],
+  "languages": [],
+  "documentTypes": {
+    "Actor": {
+      "crow": {},
+      "monster": {},
+      "loot": {}
+    },
+    "Item": {
+      "equipment": {},
+      "attack": {},
+      "trait": {}
+    }
+  },
+  "socket": false,
+  "initiative": "2d10",
+  "license": "LICENSE"
+}

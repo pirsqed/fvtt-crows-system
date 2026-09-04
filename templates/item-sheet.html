@@ -1,0 +1,220 @@
+<form class="{{cssClass}} flexcol crows-item-sheet" autocomplete="off">
+  <header class="sheet-header flexrow">
+    <div class="profile-container">
+      <img class="profile-img" src="{{item.img}}" data-edit="img" title="{{item.name}}"/>
+      {{#if (gt system.greedBonus 0)}}
+      <div class="greed-sticker {{greedTier}}" title="{{system.greedBonus}}% {{greedTierLabel}} Greed Bonus">
+        <div class="sticker-inner">
+          <span class="sticker-plus">+</span><span class="sticker-val">{{system.greedBonus}}%</span>
+          <span class="sticker-tag">GREED</span>
+        </div>
+      </div>
+      {{/if}}
+    </div>
+    <div class="header-fields flexcol">
+      <h1 class="charname"><input name="name" type="text" value="{{item.name}}" placeholder="Item Name"/></h1>
+      
+      <div class="header-props-grid">
+        <div class="resource-group flexrow">
+          <label>Location</label>
+          <select name="system.location">
+            <optgroup label="Equipped / Hands">
+              <option value="hand1" {{#if (eq system.location "hand1")}}selected{{/if}}>Hand 1</option>
+              <option value="hand2" {{#if (eq system.location "hand2")}}selected{{/if}}>Hand 2</option>
+            </optgroup>
+            <optgroup label="Quick Belt">
+              <option value="belt1" {{#if (eq system.location "belt1")}}selected{{/if}}>Belt 1</option>
+              <option value="belt2" {{#if (eq system.location "belt2")}}selected{{/if}}>Belt 2</option>
+              <option value="belt3" {{#if (eq system.location "belt3")}}selected{{/if}}>Belt 3</option>
+              <option value="belt4" {{#if (eq system.location "belt4")}}selected{{/if}}>Belt 4</option>
+            </optgroup>
+            <optgroup label="Backpack Slots">
+              <option value="backpack1" {{#if (eq system.location "backpack1")}}selected{{/if}}>Backpack 1</option>
+              <option value="backpack2" {{#if (eq system.location "backpack2")}}selected{{/if}}>Backpack 2</option>
+              <option value="backpack3" {{#if (eq system.location "backpack3")}}selected{{/if}}>Backpack 3</option>
+              <option value="backpack4" {{#if (eq system.location "backpack4")}}selected{{/if}}>Backpack 4</option>
+              <option value="backpack5" {{#if (eq system.location "backpack5")}}selected{{/if}}>Backpack 5</option>
+              <option value="backpack6" {{#if (eq system.location "backpack6")}}selected{{/if}}>Backpack 6</option>
+              <option value="backpack7" {{#if (eq system.location "backpack7")}}selected{{/if}}>Backpack 7</option>
+              <option value="backpack8" {{#if (eq system.location "backpack8")}}selected{{/if}}>Backpack 8</option>
+              <option value="backpack9" {{#if (eq system.location "backpack9")}}selected{{/if}}>Backpack 9</option>
+              <option value="backpack10" {{#if (eq system.location "backpack10")}}selected{{/if}}>Backpack 10</option>
+            </optgroup>
+            <optgroup label="Magic Attunement Doll">
+              <option value="head" {{#if (eq system.location "head")}}selected{{/if}}>Head</option>
+              <option value="neck" {{#if (eq system.location "neck")}}selected{{/if}}>Neck</option>
+              <option value="waist" {{#if (eq system.location "waist")}}selected{{/if}}>Waist</option>
+              <option value="gloves" {{#if (eq system.location "gloves")}}selected{{/if}}>Arms / Gloves</option>
+              <option value="ring" {{#if (eq system.location "ring")}}selected{{/if}}>Finger / Ring</option>
+              <option value="boots" {{#if (eq system.location "boots")}}selected{{/if}}>Feet / Boots</option>
+            </optgroup>
+            <optgroup label="Storage">
+              <option value="ground" {{#if (eq system.location "ground")}}selected{{/if}}>Ground (Scene)</option>
+              <option value="stash" {{#if (eq system.location "stash")}}selected{{/if}}>Stash (Camp)</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div class="resource-group flexrow">
+          <label>Slots Taken</label>
+          <input type="text" name="system.slots" value="{{system.slots}}" data-dtype="Number"/>
+        </div>
+        
+        <div class="resource-group flexrow">
+          <label>Quantity</label>
+          <input type="text" name="system.quantity" value="{{system.quantity}}" data-dtype="Number"/>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <nav class="sheet-tabs tabs" data-group="primary">
+    <a class="item" data-tab="details"><i class="fas fa-sliders-h"></i> Details & Rules</a>
+    <a class="item" data-tab="description"><i class="fas fa-align-left"></i> Description</a>
+  </nav>
+
+  <section class="sheet-body">
+    <div class="tab details flexcol" data-group="primary" data-tab="details">
+      
+      <div class="form-group flexrow">
+        <label>Cost (gc)</label>
+        <div class="cost-with-greed flexrow">
+          <input type="text" name="system.cost" value="{{system.cost}}" data-dtype="Number"/>
+          {{#if (gt system.greedBonus 0)}}
+          {{#if system.cost}}
+          <span class="greed-calc-tag" title="Base {{system.cost}} gc + {{greedBonusGc}} gc (+{{system.greedBonus}}% {{greedTierLabel}} Greed)">
+            &rarr; <strong>{{effectiveCost}} gc</strong> (+{{system.greedBonus}}% Greed)
+          </span>
+          {{/if}}
+          {{/if}}
+        </div>
+      </div>
+
+      <!-- Greed Bonus Option -->
+      <div class="form-group flexrow greed-bonus-group">
+        <label><i class="fas fa-coins"></i> Greed Bonus</label>
+        <div class="greed-tier-picker flexrow">
+          <button type="button" class="greed-tier-btn {{#if (eq system.greedBonus 0)}}active{{/if}}" data-greed="0" title="No Greed Bonus">None</button>
+          <button type="button" class="greed-tier-btn tier-bronze {{#if (eq system.greedBonus 10)}}active{{/if}}" data-greed="10" title="Bronze Tier (+10% Greed)"><i class="fas fa-certificate"></i> Bronze +10%</button>
+          <button type="button" class="greed-tier-btn tier-silver {{#if (eq system.greedBonus 20)}}active{{/if}}" data-greed="20" title="Silver Tier (+20% Greed)"><i class="fas fa-certificate"></i> Silver +20%</button>
+          <button type="button" class="greed-tier-btn tier-gold {{#if (eq system.greedBonus 30)}}active{{/if}}" data-greed="30" title="Gold Tier (+30% Greed)"><i class="fas fa-crown"></i> Gold +30%</button>
+          <input type="hidden" name="system.greedBonus" value="{{system.greedBonus}}" data-dtype="Number"/>
+        </div>
+      </div>
+
+      <div class="form-group flexrow">
+        <label>Max Stack Size</label>
+        <input type="text" name="system.maxStack" value="{{system.maxStack}}" data-dtype="Number"/>
+      </div>
+
+      <div class="form-group flexrow">
+        <label>Item Traits</label>
+        <input type="text" name="system.traits" value="{{system.traits}}" placeholder="e.g. Versatile, Silver, Light"/>
+      </div>
+
+      <div class="form-group flexrow">
+        <label>Crafting Requirements</label>
+        <input type="text" name="system.crafting" value="{{system.crafting}}" placeholder="e.g. Blacksmithing +1 | 2 Monster Parts"/>
+      </div>
+
+      <!-- Type Toggles -->
+      <div class="toggle-bar flexrow">
+        <label><input type="checkbox" name="system.isWeapon" {{checked system.isWeapon}}/> <i class="fas fa-crosshairs"></i> Weapon</label>
+        <label><input type="checkbox" name="system.isArmor" {{checked system.isArmor}}/> <i class="fas fa-shield-alt"></i> Has AD</label>
+        <label><input type="checkbox" name="system.isConsumable" {{checked system.isConsumable}}/> <i class="fas fa-flask"></i> Consumable / Spellbook</label>
+      </div>
+
+      <!-- Weapon Fieldset -->
+      {{#if system.isWeapon}}
+      <fieldset class="crows-fieldset">
+        <legend><i class="fas fa-swords"></i> Weapon Profile</legend>
+        <div class="form-group flexrow">
+          <label>Range</label>
+          <input type="text" name="system.weapon.range" value="{{system.weapon.range}}" placeholder="Melee 1 or Ranged 10"/>
+        </div>
+        <div class="form-group flexrow">
+          <label>Attack Test Formula</label>
+          <input type="text" name="system.weapon.attackFormula" value="{{system.weapon.attackFormula}}" placeholder="2d10 + S"/>
+        </div>
+        <div class="form-group flexrow">
+          <label>Tier 2 Damage (12–16)</label>
+          <input type="text" name="system.weapon.tier2Damage" value="{{system.weapon.tier2Damage}}" placeholder="e.g. 2 + S dam"/>
+        </div>
+        <div class="form-group flexrow">
+          <label>Tier 3 Damage (17+ / Crit)</label>
+          <input type="text" name="system.weapon.tier3Damage" value="{{system.weapon.tier3Damage}}" placeholder="e.g. 4 + S dam"/>
+        </div>
+      </fieldset>
+      {{/if}}
+
+      <!-- Armor Fieldset -->
+      {{#if system.isArmor}}
+      <fieldset class="crows-fieldset">
+        <legend><i class="fas fa-shield-alt"></i> Armor Defense (AD)</legend>
+        <div class="form-group flexrow">
+          <label>Current AD</label>
+          <input type="text" name="system.armor.defense" value="{{system.armor.defense}}" data-dtype="Number"/>
+        </div>
+        <div class="form-group flexrow">
+          <label>Max AD</label>
+          <input type="text" name="system.armor.maxDefense" value="{{system.armor.maxDefense}}" data-dtype="Number"/>
+        </div>
+      </fieldset>
+      {{/if}}
+
+      <!-- Consumable / Usage Dice Fieldset -->
+      {{#if system.isConsumable}}
+      <fieldset class="crows-fieldset">
+        <legend><i class="fas fa-hourglass-half"></i> Usage Dice & Spell / Maneuver Effects</legend>
+        <div class="form-row flexrow">
+          <div class="form-group flexrow">
+            <label>Current UD</label>
+            <input type="text" name="system.consumable.currentUD" value="{{system.consumable.currentUD}}" data-dtype="Number"/>
+          </div>
+          <div class="form-group flexrow">
+            <label>Max UD</label>
+            <input type="text" name="system.consumable.maxUD" value="{{system.consumable.maxUD}}" data-dtype="Number"/>
+          </div>
+          <div class="form-group flexrow">
+            <label>Depletion Trigger</label>
+            <select name="system.consumable.udTrigger">
+              <option value="DT" {{#if (eq system.consumable.udTrigger "DT")}}selected{{/if}}>End of Dungeon Turn (DT)</option>
+              <option value="Activate" {{#if (eq system.consumable.udTrigger "Activate")}}selected{{/if}}>On Item Activation</option>
+              <option value="Rest" {{#if (eq system.consumable.udTrigger "Rest")}}selected{{/if}}>Recharges on Rest</option>
+              <option value="Useless" {{#if (eq system.consumable.udTrigger "Useless")}}selected{{/if}}>Useless when Depleted</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group flexrow">
+          <label>&le;11 Result Effect</label>
+          <input type="text" name="system.consumable.tier1Effect" value="{{system.consumable.tier1Effect}}"/>
+        </div>
+        <div class="form-group flexrow">
+          <label>12–16 Result Effect</label>
+          <input type="text" name="system.consumable.tier2Effect" value="{{system.consumable.tier2Effect}}"/>
+        </div>
+        <div class="form-group flexrow">
+          <label>17+ Result Effect</label>
+          <input type="text" name="system.consumable.tier3Effect" value="{{system.consumable.tier3Effect}}"/>
+        </div>
+
+        <div class="form-group stacked">
+          <label>Maneuver / Action Rules Text</label>
+          <div class="editor-container">
+            {{editor enrichedActionText target="system.consumable.actionText" button=true owner=owner editable=editable engine="prosemirror"}}
+          </div>
+        </div>
+      </fieldset>
+      {{/if}}
+
+    </div>
+
+    <div class="tab description flexcol" data-group="primary" data-tab="description">
+      <div class="editor-container description-section">
+        {{editor enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}
+      </div>
+    </div>
+  </section>
+</form>

@@ -1,0 +1,33 @@
+<form class="{{cssClass}} flexcol" autocomplete="off">
+  <header class="sheet-header flexrow">
+    <img class="profile-img" src="{{item.img}}" data-edit="img" title="{{item.name}}"/>
+    <div class="header-fields flexcol">
+      <h1 class="charname"><input name="name" type="text" value="{{item.name}}" placeholder="Name"/></h1>
+      
+      <div class="resource flexrow">
+        <label>Bonus</label>
+        <input type="text" name="system.bonus" value="{{system.bonus}}"/>
+      </div>
+      <div class="resource flexrow">
+        <label>Range</label>
+        <input type="text" name="system.range" value="{{system.range}}"/>
+      </div>
+      <div class="resource flexrow">
+        <label>Tier 2 Damage</label>
+        <input type="text" name="system.tier2Damage" value="{{system.tier2Damage}}"/>
+      </div>
+      <div class="resource flexrow">
+        <label>Tier 3 Damage</label>
+        <input type="text" name="system.tier3Damage" value="{{system.tier3Damage}}"/>
+      </div>
+
+    </div>
+  </header>
+
+  <section class="sheet-body">
+    <div class="description-section" style="padding: 10px;">
+        <h3 style="margin-top: 0; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Special Effects & Notes</h3>
+      {{editor enrichedNotes target="system.notes" button=true owner=owner editable=editable engine="prosemirror"}}
+    </div>
+  </section>
+</form>

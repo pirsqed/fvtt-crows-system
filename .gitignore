@@ -1,0 +1,9 @@
+# Generated from the MCDM playtest packet by tools/build_all.py — never committed
+packs/*.json
+assets/monsters/
+tools/out/
+
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

@@ -1,0 +1,83 @@
+<form class="crows-item-sheet crows-trait-sheet flexcol" autocomplete="off">
+  <!-- Sheet Header -->
+  <header class="sheet-header flexrow">
+    <img class="profile-img" src="{{item.img}}" data-edit="img" title="{{item.name}}" />
+    <div class="header-fields flexcol">
+      <h1 class="charname">
+        <input name="name" type="text" value="{{item.name}}" placeholder="Trait Name" />
+      </h1>
+      <div class="header-badges flexrow">
+        <span class="badge" style="background: #581c87; color: #f3e8ff; border: 1px solid #9333ea;">
+          <i class="fas fa-feather-alt"></i> Trait
+        </span>
+        <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid #f59e0b;">
+          {{system.cost}} XP
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Sheet Navigation -->
+  <nav class="sheet-tabs tabs flexrow" data-group="primary">
+    <a class="item active" data-tab="details"><i class="fas fa-book-open"></i> Trait Details</a>
+  </nav>
+
+  <!-- Sheet Body -->
+  <section class="sheet-body">
+    <div class="tab details flexcol active" data-group="primary" data-tab="details">
+      <!-- Properties Grid -->
+      <div class="header-props-grid">
+        <div class="prop-group">
+          <label><i class="fas fa-sitemap"></i> Trait Tree</label>
+          <select name="system.tree">
+            <option value="Alchemy" {{#if (eq system.tree "Alchemy")}}selected{{/if}}>Alchemy</option>
+            <option value="Alteration" {{#if (eq system.tree "Alteration")}}selected{{/if}}>Alteration</option>
+            <option value="Archery" {{#if (eq system.tree "Archery")}}selected{{/if}}>Archery</option>
+            <option value="Armor" {{#if (eq system.tree "Armor")}}selected{{/if}}>Armor</option>
+            <option value="Bashing" {{#if (eq system.tree "Bashing")}}selected{{/if}}>Bashing</option>
+            <option value="Benefaction" {{#if (eq system.tree "Benefaction")}}selected{{/if}}>Benefaction</option>
+            <option value="Blacksmithing" {{#if (eq system.tree "Blacksmithing")}}selected{{/if}}>Blacksmithing</option>
+            <option value="Camping" {{#if (eq system.tree "Camping")}}selected{{/if}}>Camping</option>
+            <option value="Chopping" {{#if (eq system.tree "Chopping")}}selected{{/if}}>Chopping</option>
+            <option value="Conjuration" {{#if (eq system.tree "Conjuration")}}selected{{/if}}>Conjuration</option>
+            <option value="Elemental" {{#if (eq system.tree "Elemental")}}selected{{/if}}>Elemental</option>
+            <option value="Enchantment" {{#if (eq system.tree "Enchantment")}}selected{{/if}}>Enchantment</option>
+            <option value="Illusion" {{#if (eq system.tree "Illusion")}}selected{{/if}}>Illusion</option>
+            <option value="Knowledge" {{#if (eq system.tree "Knowledge")}}selected{{/if}}>Knowledge</option>
+            <option value="Leverage" {{#if (eq system.tree "Leverage")}}selected{{/if}}>Leverage</option>
+            <option value="Necromancy" {{#if (eq system.tree "Necromancy")}}selected{{/if}}>Necromancy</option>
+            <option value="Pets" {{#if (eq system.tree "Pets")}}selected{{/if}}>Pets</option>
+            <option value="Reputation" {{#if (eq system.tree "Reputation")}}selected{{/if}}>Reputation</option>
+            <option value="Slashing" {{#if (eq system.tree "Slashing")}}selected{{/if}}>Slashing</option>
+            <option value="Stabbing" {{#if (eq system.tree "Stabbing")}}selected{{/if}}>Stabbing</option>
+            <option value="Thievery" {{#if (eq system.tree "Thievery")}}selected{{/if}}>Thievery</option>
+            <option value="Travel" {{#if (eq system.tree "Travel")}}selected{{/if}}>Travel</option>
+            <option value="Unarmed" {{#if (eq system.tree "Unarmed")}}selected{{/if}}>Unarmed</option>
+            <option value="General" {{#if (eq system.tree "General")}}selected{{/if}}>General / Other</option>
+          </select>
+        </div>
+
+        <div class="prop-group">
+          <label><i class="fas fa-layer-group"></i> Tier / Stage</label>
+          <input type="text" name="system.tier" value="{{system.tier}}" placeholder="e.g. Starting, Tier 2, etc." />
+        </div>
+
+        <div class="prop-group">
+          <label><i class="fas fa-coins"></i> XP Cost</label>
+          <input type="number" name="system.cost" value="{{system.cost}}" min="0" step="100" />
+        </div>
+
+        <div class="prop-group">
+          <label><i class="fas fa-link"></i> Prerequisites</label>
+          <input type="text" name="system.prerequisites" value="{{system.prerequisites}}" placeholder="e.g. Starting Trait or Point Blank" />
+        </div>
+      </div>
+
+      <!-- Rule Description Editor -->
+      <div class="form-group stacked" style="margin-top: 10px; flex: 1;">
+        <label><i class="fas fa-align-left"></i> Trait Rules & Description</label>
+        {{editor enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}
+      </div>
+    </div>
+  </section>
+</form>
