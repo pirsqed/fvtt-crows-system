@@ -1,3 +1,6 @@
+import { createRollState, rollFlags, renderRollState } from "../chat-state.mjs";
+import { showWeaponAttackDialog } from "../attacks.mjs";
+import { rollPowerRoll } from "../power-roll.mjs";
 import { CrowsLoot } from "../loot.mjs";
 
 export const EXPERTISES_CONFIG = {
@@ -103,7 +106,12 @@ export class CrowsActorSheet extends ActorSheet {
     context.editable = this.isEditable;
     context.enrichedBiography = await TextEditor.enrichHTML(this.actor.system.biography || "", {async: true});
     
-    const items = context.items || [];
+    const items = (context.items || []).map(item => {
+      const document = this.actor.items.get(item._id);
+      return { ...item, greedTier: document?.greedTier, greedTierLabel: document?.greedTierLabel,
+        greedBonusGc: document?.greedBonusGc, effectiveCost: document?.effectiveCost };
+    });
+    context.items = items;
     const woundedSlots = this.actor.system.woundedSlots || {};
 
     // 1. Hands (Wielded / Active)
@@ -668,7 +676,7 @@ export class CrowsActorSheet extends ActorSheet {
     const item = this.actor.items.get(itemId);
     if (!item) return;
 
-    const currentUD = item.system.consumable?.currentUD || item.system.consumable?.maxUD || 1;
+    const currentUD = item.system.consumable?.currentUD ?? item.system.consumable?.maxUD ?? 0;
     if (currentUD <= 0) {
       ui.notifications.warn(`${item.name} has no usage dice remaining!`);
       return;
@@ -717,195 +725,7 @@ export class CrowsActorSheet extends ActorSheet {
 
   async _onRollAttack(event) {
     event.preventDefault();
-    const btn = event.currentTarget;
-    const itemId = btn.dataset.itemId;
-    const item = this.actor.items.get(itemId);
-    if (!item || !item.system.isWeapon) return;
-
-    const chars = this.actor.system.characteristics;
-    const content = `
-      <form class="crows-dialog-form">
-        <div class="form-group">
-          <label for="attack-char"><i class="fas fa-bullseye"></i> Characteristic</label>
-          <select id="attack-char">
-            <option value="strength">Strength (${chars.strength >= 0 ? '+' : ''}${chars.strength})</option>
-            <option value="agility">Agility (${chars.agility >= 0 ? '+' : ''}${chars.agility})</option>
-            <option value="mind">Mind (${chars.mind >= 0 ? '+' : ''}${chars.mind})</option>
-          </select>
-        </div>
-        <div class="form-group circumstance-group">
-          <label class="group-label"><i class="fas fa-balance-scale"></i> Circumstance</label>
-          <div class="radio-list">
-            <label class="radio-option opt-double-edge">
-              <input type="radio" name="circumstance" value="double-edge" />
-              <span class="opt-title">Double Edge</span>
-              <span class="opt-desc">+1 Outcome Tier</span>
-            </label>
-            <label class="radio-option opt-edge">
-              <input type="radio" name="circumstance" value="edge" />
-              <span class="opt-title">Edge</span>
-              <span class="opt-desc">+2 to roll</span>
-            </label>
-            <label class="radio-option opt-standard">
-              <input type="radio" name="circumstance" value="standard" checked />
-              <span class="opt-title">Standard Roll</span>
-              <span class="opt-desc">Normal (2d10)</span>
-            </label>
-            <label class="radio-option opt-bane">
-              <input type="radio" name="circumstance" value="bane" />
-              <span class="opt-title">Bane</span>
-              <span class="opt-desc">-2 to roll</span>
-            </label>
-            <label class="radio-option opt-double-bane">
-              <input type="radio" name="circumstance" value="double-bane" />
-              <span class="opt-title">Double Bane</span>
-              <span class="opt-desc">-1 Outcome Tier</span>
-            </label>
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="attack-mod"><i class="fas fa-sliders-h"></i> Situational Modifier</label>
-          <input type="number" id="attack-mod" value="0" />
-        </div>
-      </form>
-    `;
-
-    new Dialog({
-      title: `Attack: ${item.name}`,
-      content: content,
-      buttons: {
-        roll: {
-          icon: '<i class="fas fa-swords"></i>',
-          label: "Attack",
-          callback: async (html) => {
-            const charKey = html.find("#attack-char").val();
-            const charBonus = chars[charKey] || 0;
-            const circumstance = html.find('input[name="circumstance"]:checked').val() || "standard";
-            const sitMod = parseInt(html.find("#attack-mod").val(), 10) || 0;
-
-            let formula = "2d10";
-            let rollBonus = charBonus + sitMod;
-            if (circumstance === "edge") rollBonus += 2;
-            else if (circumstance === "bane") rollBonus -= 2;
-
-            if (rollBonus >= 0) formula += ` + ${rollBonus}`;
-            else formula += ` - ${Math.abs(rollBonus)}`;
-
-            const roll = new Roll(formula);
-            await roll.evaluate();
-
-            const natural = (roll.dice[0]?.results[0]?.result || 0) + (roll.dice[0]?.results[1]?.result || 0);
-            const total = roll.total;
-
-            let baseTier = 1;
-            if (total >= 17) baseTier = 3;
-            else if (total >= 12) baseTier = 2;
-            else baseTier = 1;
-
-            let tier = baseTier;
-            if (circumstance === "double-edge") tier = Math.min(3, tier + 1);
-            else if (circumstance === "double-bane") tier = Math.max(1, tier - 1);
-
-            let isCrit = natural === 19 || natural === 20;
-            let isDoom = natural === 2 || natural === 3;
-
-            let tierTitle = `Tier ${tier}`;
-            let tierClass = "failure";
-            let damageDesc = "No Damage";
-
-            if (isCrit) {
-              tier = 3;
-              tierTitle = "CRITICAL HIT! (Tier 3)";
-              tierClass = "crit";
-              damageDesc = this.actor.evaluateWeaponDamage(item.system.weapon?.tier3Damage, charKey) || "Full Damage";
-            } else if (isDoom) {
-              tier = 1;
-              tierTitle = "DOOM! (Critical Failure)";
-              tierClass = "doom";
-              damageDesc = "Disaster strikes!";
-            } else if (tier === 3) {
-              tierTitle = "Tier 3 (Strong Hit)";
-              tierClass = "crit";
-              damageDesc = this.actor.evaluateWeaponDamage(item.system.weapon?.tier3Damage, charKey) || "Tier 3 Damage";
-            } else if (tier === 2) {
-              tierTitle = "Tier 2 (Mixed Hit)";
-              tierClass = "success";
-              damageDesc = this.actor.evaluateWeaponDamage(item.system.weapon?.tier2Damage, charKey) || "Tier 2 Damage";
-            } else {
-              tierTitle = "Tier 1 (Miss / Setback)";
-              tierClass = "failure";
-              damageDesc = "No Damage";
-            }
-
-            const canApplyExpertise = tier < 3 && !isDoom;
-
-            // Target Detection & Damage calculation for chat card
-            let numericDamage = 0;
-            if (tier >= 2 && !isDoom) {
-              const rawDmg = (tier === 3 || isCrit)
-                ? (item.system.weapon?.tier3Damage || "")
-                : (item.system.weapon?.tier2Damage || "");
-              numericDamage = this.actor.extractDamageNumber(rawDmg, charKey);
-            }
-
-            const targets = Array.from(game.user.targets || []);
-            let targetDamageButtons = "";
-            if (numericDamage > 0) {
-              if (targets.length > 0) {
-                targetDamageButtons = targets.map(t => `
-                  <button type="button" class="crows-apply-damage-btn btn-chat-damage" data-target-actor-id="${t.actor?.id || ''}" data-target-token-id="${t.id}" data-damage-amount="${numericDamage}">
-                    <i class="fas fa-shield-virus"></i> Apply ${numericDamage} Damage to ${t.name}
-                  </button>
-                `).join("");
-              } else {
-                targetDamageButtons = `
-                  <button type="button" class="crows-apply-damage-btn btn-chat-damage" data-damage-amount="${numericDamage}">
-                    <i class="fas fa-shield-virus"></i> Apply ${numericDamage} Damage to Target
-                  </button>
-                `;
-              }
-            }
-
-            const cardHtml = `
-              <div class="crows-roll-card">
-                <div class="card-header weapon">
-                  <i class="fas fa-crosshairs"></i> ${item.name} (${charKey.capitalize()})
-                </div>
-                <div class="card-body">
-                  <div class="dice-roll-total">Roll: <strong>${total}</strong> <span class="formula">(${roll.result})</span></div>
-                  <div class="outcome ${tierClass}">${tierTitle}</div>
-                  <div class="damage-block">
-                    <strong>Damage / Effect:</strong> ${damageDesc}
-                  </div>
-                  <div class="weapon-meta">
-                    <span><b>Range:</b> ${item.system.weapon?.range || "Melee 1"}</span>
-                    ${item.system.traits ? `<span><b>Traits:</b> ${item.system.traits}</span>` : ""}
-                  </div>
-                  <div class="crows-chat-actions flexcol" style="margin-top: 8px; gap: 4px;">
-                    ${canApplyExpertise ? `
-                      <button type="button" class="crows-apply-expertise-btn" data-actor-id="${this.actor.id}" data-current-tier="${tier}" data-item-id="${item.id}" data-char-key="${charKey}">
-                        <i class="fas fa-feather-alt"></i> Apply Expertise (+1 Tier)
-                      </button>
-                    ` : ''}
-                    ${targetDamageButtons}
-                  </div>
-                </div>
-              </div>
-            `;
-
-            await roll.toMessage({
-              speaker: ChatMessage.getSpeaker({ actor: this.actor }),
-              flavor: `Attacking with ${item.name}`,
-              content: cardHtml
-            });
-          }
-        },
-        cancel: {
-          label: "Cancel"
-        }
-      },
-      default: "roll"
-    }).render(true);
+    return showWeaponAttackDialog(this.actor, this.actor.items.get(event.currentTarget.dataset.itemId));
   }
 
   async _onRollCharacteristic(event) {
@@ -965,41 +785,16 @@ export class CrowsActorSheet extends ActorSheet {
             const circumstance = html.find('input[name="circumstance"]:checked').val() || "standard";
             const flatMod = parseInt(html.find("#char-flat-mod").val(), 10) || 0;
 
-            let formula = "2d10";
-            let rollBonus = charBonus + flatMod;
-            if (circumstance === "edge") rollBonus += 2;
-            else if (circumstance === "bane") rollBonus -= 2;
-
-            if (rollBonus >= 0) formula += ` + ${rollBonus}`;
-            else formula += ` - ${Math.abs(rollBonus)}`;
-
-            const roll = new Roll(formula);
-            await roll.evaluate();
-
-            const natural = (roll.dice[0]?.results[0]?.result || 0) + (roll.dice[0]?.results[1]?.result || 0);
-            const total = roll.total;
-
-            let baseTier = 1;
-            if (total >= 17) baseTier = 3;
-            else if (total >= 12) baseTier = 2;
-            else baseTier = 1;
-
-            let finalTier = baseTier;
-            if (circumstance === "double-edge") finalTier = Math.min(3, finalTier + 1);
-            else if (circumstance === "double-bane") finalTier = Math.max(1, finalTier - 1);
-
-            let isCrit = natural === 19 || natural === 20;
-            let isDoom = natural === 2 || natural === 3;
+            const { roll, total, tier: finalTier, isCrit, isDoom } =
+              await rollPowerRoll({ modifier: charBonus + flatMod, circumstance });
 
             let tierTitle = `Tier ${finalTier}`;
             let tierClass = "failure";
 
             if (isCrit) {
-              finalTier = 3;
               tierTitle = "CRITICAL SUCCESS! (Tier 3)";
               tierClass = "crit";
             } else if (isDoom) {
-              finalTier = 1;
               tierTitle = "DOOM! (Automatic Tier 1 Failure)";
               tierClass = "doom";
             } else if (finalTier === 3) {
@@ -1013,31 +808,17 @@ export class CrowsActorSheet extends ActorSheet {
               tierClass = "failure";
             }
 
-            const canApplyExpertise = finalTier < 3 && !isDoom;
-
-            const cardHtml = `
-              <div class="crows-roll-card">
-                <div class="card-header">
-                  <i class="fas fa-dice-d20"></i> ${charLabel} Test (${circumstance.toUpperCase()})
-                </div>
-                <div class="card-body">
-                  <div class="dice-roll-total">Result: <strong>${total}</strong> <span class="formula">(${roll.result})</span></div>
-                  <div class="outcome ${tierClass}">${tierTitle}</div>
-                  ${canApplyExpertise ? `
-                    <div class="crows-chat-actions" style="margin-top: 8px;">
-                      <button type="button" class="crows-apply-expertise-btn" data-actor-id="${this.actor.id}" data-current-tier="${finalTier}">
-                        <i class="fas fa-feather-alt"></i> Apply Expertise (+1 Tier)
-                      </button>
-                    </div>
-                  ` : ''}
-                </div>
-              </div>
-            `;
+            const state = createRollState(this.actor, { kind: "test", title: `${charLabel} Test (${circumstance})`,
+              tier: finalTier, isDoom, total, formula: roll.result,
+              outcomes: Object.fromEntries([1, 2, 3].map(t => [t, { tierTitle: ["", "Tier 1: Failure / Setback", "Tier 2: Partial / Cost Success", "Tier 3: Superior Success"][t],
+                tierClass: t === 3 ? "crit" : t === 2 ? "success" : "failure" }])),
+              special: isCrit || isDoom ? { tierTitle, tierClass } : null });
 
             await roll.toMessage({
               speaker: ChatMessage.getSpeaker({ actor: this.actor }),
               flavor: `Testing ${charLabel}`,
-              content: cardHtml
+              flags: rollFlags(state),
+              content: renderRollState(state)
             });
           }
         },
@@ -1278,38 +1059,17 @@ export class CrowsActorSheet extends ActorSheet {
             const modifier = parseInt(html.find('input[name="modifier"]').val(), 10) || 0;
             const netMod = mindBonus - cruelty + modifier;
 
-            let formula = "2d10";
-            if (netMod > 0) formula += ` + ${netMod}`;
-            else if (netMod < 0) formula += ` - ${Math.abs(netMod)}`;
-
-            const roll = new Roll(formula);
-            await roll.evaluate();
-
-            const natural = (roll.dice[0]?.results[0]?.result || 0) + (roll.dice[0]?.results[1]?.result || 0);
-            const total = roll.total;
-
-            let baseTier = 1;
-            if (total >= 17) baseTier = 3;
-            else if (total >= 12) baseTier = 2;
-            else baseTier = 1;
-
-            let tier = baseTier;
-            if (circumstance === "double-edge") tier = Math.min(3, tier + 1);
-            else if (circumstance === "double-bane") tier = Math.max(1, tier - 1);
-
-            let isCrit = natural === 19 || natural === 20;
-            let isDoom = natural === 2 || natural === 3;
+            const { roll, total, tier, isCrit, isDoom } =
+              await rollPowerRoll({ modifier: netMod, circumstance });
 
             let tierTitle = `Tier ${tier}`;
             let tierClass = "failure";
             let outcomeText = "";
 
             if (isCrit) {
-              tier = 3;
               tierTitle = "CRITICAL RESISTANCE! (Tier 3)";
               tierClass = "crit";
             } else if (isDoom) {
-              tier = 1;
               tierTitle = "DOOM! (Critical Failure)";
               tierClass = "doom";
             } else if (tier === 3) {
@@ -1331,47 +1091,19 @@ export class CrowsActorSheet extends ActorSheet {
               outcomeText = "You gain 1 level of cruelty and must roll on the Miasma Effects table.";
             }
 
-            const canApplyExpertise = tier < 3 && !isDoom;
-
-            const cardHtml = `
-              <div class="crows-roll-card miasma-roll-card">
-                <div class="card-header miasma" style="background: linear-gradient(135deg, #3b0764, #1e1b4b); color: #f3e8ff; border-bottom: 1px solid rgba(147, 51, 234, 0.4);">
-                  <i class="fas fa-smog"></i> Miasma Resistance Test (Mind)
-                </div>
-                <div class="card-body">
-                  <div class="dice-roll-total">Roll: <strong>${total}</strong> <span class="formula">(${roll.result})</span></div>
-                  <div class="outcome ${tierClass}">${tierTitle}</div>
-                  <div class="damage-block" style="font-size: 0.85rem; line-height: 1.45; color: #e2e8f0; margin: 8px 0;">
-                    <strong>Outcome:</strong> ${outcomeText}
-                  </div>
-                  <div class="weapon-meta" style="font-size: 0.75rem; color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 4px;">
-                    <span><b>Mind:</b> +${mindBonus}</span> | <span><b>Cruelty:</b> -${cruelty}</span>
-                  </div>
-                  <div class="crows-chat-actions" style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;">
-                    ${tier === 1 ? `
-                      <button type="button" class="crows-miasma-gain-cruelty-btn" data-actor-id="${this.actor.id}" style="background: linear-gradient(135deg, #7f1d1d, #450a0a); border: 1px solid #dc2626; color: #fee2e2; padding: 6px; border-radius: 4px; font-weight: 700; cursor: pointer;">
-                        <i class="fas fa-skull"></i> Gain +1 Cruelty & Roll Miasma Effect
-                      </button>
-                    ` : ''}
-                    ${tier === 3 && cruelty > 0 ? `
-                      <button type="button" class="crows-miasma-clear-cruelty-btn" data-actor-id="${this.actor.id}" style="background: linear-gradient(135deg, #14532d, #052e16); border: 1px solid #16a34a; color: #dcfce7; padding: 6px; border-radius: 4px; font-weight: 700; cursor: pointer;">
-                        <i class="fas fa-sun"></i> Purge All Cruelty (Reset to 0)
-                      </button>
-                    ` : ''}
-                    ${canApplyExpertise ? `
-                      <button type="button" class="crows-apply-expertise-btn" data-actor-id="${this.actor.id}" data-current-tier="${tier}">
-                        <i class="fas fa-feather-alt"></i> Apply Expertise (+1 Tier)
-                      </button>
-                    ` : ''}
-                  </div>
-                </div>
-              </div>
-            `;
+            const state = createRollState(this.actor, { kind: "miasma", title: "Miasma Resistance Test (Mind)",
+              tier, isDoom, total, formula: roll.result, meta: `Mind: ${mindBonus} | Cruelty: ${cruelty}`,
+              outcomes: {
+                1: { tierTitle: "Tier 1: Corrupted", tierClass: "failure", damageDesc: "You gain 1 level of cruelty and must roll on the Miasma Effects table." },
+                2: { tierTitle: "Tier 2: Withstood", tierClass: "success", damageDesc: "You withstand the creeping corruption. No effect." },
+                3: { tierTitle: "Tier 3: Purged / Aided", tierClass: "crit", damageDesc: "Remove all cruelty, OR improve the test result of one other human who rested with you by a tier." }
+              }, special: isCrit || isDoom ? { tierTitle, tierClass, damageDesc: outcomeText } : null });
 
             await roll.toMessage({
               speaker: ChatMessage.getSpeaker({ actor: this.actor }),
               flavor: `${this.actor.name} made a Miasma Resistance Test`,
-              content: cardHtml
+              flags: rollFlags(state),
+              content: renderRollState(state)
             });
           }
         },
@@ -1466,67 +1198,33 @@ export class CrowsActorSheet extends ActorSheet {
   async _onDropItem(event, data) {
     if (!this.actor.isOwner) return false;
     const item = await Item.implementation.fromDropData(data);
+    if (!item) return false;
+
+    // Drop destination: a slot card, a tray (ground/stash), or nothing in particular
+    const slotElement = event.target.closest("[data-slot]");
+    const listElement = event.target.closest("[data-list]");
+    const targetSlot = slotElement?.dataset.slot ?? listElement?.dataset.list ?? null;
+
+    // Rearranging within this sheet: move the item and relocate anything it displaces
+    if (item.parent?.uuid === this.actor.uuid) {
+      if (!targetSlot || item.type !== "equipment" || item.system.location === targetSlot) return false;
+      return CrowsLoot.placeItem(this.actor, item, targetSlot);
+    }
+
+    // From another actor, loot token, or container: a transfer (create here, delete there)
+    if (item.parent) {
+      if (item.type !== "equipment") return this._onDropItemCreate(item.toObject());
+      return CrowsLoot.transfer(item, this.actor, { location: targetSlot });
+    }
+
+    // From a compendium or the sidebar: a fresh copy in the first slot that fits
     const itemData = item.toObject();
-    const sourceActor = item.actor;
-
-    // Find drop destination slot
-    const slotElement = event.target.closest('[data-slot]');
-    let targetSlot = null;
-    if (slotElement) {
-      targetSlot = slotElement.dataset.slot;
-    } else {
-      const listElement = event.target.closest('[data-list]');
-      if (listElement) {
-        targetSlot = listElement.dataset.list;
-      }
+    if (item.type === "equipment") {
+      const count = Math.max(1, Number(itemData.system?.slots) || 1);
+      const loc = (targetSlot && CrowsLoot.fits(this.actor, targetSlot, count)) ? targetSlot : CrowsLoot.findFreeSlot(this.actor, count);
+      foundry.utils.setProperty(itemData, "system.location", loc);
     }
-
-    if (!targetSlot) return super._onDropItem(event, data);
-
-    const slotCount = Math.max(1, parseInt(item.system?.slots ?? itemData.system?.slots, 10) || 1);
-
-    // If dropping into backpack, ensure multi-slot item fits within slots 1–10
-    if (targetSlot.startsWith("backpack")) {
-      const startNum = parseInt(targetSlot.replace("backpack", ""), 10);
-      if (startNum + slotCount - 1 > 10) {
-        ui.notifications.warn(`"${item.name}" takes ${slotCount} slots and will not fit starting at Slot ${startNum} (max Slot 10).`);
-        return false;
-      }
-    }
-
-    // If item belongs to the same actor
-    if (this.actor.uuid === item.parent?.uuid) {
-      if (item.system.location !== targetSlot) {
-        const updates = [];
-
-        // If target slot is already occupied (and not a list like ground/stash), swap them
-        if (targetSlot !== 'ground' && targetSlot !== 'stash') {
-          const existingItem = this.actor.items.find(i => i.system.location === targetSlot);
-          if (existingItem && existingItem.id !== item.id) {
-            updates.push({ _id: existingItem.id, "system.location": item.system.location });
-          }
-        }
-
-        updates.push({ _id: item.id, "system.location": targetSlot });
-        return this.actor.updateEmbeddedDocuments("Item", updates);
-      }
-      return super._onDropItem(event, data);
-    }
-
-    // Dropped from external actor or loot container / floor token
-    foundry.utils.setProperty(itemData, "system.location", targetSlot);
-    const created = await this._onDropItemCreate(itemData);
-
-    // If taken from a loot actor or token on the map, remove it from the source
-    if (sourceActor && sourceActor.type === "loot") {
-      await item.delete();
-      // If the source loot container is now empty and was an unlinked token, delete it
-      if (sourceActor.items.size === 0 && sourceActor.isToken) {
-        await sourceActor.token.delete();
-      }
-    }
-
-    return created;
+    return this._onDropItemCreate(itemData);
   }
 
   async _onOpenADManagerDialog(event) {

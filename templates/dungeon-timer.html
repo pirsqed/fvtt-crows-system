@@ -15,7 +15,7 @@
 
   <!-- Body Content -->
   <div class="hourglass-body flexcol">
-    
+
     <!-- Greed Bonus Banner -->
     <div class="greed-banner {{#if greedBonus}}active{{/if}}">
       {{#if greedBonus}}
@@ -82,29 +82,25 @@
 
         <!-- TOP BULB SAND (Drains from top to bottom) -->
         <g clip-path="url(#top-bulb-clip)">
-          <rect class="sand-top-level" x="15" y="{{topSandY}}" width="70" height="70" 
+          <rect class="sand-top-level" x="15" y="{{topSandY}}" width="70" height="70"
                 fill="{{#if isUrgent}}url(#crows-sand-crimson){{else}}url(#crows-sand-gold){{/if}}"/>
         </g>
 
         <!-- FALLING SAND TRICKLE (Active stream when running) -->
-        {{#if isRunning}}
-        <line x1="50" y1="76" x2="50" y2="135" 
-              class="sand-stream {{#if isUrgent}}urgent{{/if}}" 
-              stroke="{{#if isUrgent}}#ef4444{{else}}#fde047{{/if}}" 
-              stroke-width="2.5" 
+        <line x1="50" y1="76" x2="50" y2="135"
+              style="{{#unless isRunning}}display:none{{/unless}}" class="sand-stream {{#if isUrgent}}urgent{{/if}}"
+              stroke="{{#if isUrgent}}#ef4444{{else}}#fde047{{/if}}"
+              stroke-width="2.5"
               stroke-dasharray="4,2"/>
-        {{/if}}
 
         <!-- BOTTOM BULB SAND (Mounds up from bottom) -->
         <g clip-path="url(#bottom-bulb-clip)">
           <!-- Rising sand block -->
-          <rect class="sand-bottom-level" x="15" y="{{bottomSandY}}" width="70" height="70" 
+          <rect class="sand-bottom-level" x="15" y="{{bottomSandY}}" width="70" height="70"
                 fill="{{#if isUrgent}}url(#crows-sand-crimson){{else}}url(#crows-sand-gold){{/if}}"/>
           <!-- Dynamic Sand Cone Mound -->
-          {{#if hasBottomSand}}
-          <ellipse cx="50" cy="{{bottomSandY}}" rx="{{bottomSandWidth}}" ry="5" 
+          <ellipse class="sand-mound" style="{{#unless hasBottomSand}}display:none{{/unless}}" cx="50" cy="{{bottomSandY}}" rx="{{bottomSandWidth}}" ry="5"
                    fill="{{#if isUrgent}}#f87171{{else}}#fef08a{{/if}}"/>
-          {{/if}}
         </g>
 
         <!-- Glass Reflections & Glare Arcs -->

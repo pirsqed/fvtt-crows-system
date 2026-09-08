@@ -2,6 +2,7 @@
 packs/*.json
 assets/monsters/
 tools/out/
+tools/.venv/
 
 __pycache__/
 *.pyc

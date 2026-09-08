@@ -1,100 +1,132 @@
 <form class="{{cssClass}} flexcol crows-loot-sheet" autocomplete="off">
   <header class="sheet-header flexrow">
-    <img class="profile-img" src="{{actor.img}}" data-edit="img" title="{{actor.name}}"/>
+    <img class="profile-img" src="{{actor.img}}" {{#if editable}}data-edit="img"{{/if}} title="{{actor.name}}"/>
     <div class="header-fields flexcol">
+      {{#if editable}}
       <h1 class="charname"><input name="name" type="text" value="{{actor.name}}" placeholder="Container Name"/></h1>
-      
+      {{else}}
+      <h1 class="charname"><span class="charname-static">{{actor.name}}</span></h1>
+      {{/if}}
+
       <div class="container-props-row flexrow">
         <div class="prop-group flexrow">
           <label><i class="fas fa-box"></i> Type</label>
+          {{#if editable}}
           <select name="system.containerType">
             <option value="chest" {{#if (eq system.containerType "chest")}}selected{{/if}}>Treasure Chest</option>
             <option value="corpse" {{#if (eq system.containerType "corpse")}}selected{{/if}}>Slain Corpse</option>
             <option value="dropped_pack" {{#if (eq system.containerType "dropped_pack")}}selected{{/if}}>Dropped Backpack</option>
             <option value="stash" {{#if (eq system.containerType "stash")}}selected{{/if}}>Camp Stash</option>
-            <option value="generic" {{#if (eq system.containerType "generic")}}selected{{/if}}>Generic Container</option>
+            <option value="generic" {{#if (eq system.containerType "generic")}}selected{{/if}}>Ground Loot</option>
           </select>
+          {{else}}
+          <span class="prop-static">{{typeLabel}}</span>
+          {{/if}}
         </div>
 
         <div class="prop-group flexrow coins-group">
           <label><i class="fas fa-coins"></i> Coins</label>
+          {{#if editable}}
           <input type="text" name="system.coins" value="{{system.coins}}" data-dtype="Number" placeholder="0" />
+          {{else}}
+          <span class="prop-static">{{system.coins}}</span>
+          {{/if}}
           <span class="unit">gc</span>
+          {{#if hasCoins}}{{#unless lockedForViewer}}
+          <button type="button" class="btn-take-coins player-action" title="Take all coins"><i class="fas fa-hand-holding-usd"></i> Take</button>
+          {{/unless}}{{/if}}
         </div>
 
         <div class="prop-group flexrow lock-group">
-          <label><input type="checkbox" name="system.locked" {{checked system.locked}} /> <i class="fas fa-lock"></i> Locked</label>
+          {{#if isGM}}
+          <button type="button" class="btn-toggle-lock {{#if isLocked}}locked{{/if}}" title="{{#if isLocked}}Click to unlock{{else}}Click to lock{{/if}} (Ref only)">
+            <i class="fas {{#if isLocked}}fa-lock{{else}}fa-lock-open{{/if}}"></i> {{#if isLocked}}Locked{{else}}Unlocked{{/if}}
+          </button>
+          {{else}}
+          <span class="lock-state {{#if isLocked}}locked{{/if}}"><i class="fas {{#if isLocked}}fa-lock{{else}}fa-lock-open{{/if}}"></i> {{#if isLocked}}Locked{{else}}Unlocked{{/if}}</span>
+          {{/if}}
         </div>
       </div>
     </div>
   </header>
 
-  <!-- Loot Action Bar -->
+  {{#if lockedForViewer}}
+  <section class="sheet-body flexcol">
+    <div class="loot-locked-panel flexcol">
+      <i class="fas fa-lock locked-icon"></i>
+      <h3>{{actor.name}} is locked.</h3>
+      <p>Acting as <strong>{{#if actingName}}{{actingName}}{{else}}no one (select your token){{/if}}</strong>.
+        Picking a lock without a lockpick set takes a bane. Tier 3 opens it; tier 2 is the Ref's call.</p>
+      <div class="flexrow lock-actions">
+        <button type="button" class="btn-pick-lock player-action"><i class="fas fa-key"></i> Pick the Lock (Agility)</button>
+        <button type="button" class="btn-force-open player-action"><i class="fas fa-hammer"></i> Force It Open (Strength)</button>
+      </div>
+    </div>
+  </section>
+  {{else}}
   <div class="loot-action-bar flexrow flex-between">
     <div class="actions-left flexrow">
-      <button type="button" class="btn-scatter" title="Scatter all items across the floor grid around this container!">
-        <i class="fas fa-meteor"></i> Scatter onto Map
+      <button type="button" class="btn-take-all player-action" title="Take every item and all coins into your character's inventory" {{#if isEmpty}}disabled data-stay-disabled="true"{{/if}}>
+        <i class="fas fa-hand-holding"></i> Take Everything
       </button>
-      <button type="button" class="btn-take-all" title="Loot all items and coins into your selected character's inventory!">
-        <i class="fas fa-hand-holding"></i> Take All
-      </button>
+      {{#if editable}}
+      <button type="button" class="btn-scatter" title="Scatter the contents across the floor around this container"><i class="fas fa-meteor"></i> Scatter</button>
+      {{/if}}
     </div>
     <div class="actions-right flexrow">
-      <a class="item-create btn-add-item" title="Add Item"><i class="fas fa-plus"></i> Add Item</a>
+      <span class="acting-as" title="Items go to this character">
+        {{#if actingName}}<i class="fas fa-user"></i> {{actingName}}{{#unless inReach}} <em class="out-of-reach">(out of reach)</em>{{/unless}}{{else}}<em>Select your token to take loot</em>{{/if}}
+      </span>
+      {{#if editable}}
+      <a class="item-create btn-add-item" title="Add Item"><i class="fas fa-plus"></i> Add</a>
+      {{/if}}
     </div>
   </div>
 
-  <!-- Container Items List -->
   <section class="sheet-body flexcol">
     <div class="loot-items-container flexcol">
       <ul class="loot-item-list">
         {{#each items as |item|}}
-        <li class="item loot-item flexrow" data-item-id="{{item._id}}">
+        <li class="item loot-item flexrow" data-item-id="{{item._id}}" draggable="true">
           <div class="thumb-container">
             <img class="item-thumb" src="{{item.img}}" />
             {{#if (gt item.system.greedBonus 0)}}
-            <div class="greed-sticker mini {{item.greedTier}} item-greed-sticker" data-item-id="{{item._id}}" title="+{{item.system.greedBonus}}% {{item.greedTierLabel}} Greed Bonus! (Click to cycle)">
-              <div class="sticker-inner">
-                <span class="sticker-val">+{{item.system.greedBonus}}%</span>
-              </div>
+            <div class="greed-sticker mini {{item.greedTier}} item-greed-sticker" data-item-id="{{item._id}}" title="+{{item.system.greedBonus}}% {{item.greedTierLabel}} Greed Bonus">
+              <div class="sticker-inner"><span class="sticker-val">+{{item.system.greedBonus}}%</span></div>
             </div>
             {{/if}}
           </div>
           <div class="item-details flexcol">
             <div class="item-title flexrow">
               <span class="name">{{item.name}}</span>
-              {{#if (gt item.system.quantity 1)}}
-              <span class="qty-tag">x{{item.system.quantity}}</span>
-              {{/if}}
+              {{#if (gt item.system.quantity 1)}}<span class="qty-tag">x{{item.system.quantity}}</span>{{/if}}
+              {{#if (gt item.system.slots 1)}}<span class="qty-tag" title="Inventory slots">{{item.system.slots}} slots</span>{{/if}}
               {{#if item.system.cost}}
-              {{#if (gt item.system.greedBonus 0)}}
-              <span class="cost-tag greed-boosted" title="Base: {{item.system.cost}} gc + {{item.greedBonusGc}} gc (+{{item.system.greedBonus}}% {{item.greedTierLabel}} Greed)">
-                {{item.effectiveCost}} gc <small>(+{{item.system.greedBonus}}%)</small>
-              </span>
-              {{else}}
-              <span class="cost-tag">{{item.system.cost}} gc</span>
-              {{/if}}
+                {{#if (gt item.system.greedBonus 0)}}
+                <span class="cost-tag greed-boosted" title="Base {{item.system.cost}} gc + {{item.greedBonusGc}} gc greed bonus">{{item.effectiveCost}} gc <small>(+{{item.system.greedBonus}}%)</small></span>
+                {{else}}
+                <span class="cost-tag">{{item.system.cost}} gc</span>
+                {{/if}}
               {{/if}}
             </div>
-            {{#if item.system.traits}}
-            <div class="item-traits">{{item.system.traits}}</div>
-            {{/if}}
+            {{#if item.system.traits}}<div class="item-traits">{{item.system.traits}}</div>{{/if}}
           </div>
           <div class="item-actions flexrow">
-            <button type="button" class="btn-take item-take" title="Take into your character's inventory">
-              <i class="fas fa-hand-sparkles"></i> Take
-            </button>
+            <button type="button" class="btn-take item-take player-action" title="Take into your character's inventory"><i class="fas fa-hand-sparkles"></i> Take</button>
+            {{#if ../editable}}
             <a class="item-edit" title="Edit Item"><i class="fas fa-edit"></i></a>
             <a class="item-delete" title="Delete Item"><i class="fas fa-trash"></i></a>
+            {{/if}}
           </div>
         </li>
         {{else}}
         <li class="empty-loot-notice flexcol flex-center">
           <i class="fas fa-box-open empty-icon"></i>
-          <span>Container is completely empty. Drag items here or add new items.</span>
+          <span>{{#if hasCoins}}Only coins here.{{else}}Nothing here.{{/if}}{{#if editable}} Drag items in or click Add.{{/if}}</span>
         </li>
         {{/each}}
       </ul>
     </div>
   </section>
+  {{/if}}
 </form>

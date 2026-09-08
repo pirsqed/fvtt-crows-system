@@ -42,7 +42,7 @@
       "trait": {}
     }
   },
-  "socket": false,
+  "socket": true,
   "initiative": "2d10",
   "license": "LICENSE"
 }

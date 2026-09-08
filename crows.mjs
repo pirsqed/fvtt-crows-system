@@ -1,3 +1,5 @@
+import { CrowsContentImport, IMPORT_PACKS } from "./module/import-content.mjs";
+import { CrowsChatActions } from "./module/chat-actions.mjs";
 import { CrowDataModel, EquipmentDataModel, MonsterDataModel, LootDataModel, AttackDataModel, TraitDataModel } from "./module/data-models.mjs";
 import { CrowsActor, CrowsItem } from "./module/documents.mjs";
 import { CrowsActorSheet, EXPERTISES_CONFIG } from "./module/sheets/actor-sheet.mjs";
@@ -5,6 +7,7 @@ import { CrowsMonsterSheet } from "./module/sheets/monster-sheet.mjs";
 import { CrowsLootSheet } from "./module/sheets/loot-sheet.mjs";
 import { CrowsItemSheet } from "./module/sheets/item-sheet.mjs";
 import { CrowsLoot } from "./module/loot.mjs";
+import { CrowsLootDrag } from "./module/loot-drag.mjs";
 import { CrowsDungeonTimer } from "./module/apps/dungeon-timer.mjs";
 import { CrowsImporter } from "./module/apps/importer.mjs";
 
@@ -57,6 +60,9 @@ Hooks.once("init", () => {
       }
     }
   });
+
+  // Ground loot settings (reach, chat announcements)
+  CrowsLoot.registerSettings();
 
   // GM menu: import the locally generated playtest content
   game.settings.registerMenu("fvtt-crows-system", "importer", {
@@ -127,174 +133,26 @@ Hooks.once("init", () => {
 
 // Register Canvas Drop Hook for Ground Loot
 Hooks.on("dropCanvasData", (canvas, data) => {
-  return CrowsLoot.onDropCanvasData(canvas, data);
+  if (data.type !== "Item") return;
+  CrowsLoot.onDropCanvasData(canvas, data).catch(err => {
+    console.error("Crows | Item drop failed", err);
+    ui.notifications.error("Could not move the item.");
+  });
+  return false;
 });
+Hooks.on("canvasReady", () => CrowsLootDrag.start());
+Hooks.on("canvasTearDown", () => CrowsLootDrag.stop());
+
+// New loot containers are visible to players by default (the lock, not permissions, guards contents)
+Hooks.on("preCreateActor", (doc, data) => CrowsLoot.onPreCreateActor(doc, data));
 
 // Interactive Chat Handler: Apply Expertise Post-Roll
 Hooks.on("renderChatMessage", (message, html, data) => {
-  html.find(".crows-apply-expertise-btn").click(async (ev) => {
-    ev.preventDefault();
-    const btn = $(ev.currentTarget);
-    const actorId = btn.data("actorId");
-    const actor = game.actors.get(actorId) || (message.speaker?.token ? canvas.tokens.get(message.speaker.token)?.actor : null);
-    if (!actor) {
-      ui.notifications.error("Actor could not be found for this roll.");
-      return;
-    }
-
-    if (!actor.isOwner && !game.user.isGM) {
-      ui.notifications.warn("You do not have permission to apply expertises for this actor.");
-      return;
-    }
-
-    const expertises = actor.system.expertises || {};
-    const allConfig = [...EXPERTISES_CONFIG.general, ...EXPERTISES_CONFIG.spellcasting, ...EXPERTISES_CONFIG.weapon];
-    const available = [];
-
-    for (const conf of allConfig) {
-      const exp = expertises[conf.key];
-      if (exp && typeof exp === "object" && Number(exp.value) > 0) {
-        available.push({
-          key: conf.key,
-          label: conf.label,
-          hint: conf.hint,
-          value: Number(exp.value),
-          max: Number(exp.max)
-        });
-      }
-    }
-
-    if (available.length === 0) {
-      ui.notifications.warn(`${actor.name} has no remaining expertise uses!`);
-      return;
-    }
-
-    const currentTier = parseInt(btn.data("currentTier"), 10) || 1;
-    if (currentTier >= 3) {
-      ui.notifications.info("This test is already at the maximum result of Tier 3.");
-      return;
-    }
-
-    const nextTier = currentTier + 1;
-    let nextTierName = `Tier ${nextTier}: Full Success`;
-    if (nextTier === 2) nextTierName = "Tier 2: Partial / Cost Success";
-    else if (nextTier === 3) nextTierName = "Tier 3: Superior Success";
-
-    const optionsHtml = available.map(a => `<option value="${a.key}">${a.label} (${a.value}/${a.max} uses) — ${a.hint}</option>`).join("");
-
-    new Dialog({
-      title: `Apply Expertise: +1 Tier`,
-      content: `
-        <form class="crows-dialog-form">
-          <p style="margin-bottom: 8px; font-size: 0.85rem;">
-            Discuss with the Ref to apply an expertise. Spending 1 use upgrades this roll from <strong>Tier ${currentTier}</strong> ➔ <strong>Tier ${nextTier}</strong>.
-          </p>
-          <div class="form-group">
-            <label>Select Expertise:</label>
-            <select id="selected-expertise" style="width: 100%;">
-              ${optionsHtml}
-            </select>
-          </div>
-        </form>
-      `,
-      buttons: {
-        apply: {
-          icon: '<i class="fas fa-arrow-alt-circle-up"></i>',
-          label: `Upgrade to Tier ${nextTier}`,
-          callback: async (dHtml) => {
-            const expKey = dHtml.find("#selected-expertise").val();
-            const expObj = available.find(a => a.key === expKey);
-            const spendRes = await actor.spendExpertise(expKey);
-            if (!spendRes.success) return;
-
-            // Update chat message content
-            const rollCard = $("<div>").html(message.content);
-            const outcomeDiv = rollCard.find(".outcome");
-            
-            outcomeDiv.removeClass("failure mixed doom success crit");
-            outcomeDiv.addClass(nextTier === 3 ? "crit" : "success");
-            outcomeDiv.text(nextTierName);
-
-            // If it's a weapon attack with damage blocks
-            const weaponId = btn.data("itemId");
-            const charKey = btn.data("charKey") || "strength";
-            let newNumericDmg = 0;
-            if (weaponId) {
-              const weapon = actor.items.get(weaponId);
-              if (weapon && weapon.system.isWeapon) {
-                const rawDmg = nextTier === 3 
-                  ? (weapon.system.weapon?.tier3Damage || "Tier 3 Damage")
-                  : (weapon.system.weapon?.tier2Damage || "Tier 2 Damage");
-                const newDmg = actor.evaluateWeaponDamage ? actor.evaluateWeaponDamage(rawDmg, charKey) : rawDmg;
-                rollCard.find(".damage-block").html(`<strong>Damage / Effect:</strong> ${newDmg}`);
-                newNumericDmg = actor.extractDamageNumber ? actor.extractDamageNumber(rawDmg, charKey) : 0;
-              }
-            }
-
-            const expertiseBadgeHtml = `
-              <div class="expertise-applied-tag" style="margin-top: 4px; margin-bottom: 4px; padding: 4px 8px; background: rgba(124, 58, 237, 0.25); border: 1px solid rgba(168, 85, 247, 0.5); border-radius: 4px; font-size: 0.8rem; color: #e9d5ff;">
-                <i class="fas fa-sparkles"></i> <strong>${expObj.label}</strong> applied by ${actor.name} (+1 Tier) &bull; ${spendRes.remaining}/${spendRes.max} uses remaining
-              </div>
-            `;
-
-            let actionsContainer = rollCard.find(".crows-chat-actions");
-            if (actionsContainer.length === 0) {
-              rollCard.find(".card-body").append(`<div class="crows-chat-actions flexcol" style="margin-top: 8px; gap: 4px;"></div>`);
-              actionsContainer = rollCard.find(".crows-chat-actions");
-            }
-
-            // Replace the expertise button with the applied tag
-            actionsContainer.find(".crows-apply-expertise-btn").replaceWith(expertiseBadgeHtml);
-
-            // Update or generate damage buttons
-            const existingDamageBtns = actionsContainer.find(".crows-apply-damage-btn");
-            if (newNumericDmg > 0) {
-              if (existingDamageBtns.length > 0) {
-                existingDamageBtns.each(function() {
-                  const $dmgBtn = $(this);
-                  $dmgBtn.attr("data-damage-amount", newNumericDmg);
-                  const targetActorId = $dmgBtn.data("targetActorId");
-                  const targetTokenId = $dmgBtn.data("targetTokenId");
-                  let targetName = "";
-                  if (targetActorId) targetName = game.actors.get(targetActorId)?.name;
-                  if (!targetName && targetTokenId) targetName = canvas.tokens.get(targetTokenId)?.name;
-
-                  if (targetName) {
-                    $dmgBtn.html(`<i class="fas fa-shield-virus"></i> Apply ${newNumericDmg} Damage to ${targetName}`);
-                  } else {
-                    $dmgBtn.html(`<i class="fas fa-shield-virus"></i> Apply ${newNumericDmg} Damage to Target`);
-                  }
-                });
-              } else {
-                // Generate new button if none existed (e.g. upgraded from Tier 1 Miss)
-                const targets = Array.from(game.user.targets || []);
-                let newBtnsHtml = "";
-                if (targets.length > 0) {
-                  newBtnsHtml = targets.map(t => `
-                    <button type="button" class="crows-apply-damage-btn btn-chat-damage" data-target-actor-id="${t.actor?.id || ''}" data-target-token-id="${t.id}" data-damage-amount="${newNumericDmg}">
-                      <i class="fas fa-shield-virus"></i> Apply ${newNumericDmg} Damage to ${t.name}
-                    </button>
-                  `).join("");
-                } else {
-                  newBtnsHtml = `
-                    <button type="button" class="crows-apply-damage-btn btn-chat-damage" data-damage-amount="${newNumericDmg}">
-                      <i class="fas fa-shield-virus"></i> Apply ${newNumericDmg} Damage to Target
-                    </button>
-                  `;
-                }
-                actionsContainer.append(newBtnsHtml);
-              }
-            }
-
-            await message.update({ content: rollCard.html() });
-          }
-        },
-        cancel: {
-          label: "Cancel"
-        }
-      },
-      default: "apply"
-    }).render(true);
+  CrowsChatActions.bind(message, html);
+  // Historical cards lack trustworthy roll context; leave their text intact and ask for a new roll.
+  html.find(".crows-apply-expertise-btn").click(event => {
+    event.preventDefault();
+    ui.notifications.warn("This older roll has no saved action state. Roll again to apply expertise.");
   });
 
   // Miasma Chat Handler: Gain Cruelty & Trigger Effect Roll
@@ -302,7 +160,7 @@ Hooks.on("renderChatMessage", (message, html, data) => {
     ev.preventDefault();
     const btn = $(ev.currentTarget);
     const actorId = btn.data("actorId");
-    const actor = game.actors.get(actorId) || (message.speaker?.token ? canvas.tokens.get(message.speaker.token)?.actor : null);
+    const actor = (message.speaker?.token ? game.scenes.get(message.speaker.scene)?.tokens.get(message.speaker.token)?.actor : game.actors.get(actorId));
     if (!actor) {
       ui.notifications.error("Actor not found.");
       return;
@@ -327,7 +185,7 @@ Hooks.on("renderChatMessage", (message, html, data) => {
     ev.preventDefault();
     const btn = $(ev.currentTarget);
     const actorId = btn.data("actorId");
-    const actor = game.actors.get(actorId) || (message.speaker?.token ? canvas.tokens.get(message.speaker.token)?.actor : null);
+    const actor = (message.speaker?.token ? game.scenes.get(message.speaker.scene)?.tokens.get(message.speaker.token)?.actor : game.actors.get(actorId));
     if (!actor) {
       ui.notifications.error("Actor not found.");
       return;
@@ -347,7 +205,7 @@ Hooks.on("renderChatMessage", (message, html, data) => {
     ev.preventDefault();
     const btn = $(ev.currentTarget);
     const actorId = btn.data("actorId");
-    const actor = game.actors.get(actorId) || (message.speaker?.token ? canvas.tokens.get(message.speaker.token)?.actor : null);
+    const actor = (message.speaker?.token ? game.scenes.get(message.speaker.scene)?.tokens.get(message.speaker.token)?.actor : game.actors.get(actorId));
     if (!actor) {
       ui.notifications.error("Actor not found.");
       return;
@@ -375,17 +233,11 @@ Hooks.on("renderChatMessage", (message, html, data) => {
     const targetActorId = btn.data("targetActorId");
     const targetTokenId = btn.data("targetTokenId");
 
-    let targetActor = null;
-    if (targetActorId) {
-      targetActor = game.actors.get(targetActorId);
-    }
-    if (!targetActor && targetTokenId) {
-      targetActor = canvas.tokens.get(targetTokenId)?.actor;
-    }
-    if (!targetActor) {
-      // Fallback: Currently targeted token by user, or currently controlled token
-      targetActor = Array.from(game.user.targets)[0]?.actor || canvas.tokens.controlled[0]?.actor;
-    }
+    // Legacy cards: token identity takes precedence and a deleted token never falls back to its base actor.
+    let targetActor = targetTokenId
+      ? game.scenes.get(message.speaker?.scene)?.tokens.get(targetTokenId)?.actor
+      : targetActorId ? game.actors.get(targetActorId)
+      : Array.from(game.user.targets)[0]?.actor || canvas.tokens.controlled[0]?.actor;
 
     if (!targetActor) {
       ui.notifications.warn("No target specified or currently selected. Please target or select a token to apply damage.");
@@ -405,35 +257,20 @@ Hooks.on("renderChatMessage", (message, html, data) => {
   });
 });
 
-async function helperImportCompendium(jsonPath, packName, packLabel, documentType = "Item") {
-  const res = await fetch(jsonPath, { cache: "no-store" });
-  if (!res.ok) {
-    const msg = `${jsonPath.split("/").pop()} is not present. Generate it with tools/build_all.py (see README.md) before importing.`;
-    ui.notifications.error(msg);
-    throw new Error(msg);
-  }
-  const docs = await res.json();
-
-  let pack = game.packs.get(`world.${packName}`);
-  if (!pack) {
-    pack = await CompendiumCollection.createCompendium({
-      label: packLabel,
-      name: packName,
-      type: documentType
-    });
-  } else {
-    const existingDocs = await pack.getDocuments();
-    if (existingDocs.length > 0) {
-      await pack.documentClass.deleteDocuments(existingDocs.map(d => d.id), { pack: pack.collection });
-    }
-  }
-
-  const documentClass = documentType === "Actor" ? Actor : Item;
-  const created = await documentClass.createDocuments(docs, { pack: pack.collection });
-  return created.length;
+async function importContent(packs) {
+  const report = await CrowsContentImport.run(packs);
+  const summary = CrowsContentImport.describe(report);
+  if (report.some(row => row.error)) ui.notifications.error(summary);
+  else ui.notifications.info(summary);
+  return report;
 }
 
 Hooks.once("ready", () => {
+  // Loot transfers requested by players are executed by the active GM's client
+  CrowsLoot.activateSocket();
+  CrowsChatActions.activate([...EXPERTISES_CONFIG.general, ...EXPERTISES_CONFIG.spellcasting, ...EXPERTISES_CONFIG.weapon]);
+  CrowsLoot.migrateLootOwnership();
+
   // Initialize and render the Hourglass Dungeon Turn HUD
   const timerHUD = new CrowsDungeonTimer();
   timerHUD.render(true);
@@ -455,6 +292,7 @@ Hooks.once("ready", () => {
       reset: async () => {
         const state = CrowsDungeonTimer.getState();
         return CrowsDungeonTimer.updateState({
+          resolvingTurn: false,
           remainingSeconds: (state.durationMinutes || 30) * 60,
           isRunning: false
         });
@@ -467,9 +305,10 @@ Hooks.once("ready", () => {
     /**
      * Canvas Ground Loot API
      */
+    loot: CrowsLoot,
     scatterLoot: CrowsLoot.scatterItemsOnCanvas,
     createContainerToken: CrowsLoot.createContainerToken,
-    createItemToken: CrowsLoot.createItemTokenOnCanvas,
+    createLootToken: CrowsLoot.createLootToken,
 
     /**
      * Rolls a d10 Dungeon Encounter Check (Playtest 2 rule)
@@ -544,111 +383,10 @@ Hooks.once("ready", () => {
       });
     },
 
-    /**
-     * Imports Standard Equipment & Spellbooks (Player Accessible)
-     */
-    importEquipment: async () => {
-      if (!game.user.isGM) return ui.notifications.warn("Only the GM can import items.");
-      try {
-        const count = await helperImportCompendium(
-          "systems/fvtt-crows-system/packs/equipment.json",
-          "crows-equipment",
-          "Crows Equipment & Spellbooks"
-        );
-        ui.notifications.info(`Successfully imported ${count} items into "Crows Equipment & Spellbooks"!`);
-      } catch (err) {
-        console.error("Crows | Error importing equipment:", err);
-        ui.notifications.error("Failed to import equipment.");
-      }
-    },
-
-    /**
-     * Imports Dungeon Loot & Relics (GM / Secret Discovery)
-     */
-    importDungeonLoot: async () => {
-      if (!game.user.isGM) return ui.notifications.warn("Only the GM can import items.");
-      try {
-        const count = await helperImportCompendium(
-          "systems/fvtt-crows-system/packs/dungeon-loot.json",
-          "crows-dungeon-loot",
-          "Crows Dungeon Loot & Relics"
-        );
-        ui.notifications.info(`Successfully imported ${count} items into "Crows Dungeon Loot & Relics"!`);
-      } catch (err) {
-        console.error("Crows | Error importing dungeon loot:", err);
-        ui.notifications.error("Failed to import dungeon loot.");
-      }
-    },
-
-    /**
-     * Imports Trait Trees (Player Accessible)
-     */
-    importTraits: async () => {
-      if (!game.user.isGM) return ui.notifications.warn("Only the GM can import items.");
-      try {
-        const count = await helperImportCompendium(
-          "systems/fvtt-crows-system/packs/traits.json",
-          "crows-traits",
-          "Crows Trait Trees"
-        );
-        ui.notifications.info(`Successfully imported ${count} traits into "Crows Trait Trees"!`);
-      } catch (err) {
-        console.error("Crows | Error importing traits:", err);
-        ui.notifications.error("Failed to import traits.");
-      }
-    },
-
-    /**
-     * Imports the Bestiary: animals, humans, monsters, and uniques from The Ref Book (Actor compendium)
-     */
-    importMonsters: async () => {
-      if (!game.user.isGM) return ui.notifications.warn("Only the GM can import actors.");
-      try {
-        const count = await helperImportCompendium(
-          "systems/fvtt-crows-system/packs/monsters.json",
-          "crows-bestiary",
-          "Crows Bestiary",
-          "Actor"
-        );
-        ui.notifications.info(`Successfully imported ${count} creatures into "Crows Bestiary"!`);
-      } catch (err) {
-        console.error("Crows | Error importing bestiary:", err);
-        ui.notifications.error("Failed to import the bestiary.");
-      }
-    },
-
-    /**
-     * Imports Equipment, Dungeon Loot, Traits, and the Bestiary into separate, dedicated compendiums
-     */
-    importPlaytestItems: async () => {
-      if (!game.user.isGM) return ui.notifications.warn("Only the GM can import items.");
-      try {
-        const countEq = await helperImportCompendium(
-          "systems/fvtt-crows-system/packs/equipment.json",
-          "crows-equipment",
-          "Crows Equipment & Spellbooks"
-        );
-        const countLoot = await helperImportCompendium(
-          "systems/fvtt-crows-system/packs/dungeon-loot.json",
-          "crows-dungeon-loot",
-          "Crows Dungeon Loot & Relics"
-        );
-        const countTraits = await helperImportCompendium(
-          "systems/fvtt-crows-system/packs/traits.json",
-          "crows-traits",
-          "Crows Trait Trees"
-        );
-        const countMonsters = await helperImportCompendium(
-          "systems/fvtt-crows-system/packs/monsters.json",
-          "crows-bestiary",
-          "Crows Bestiary",
-          "Actor"
-        );
-        ui.notifications.info(`Successfully imported ${countEq} equipment items, ${countLoot} dungeon loot items, ${countTraits} traits, and ${countMonsters} creatures!`);
-      } catch (err) {
-        console.error("Crows | Error importing playtest items:", err);
-        ui.notifications.error("Failed to import playtest items.");
-      }
-    }
+    importEquipment: () => importContent([IMPORT_PACKS[0]]),
+    importDungeonLoot: () => importContent([IMPORT_PACKS[1]]),
+    importTraits: () => importContent([IMPORT_PACKS[2]]),
+    importMonsters: () => importContent([IMPORT_PACKS[3]]),
+    importPlaytestItems: () => importContent(IMPORT_PACKS)
   };
 });

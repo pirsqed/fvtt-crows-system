@@ -3641,9 +3641,9 @@
 /* Core Greed Sticker Design */
 .greed-sticker {
   position: absolute;
-  top: -8px;
-  right: -8px;
-  z-index: 10;
+  bottom: 2px;
+  right: 2px;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3653,7 +3653,7 @@
   font-weight: 900;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.6);
-  transform: rotate(-10deg);
+  transform: none;
   cursor: pointer;
   user-select: none;
   transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
@@ -3661,7 +3661,7 @@
 }
 
 .greed-sticker:hover {
-  transform: rotate(-4deg) scale(1.15);
+  filter: brightness(1.08);
   box-shadow: 0 5px 14px rgba(0, 0, 0, 0.8), inset 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
@@ -3689,11 +3689,11 @@
 
 /* Mini Greed Sticker (used in list views & compact slots) */
 .greed-sticker.mini {
-  top: -5px;
-  right: -5px;
+  bottom: 2px;
+  right: 2px;
   padding: 1px 4px;
   border-radius: 4px;
-  transform: rotate(-8deg);
+  transform: none;
 }
 
 .greed-sticker.mini .sticker-val {
@@ -3701,13 +3701,48 @@
 }
 
 .greed-sticker.mini:hover {
-  transform: rotate(0deg) scale(1.2);
+  transform: none;
+}
+
+/* Compact image badges stay within the thumbnail, clear of adjacent controls. */
+.thumb-container > .greed-sticker .sticker-inner {
+  flex-direction: row;
+}
+
+.thumb-container > .greed-sticker .sticker-tag {
+  display: none;
+}
+
+/* Header badges occupy their own space beside edit/delete buttons. */
+.card-quick-actions > .greed-sticker {
+  position: static;
+  flex: 0 0 auto;
+}
+
+/* The item-sheet badge belongs below the portrait, never over window controls. */
+.crows-item-sheet .profile-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.crows-item-sheet .profile-container > .greed-sticker {
+  position: static;
+  cursor: default;
+}
+
+.crows-item-sheet .profile-container > .greed-sticker .sticker-inner {
+  flex-direction: row;
+  gap: 2px;
 }
 
 /* Gold Tier: +30% Greed */
 .greed-sticker.gold,
 .greed-sticker-pill.gold {
-  background: linear-gradient(135deg, #fff7aa 0%, #ffd700 35%, #f59e0b 70%, #b45309 100%);
+  background: #e4b83f;
   color: #3b1d00;
   border: 1.5px solid #fffdf0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 10px rgba(245, 158, 11, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.8);
@@ -3716,7 +3751,7 @@
 /* Silver Tier: +20% Greed */
 .greed-sticker.silver,
 .greed-sticker-pill.silver {
-  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 35%, #94a3b8 70%, #475569 100%);
+  background: #cbd5e1;
   color: #0f172a;
   border: 1.5px solid #ffffff;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 10px rgba(148, 163, 184, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.8);
@@ -3725,7 +3760,7 @@
 /* Bronze Tier: +10% Greed */
 .greed-sticker.bronze,
 .greed-sticker-pill.bronze {
-  background: linear-gradient(135deg, #fed7aa 0%, #ea580c 35%, #b45309 70%, #78350f 100%);
+  background: #cd995f;
   color: #260c02;
   border: 1.5px solid #ffedd5;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), 0 0 10px rgba(234, 88, 12, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.8);
@@ -3747,7 +3782,7 @@
 }
 
 .greed-sticker-pill:hover {
-  transform: scale(1.1);
+  filter: brightness(1.08);
 }
 
 /* Greed Tier Button Picker in Item Sheet */
@@ -4170,3 +4205,29 @@
   border-color: rgba(255, 255, 255, 0.3);
 }
 
+
+/* ==========================================================================
+   Loot containers: locked panel, take controls, chat lines
+   ========================================================================== */
+.crows-loot-sheet .charname-static { font-size: 1.4rem; font-weight: 700; }
+.crows-loot-sheet .prop-static { font-weight: 600; opacity: 0.9; }
+.crows-loot-sheet .btn-take-coins,
+.crows-loot-sheet .btn-toggle-lock { margin-left: 6px; padding: 2px 8px; font-size: 0.8rem; line-height: 1.4; width: auto; }
+.crows-loot-sheet .btn-toggle-lock.locked,
+.crows-loot-sheet .lock-state.locked { color: #fca5a5; }
+.crows-loot-sheet .lock-state { font-size: 0.85rem; font-weight: 600; padding: 2px 6px; opacity: 0.9; }
+.crows-loot-sheet .acting-as { font-size: 0.8rem; opacity: 0.85; margin-right: 8px; align-self: center; }
+.crows-loot-sheet .acting-as .out-of-reach { color: #fca5a5; }
+.crows-loot-sheet .loot-locked-panel { align-items: center; justify-content: center; text-align: center; padding: 28px 18px; gap: 10px; }
+.crows-loot-sheet .loot-locked-panel .locked-icon { font-size: 2.6rem; color: #fca5a5; opacity: 0.85; }
+.crows-loot-sheet .loot-locked-panel h3 { margin: 0; }
+.crows-loot-sheet .loot-locked-panel p { margin: 0; font-size: 0.85rem; opacity: 0.85; max-width: 420px; }
+.crows-loot-sheet .lock-actions { gap: 8px; margin-top: 6px; }
+.crows-loot-sheet .lock-actions button { width: auto; padding: 6px 12px; }
+.crows-loot-line { font-size: 0.9rem; padding: 2px 0; }
+/* Native map-item handles sit above the canvas and below Foundry windows. */
+.crows-map-items { position: fixed; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
+.crows-map-item { position: absolute; pointer-events: auto; cursor: grab; }
+.crows-map-item:hover { outline: 2px solid #c6a76b; border-radius: 6px; }
+.crows-map-items.reposition .crows-map-item { pointer-events: none; }
+.crows-map-item-ghost { position: fixed; top: 0; left: 0; width: 48px; height: 48px; pointer-events: none; z-index: 10000; }

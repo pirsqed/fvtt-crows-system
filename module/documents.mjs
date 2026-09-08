@@ -90,7 +90,7 @@ export class CrowsActor extends Actor {
         }
       }
 
-      const baseSpeed = 5;
+      const baseSpeed = Number(system.speed ?? 5);
       system.derivedSpeed = Math.max(0, baseSpeed - speedPenalty);
       system.speedPenalty = speedPenalty;
 
@@ -387,7 +387,7 @@ export class CrowsActor extends Actor {
    * Interactive Damage Allocation Dialog with Orderable AD Sources, Live Preview & Wound Spillover
    * @param {number} [initialDamage=1]
    */
-  async openDamageAllocationDialog(initialDamage = 1) {
+  async openDamageAllocationDialog(initialDamage = 1, { commit } = {}) {
     const isCrow = this.type === "crow";
     const system = this.system;
     let initialDmg = Math.max(1, parseInt(initialDamage, 10) || 1);
@@ -764,8 +764,13 @@ export class CrowsActor extends Actor {
             const alloc = calculateAllocation();
             if (alloc.damageTotal <= 0) return;
 
-            const result = await this.applyAllocatedDamage(alloc);
-            if (!result) return;
+            const button = ev.currentTarget;
+            if (button.disabled) return;
+            button.disabled = true;
+            let result;
+            try { result = await (commit ? commit(alloc) : this.applyAllocatedDamage(alloc)); }
+            catch (err) { button.disabled = false; ui.notifications.warn(err.message); return; }
+            if (!result) { button.disabled = false; return; }
 
             let breakdownHtml = result.breakdown.map(b => {
               if (b.type === "wounds") {
@@ -1058,7 +1063,7 @@ export class CrowsItem extends Item {
         if (match) {
           const udNum = parseInt(match[0], 10);
           consumable.maxUD = udNum;
-          if (consumable.currentUD === 0) consumable.currentUD = udNum;
+          if (consumable.currentUD == null) consumable.currentUD = udNum;
         }
       }
 

@@ -1,8 +1,10 @@
 <form class="crows-importer-form flexcol" autocomplete="off">
   <p class="notes">
-    This system ships with no game content. Generate it from your own copy of the MCDM playtest packet with
-    <code>python tools/build_all.py --packet "&lt;packet folder&gt;"</code> (see <code>README.md</code> in the system folder),
-    then import the results here. Re-importing replaces the contents of the world compendiums.
+    This system ships with no game content. Generate it from your own copy of the MCDM playtest packet by opening
+    <strong>Build Playtest Content.cmd</strong> in the system folder on Windows, using
+    <code>sh build-playtest-content.sh --setup --packet "&lt;packet folder&gt;"</code> on Linux, or running
+    <code>python tools/build_all.py --setup --packet "&lt;packet folder&gt;"</code> (see <code>README.md</code>),
+    then import the results here. Re-importing adds missing entries and updates unedited, tracked items. Existing untracked entries, local edits, and changed actors are preserved for review. No entries are deleted.
   </p>
 
   <table class="importer-table">
@@ -14,7 +16,7 @@
       <tr class="{{#if this.found}}found{{else}}missing{{/if}}">
         <td>{{this.label}} <small>({{this.type}})</small></td>
         <td><code>packs/{{this.file}}</code></td>
-        <td>{{#if this.found}}<i class="fas fa-check"></i> {{this.count}} entries{{else}}<i class="fas fa-times"></i> not built{{/if}}</td>
+        <td>{{this.status}}</td>
         <td>
           {{#if this.found}}
           <button type="button" class="btn-import-one" data-fn="{{this.fn}}" {{#unless ../isGM}}disabled{{/unless}}>Import</button>
@@ -31,7 +33,14 @@
       <i class="fas fa-download"></i> Import everything found
     </button>
   </div>
+  <p class="import-progress" role="status" aria-live="polite"></p>
 
+  {{#if error}}<p class="notes warning">{{error}}</p>{{/if}}
+  {{#each report}}
+  <p><strong>{{label}}</strong>: {{#if missing}}Not built; skipped.{{else}}{{created}} added, {{updated}} updated, {{unchanged}} unchanged.
+    {{#if error}}Stopped: {{error}}{{/if}}{{/if}}</p>
+  {{#if preserved}}<details><summary>{{preserved.length}} entries preserved for review</summary><ul>{{#each preserved}}<li>{{this}}</li>{{/each}}</ul></details>{{/if}}
+  {{/each}}
   {{#unless anyFound}}
   <p class="notes warning">No generated files were found in <code>packs/</code>. Run the build tools first, then click <em>Re-check files</em>.</p>
   {{/unless}}

@@ -1,7 +1,8 @@
-# Normalize line endings to LF in the repository regardless of platform
+# Normalize text while retaining platform-specific launcher endings.
 * text=auto eol=lf
+*.sh text eol=lf
+*.cmd text eol=crlf
 
-# Binary assets
 *.webp binary
 *.png binary
 *.jpg binary

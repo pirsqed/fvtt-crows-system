@@ -1,3 +1,4 @@
+import { timerRemaining, updateTimer, timerDisplay } from "../timer-state.mjs";
 /**
  * CrowsDungeonTimer
  * An immersive, synchronized gothic hourglass HUD for tracking real-world Dungeon Turns (DT) in MCDM Crows.
@@ -38,58 +39,35 @@ export class CrowsDungeonTimer extends Application {
   /**
    * Updates and broadcasts the synchronized timer state across all clients
    */
-  static async updateState(updates) {
-    if (!game.user.isGM) return;
-    const current = CrowsDungeonTimer.getState();
-    const merged = foundry.utils.mergeObject(current, updates);
-    merged.lastTick = Date.now();
+  static now() { return game.time?.serverTime ?? Date.now(); }
+
+  static isAuthority() { return game.user.isGM && game.users.activeGM?.id === game.user.id; }
+
+  static enqueue(action) {
+    const pending = (this._queue ?? Promise.resolve()).then(action);
+    this._queue = pending.catch(() => {});
+    return pending;
+  }
+
+  static updateState(updates) {
+    return this.enqueue(() => this._writeState(updates));
+  }
+
+  static async _writeState(updates) {
+    if (!this.isAuthority()) {
+      ui.notifications.warn("The active GM controls the Dungeon Turn timer.");
+      return;
+    }
+    const merged = updateTimer(this.getState(), updates, this.now());
     await game.settings.set("fvtt-crows-system", "dungeonTimerState", merged);
+    return merged;
   }
 
   async getData() {
     const state = CrowsDungeonTimer.getState();
-    const durationTotal = (state.durationMinutes || 30) * 60;
-    const remaining = Math.max(0, state.remainingSeconds ?? durationTotal);
-    const progressPercent = Math.min(100, Math.max(0, ((durationTotal - remaining) / durationTotal) * 100));
-
-    // Calculate Greed Bonus based on Playtest 2 rules (Page 13)
-    let greedBonus = 0;
-    if (state.turn === 1) greedBonus = 30;
-    else if (state.turn === 2) greedBonus = 20;
-    else if (state.turn === 3) greedBonus = 10;
-
-    // Time formatting: MM:SS
-    const mins = Math.floor(remaining / 60);
-    const secs = remaining % 60;
-    const formattedTime = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-
-    // SVG Hourglass Sand Calculations
-    const topSandY = 25 + (progressPercent / 100) * 51;
-    const bottomSandY = 135 - (progressPercent / 100) * 51;
-    const hasBottomSand = progressPercent > 2;
-    const bottomSandWidth = Math.min(26, 6 + (progressPercent / 100) * 20);
-
-    // Urgent state if under 3 minutes (180s) or at 0
-    const isUrgent = (remaining <= 180 && state.isRunning) || remaining === 0;
-
-    return {
-      isGM: game.user.isGM,
-      turn: state.turn || 1,
-      durationMinutes: state.durationMinutes || 30,
-      remainingSeconds: remaining,
-      formattedTime: formattedTime,
-      progressPercent: progressPercent.toFixed(1),
-      isRunning: !!state.isRunning,
-      en: state.en || 9,
-      greedBonus: greedBonus,
-      isCollapsed: this._isCollapsed,
-      showSettings: this._showSettings,
-      isUrgent: isUrgent,
-      topSandY: topSandY.toFixed(1),
-      bottomSandY: bottomSandY.toFixed(1),
-      hasBottomSand: hasBottomSand,
-      bottomSandWidth: bottomSandWidth.toFixed(1)
-    };
+    return { ...timerDisplay(state, CrowsDungeonTimer.now()), isGM: game.user.isGM,
+      greedBonus: [0, 30, 20, 10][state.turn] ?? 0,
+      isCollapsed: this._isCollapsed, showSettings: this._showSettings };
   }
 
   _injectHTML(html) {
@@ -135,6 +113,7 @@ export class CrowsDungeonTimer extends Application {
       this.render();
     });
 
+    this._startLocalTimerLoop();
     if (!game.user.isGM) return;
 
     // GM: Play / Pause
@@ -147,7 +126,8 @@ export class CrowsDungeonTimer extends Application {
     // GM: End Turn & Advance
     html.find(".btn-next-turn").click(async ev => {
       ev.preventDefault();
-      await this.endTurn();
+      try { await this.endTurn(); }
+      catch (err) { ui.notifications.warn(`Turn resolution needs review: ${err.message}`); }
     });
 
     // GM: Reset Turn
@@ -155,6 +135,7 @@ export class CrowsDungeonTimer extends Application {
       ev.preventDefault();
       const state = CrowsDungeonTimer.getState();
       await CrowsDungeonTimer.updateState({
+        resolvingTurn: false,
         remainingSeconds: (state.durationMinutes || 30) * 60,
         isRunning: false
       });
@@ -193,14 +174,14 @@ export class CrowsDungeonTimer extends Application {
       }
     });
 
-    // Start local timer loop if not already running
-    this._startLocalTimerLoop();
+
   }
 
   /**
    * Smooth, persistent drag-and-drop handler for the Hourglass HUD
    */
   _activateDraggable(html) {
+    this._dragCleanup?.();
     const header = html.find(".hourglass-header")[0];
     const container = document.getElementById("crows-dungeon-timer-layer");
     if (!header || !container) return;
@@ -213,7 +194,8 @@ export class CrowsDungeonTimer extends Application {
 
     const onMouseDown = (e) => {
       // Don't drag if clicking buttons
-      if (e.target.closest(".timer-btn")) return;
+      if (e.button !== 0 || e.target.closest(".timer-btn")) return;
+      e.preventDefault();
 
       isDragging = true;
       startX = e.clientX;
@@ -251,53 +233,51 @@ export class CrowsDungeonTimer extends Application {
 
       // Save position to localStorage
       const rect = container.getBoundingClientRect();
-      localStorage.setItem("crows-dungeon-timer-pos", JSON.stringify({
+      try { localStorage.setItem("crows-dungeon-timer-pos", JSON.stringify({
         left: Math.round(rect.left),
         top: Math.round(rect.top)
-      }));
+      })); } catch (err) { console.debug("Crows | Timer position could not be saved", err); }
     };
 
     header.addEventListener("mousedown", onMouseDown);
+    this._dragCleanup = () => {
+      header.removeEventListener("mousedown", onMouseDown);
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
   }
 
   /**
    * High-precision local timer loop (updates UI smoothly every second)
    */
   _startLocalTimerLoop() {
-    if (this._interval) clearInterval(this._interval);
+    if (this._interval) return;
+    this._interval = setInterval(() => this._tick().catch(err => console.error("Crows | Timer update failed", err)), 250);
+    this._tick().catch(err => console.error("Crows | Timer update failed", err));
+  }
 
-    this._interval = setInterval(async () => {
-      const state = CrowsDungeonTimer.getState();
-      if (!state.isRunning) return;
-
-      if (game.user.isGM) {
-        let remaining = state.remainingSeconds - 1;
-        if (remaining <= 0) {
-          remaining = 0;
-          // Stop timer and play Gong sound! Does NOT auto-roll; waits for GM to advance.
-          await CrowsDungeonTimer.updateState({ remainingSeconds: 0, isRunning: false });
-          this._playGongSound();
-          ui.notifications.warn("⏳ The sand has run out! The Dungeon Turn is complete. Press 'End Turn' to roll the Encounter Check and advance.");
-        } else {
-          // Sync state every 5 seconds to reduce database writes, while ticking locally
-          if (remaining % 5 === 0) {
-            await CrowsDungeonTimer.updateState({ remainingSeconds: remaining });
-          } else {
-            state.remainingSeconds = remaining;
-            this._updateDOM(state);
-          }
-        }
-      } else {
-        // Player Client
-        if (state.remainingSeconds > 0) {
-          state.remainingSeconds = Math.max(0, state.remainingSeconds - 1);
-          if (state.remainingSeconds === 0) {
-            this._playGongSound();
-          }
-          this._updateDOM(state);
-        }
-      }
-    }, 1000);
+  async _tick() {
+    const state = CrowsDungeonTimer.getState();
+    const now = CrowsDungeonTimer.now();
+    this._updateDOM(timerDisplay(state, now));
+    const expired = timerRemaining(state, now) === 0;
+    const expiryKey = `${state.turn}:${state.expiredAt ?? state.endsAt ?? state.lastTick}`;
+    if ((state.isRunning || state.expiredAt) && expired && this._lastGong !== expiryKey) {
+      this._lastGong = expiryKey;
+      this._playGongSound();
+      if (game.user.isGM) ui.notifications.warn("The sand has run out. End Turn to check for an encounter and advance.");
+    }
+    if (expired && state.isRunning && CrowsDungeonTimer.isAuthority() && !this._expiring) {
+      this._expiring = true;
+      try {
+        await CrowsDungeonTimer.enqueue(async () => {
+          const latest = CrowsDungeonTimer.getState();
+          if (latest.isRunning && timerRemaining(latest, CrowsDungeonTimer.now()) === 0)
+            await CrowsDungeonTimer._writeState({ remainingSeconds: 0, isRunning: false,
+              expiredAt: latest.endsAt ?? (latest.lastTick + latest.remainingSeconds * 1000) });
+        });
+      } finally { this._expiring = false; }
+    }
   }
 
   /**
@@ -318,6 +298,7 @@ export class CrowsDungeonTimer extends Application {
       const freqs = [110, 164.8, 220, 330, 440];
       const now = ctx.currentTime;
 
+      setTimeout(() => ctx.close(), 4000);
       freqs.forEach((freq, i) => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -347,40 +328,45 @@ export class CrowsDungeonTimer extends Application {
     const el = this.element;
     if (!el || el.length === 0) return;
 
-    const durationTotal = (state.durationMinutes || 30) * 60;
-    const remaining = Math.max(0, state.remainingSeconds);
-    const progressPercent = Math.min(100, Math.max(0, ((durationTotal - remaining) / durationTotal) * 100));
-
-    const mins = Math.floor(remaining / 60);
-    const secs = remaining % 60;
-    const formatted = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-
-    el.find(".digital-clock").text(formatted);
-    el.find(".progress-bar-fill").css("width", `${progressPercent}%`);
-
-    // Sand SVG updates
-    const topY = 25 + (progressPercent / 100) * 51;
-    const bottomY = 135 - (progressPercent / 100) * 51;
-    el.find(".sand-top-level").attr("y", topY.toFixed(1));
-    el.find(".sand-bottom-level").attr("y", bottomY.toFixed(1));
-
-    // Urgent class toggle in last 3 minutes or at 0
-    const isUrgent = (remaining <= 180 && state.isRunning) || remaining === 0;
-    el.find(".crows-hourglass-hud").toggleClass("urgent", isUrgent);
-    el.find(".digital-clock").parent().toggleClass("pulse", isUrgent);
+    el.find(".digital-clock").text(state.formattedTime);
+    el.find(".progress-bar-fill").css("width", `${state.progressPercent}%`).toggleClass("urgent", state.isUrgent);
+    el.find(".sand-top-level").attr("y", state.topSandY);
+    el.find(".sand-bottom-level").attr("y", state.bottomSandY);
+    el.find(".sand-top-level, .sand-bottom-level").attr("fill", state.isUrgent ? "url(#crows-sand-crimson)" : "url(#crows-sand-gold)");
+    el.find(".sand-mound").attr("cy", state.bottomSandY).attr("rx", state.bottomSandWidth)
+      .attr("fill", state.isUrgent ? "#f87171" : "#fef08a").toggle(state.hasBottomSand);
+    el.find(".sand-stream").toggle(state.isRunning).toggleClass("urgent", state.isUrgent)
+      .attr("stroke", state.isUrgent ? "#ef4444" : "#fde047");
+    el.toggleClass("urgent", state.isUrgent).toggleClass("running", state.isRunning).toggleClass("paused", !state.isRunning);
+    el.find(".digital-clock").parent().toggleClass("pulse", state.isUrgent);
   }
 
   /**
    * Resolves the end of a Dungeon Turn according to MCDM Crows Playtest 2 rules
    */
   async endTurn() {
+    const expectedTurn = CrowsDungeonTimer.getState().turn;
+    return CrowsDungeonTimer.enqueue(() => this._endTurn(expectedTurn));
+  }
+
+  async _endTurn(expectedTurn) {
+    if (!CrowsDungeonTimer.isAuthority()) {
+      ui.notifications.warn("The active GM controls the Dungeon Turn timer.");
+      return;
+    }
     const state = CrowsDungeonTimer.getState();
+    if (state.turn !== expectedTurn) return;
+    if (state.resolvingTurn) {
+      ui.notifications.warn("This turn resolution is pending or needs review. Check chat before resetting the timer.");
+      return;
+    }
+    await CrowsDungeonTimer._writeState({ isRunning: false, resolvingTurn: true });
     const currentTurn = state.turn || 1;
     const nextTurn = currentTurn + 1;
     const en = state.en || 9;
 
     // 1. Play Gong Sound
-    this._playGongSound();
+    if (timerRemaining(state, CrowsDungeonTimer.now()) > 0) this._playGongSound();
 
     // 2. Perform Encounter Check (1d10 vs EN)
     const roll = new Roll("1d10");
@@ -448,7 +434,8 @@ export class CrowsDungeonTimer extends Application {
     });
 
     // 4. Reset timer and advance turn counter
-    await CrowsDungeonTimer.updateState({
+    await CrowsDungeonTimer._writeState({
+      resolvingTurn: false,
       turn: nextTurn,
       remainingSeconds: (state.durationMinutes || 30) * 60,
       isRunning: false
@@ -458,7 +445,9 @@ export class CrowsDungeonTimer extends Application {
   }
 
   close(options = {}) {
+    this._dragCleanup?.();
     if (this._interval) clearInterval(this._interval);
+    this._interval = null;
     return super.close(options);
   }
 }

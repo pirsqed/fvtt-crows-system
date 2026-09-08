@@ -1,3 +1,5 @@
+import { showWeaponAttackDialog, rollStatBlockAttack } from "../attacks.mjs";
+import { rollPowerRoll } from "../power-roll.mjs";
 import { CrowsLoot } from "../loot.mjs";
 
 export class CrowsMonsterSheet extends ActorSheet {
@@ -355,41 +357,16 @@ export class CrowsMonsterSheet extends ActorSheet {
             const circumstance = html.find('input[name="circumstance"]:checked').val() || "standard";
             const flatMod = parseInt(html.find("#char-flat-mod").val(), 10) || 0;
 
-            let formula = "2d10";
-            let rollBonus = charBonus + flatMod;
-            if (circumstance === "edge") rollBonus += 2;
-            else if (circumstance === "bane") rollBonus -= 2;
-
-            if (rollBonus >= 0) formula += ` + ${rollBonus}`;
-            else formula += ` - ${Math.abs(rollBonus)}`;
-
-            const roll = new Roll(formula);
-            await roll.evaluate();
-
-            const natural = (roll.dice[0]?.results[0]?.result || 0) + (roll.dice[0]?.results[1]?.result || 0);
-            const total = roll.total;
-
-            let baseTier = 1;
-            if (total >= 17) baseTier = 3;
-            else if (total >= 12) baseTier = 2;
-            else baseTier = 1;
-
-            let finalTier = baseTier;
-            if (circumstance === "double-edge") finalTier = Math.min(3, finalTier + 1);
-            else if (circumstance === "double-bane") finalTier = Math.max(1, finalTier - 1);
-
-            let isCrit = natural === 19 || natural === 20;
-            let isDoom = natural === 2 || natural === 3;
+            const { roll, total, tier: finalTier, isCrit, isDoom } =
+              await rollPowerRoll({ modifier: charBonus + flatMod, circumstance });
 
             let tierTitle = `Tier ${finalTier}`;
             let tierClass = "failure";
 
             if (isCrit) {
-              finalTier = 3;
               tierTitle = "CRITICAL SUCCESS! (Tier 3)";
               tierClass = "crit";
             } else if (isDoom) {
-              finalTier = 1;
               tierTitle = "DOOM! (Automatic Tier 1 Failure)";
               tierClass = "doom";
             } else if (finalTier === 3) {
@@ -432,190 +409,7 @@ export class CrowsMonsterSheet extends ActorSheet {
 
   async _onRollWeaponAttack(event) {
     event.preventDefault();
-    const btn = event.currentTarget;
-    const itemId = btn.dataset.itemId;
-    const item = this.actor.items.get(itemId);
-    if (!item || !item.system.isWeapon) return;
-
-    const chars = this.actor.system.characteristics || { agility: 0, mind: 0, strength: 0 };
-    const content = `
-      <form class="crows-dialog-form">
-        <div class="form-group">
-          <label for="attack-char"><i class="fas fa-bullseye"></i> Characteristic</label>
-          <select id="attack-char">
-            <option value="strength">Strength (${chars.strength >= 0 ? '+' : ''}${chars.strength})</option>
-            <option value="agility">Agility (${chars.agility >= 0 ? '+' : ''}${chars.agility})</option>
-            <option value="mind">Mind (${chars.mind >= 0 ? '+' : ''}${chars.mind})</option>
-          </select>
-        </div>
-        <div class="form-group circumstance-group">
-          <label class="group-label"><i class="fas fa-balance-scale"></i> Circumstance</label>
-          <div class="radio-list">
-            <label class="radio-option opt-double-edge">
-              <input type="radio" name="circumstance" value="double-edge" />
-              <span class="opt-title">Double Edge</span>
-              <span class="opt-desc">+1 Outcome Tier</span>
-            </label>
-            <label class="radio-option opt-edge">
-              <input type="radio" name="circumstance" value="edge" />
-              <span class="opt-title">Edge</span>
-              <span class="opt-desc">+2 to roll</span>
-            </label>
-            <label class="radio-option opt-standard">
-              <input type="radio" name="circumstance" value="standard" checked />
-              <span class="opt-title">Standard Roll</span>
-              <span class="opt-desc">Normal (2d10)</span>
-            </label>
-            <label class="radio-option opt-bane">
-              <input type="radio" name="circumstance" value="bane" />
-              <span class="opt-title">Bane</span>
-              <span class="opt-desc">-2 to roll</span>
-            </label>
-            <label class="radio-option opt-double-bane">
-              <input type="radio" name="circumstance" value="double-bane" />
-              <span class="opt-title">Double Bane</span>
-              <span class="opt-desc">-1 Outcome Tier</span>
-            </label>
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="attack-mod"><i class="fas fa-sliders-h"></i> Situational Modifier</label>
-          <input type="number" id="attack-mod" value="0" />
-        </div>
-      </form>
-    `;
-
-    new Dialog({
-      title: `${this.actor.name}: Attack with ${item.name}`,
-      content: content,
-      buttons: {
-        roll: {
-          icon: '<i class="fas fa-swords"></i>',
-          label: "Attack",
-          callback: async (html) => {
-            const charKey = html.find("#attack-char").val();
-            const charBonus = chars[charKey] || 0;
-            const circumstance = html.find('input[name="circumstance"]:checked').val() || "standard";
-            const sitMod = parseInt(html.find("#attack-mod").val(), 10) || 0;
-
-            let formula = "2d10";
-            let rollBonus = charBonus + sitMod;
-            if (circumstance === "edge") rollBonus += 2;
-            else if (circumstance === "bane") rollBonus -= 2;
-
-            if (rollBonus >= 0) formula += ` + ${rollBonus}`;
-            else formula += ` - ${Math.abs(rollBonus)}`;
-
-            const roll = new Roll(formula);
-            await roll.evaluate();
-
-            const natural = (roll.dice[0]?.results[0]?.result || 0) + (roll.dice[0]?.results[1]?.result || 0);
-            const total = roll.total;
-
-            let baseTier = 1;
-            if (total >= 17) baseTier = 3;
-            else if (total >= 12) baseTier = 2;
-            else baseTier = 1;
-
-            let tier = baseTier;
-            if (circumstance === "double-edge") tier = Math.min(3, tier + 1);
-            else if (circumstance === "double-bane") tier = Math.max(1, tier - 1);
-
-            let isCrit = natural === 19 || natural === 20;
-            let isDoom = natural === 2 || natural === 3;
-
-            let tierTitle = `Tier ${tier}`;
-            let tierClass = "failure";
-            let damageDesc = "No Damage";
-
-            if (isCrit) {
-              tier = 3;
-              tierTitle = "CRITICAL HIT! (Tier 3)";
-              tierClass = "crit";
-              damageDesc = this.actor.evaluateWeaponDamage(item.system.weapon?.tier3Damage, charKey) || "Full Damage";
-            } else if (isDoom) {
-              tier = 1;
-              tierTitle = "DOOM! (Critical Failure)";
-              tierClass = "doom";
-              damageDesc = "Disaster strikes!";
-            } else if (tier === 3) {
-              tierTitle = "Tier 3 (Strong Hit)";
-              tierClass = "crit";
-              damageDesc = this.actor.evaluateWeaponDamage(item.system.weapon?.tier3Damage, charKey) || "Tier 3 Damage";
-            } else if (tier === 2) {
-              tierTitle = "Tier 2 (Mixed Hit)";
-              tierClass = "success";
-              damageDesc = this.actor.evaluateWeaponDamage(item.system.weapon?.tier2Damage, charKey) || "Tier 2 Damage";
-            } else {
-              tierTitle = "Tier 1 (Miss / Setback)";
-              tierClass = "failure";
-              damageDesc = "No Damage";
-            }
-
-            // Target Detection & Damage calculation for chat card
-            let numericDamage = 0;
-            if (tier >= 2 && !isDoom) {
-              const rawDmg = (tier === 3 || isCrit)
-                ? (item.system.weapon?.tier3Damage || "")
-                : (item.system.weapon?.tier2Damage || "");
-              numericDamage = this.actor.extractDamageNumber(rawDmg, charKey);
-            }
-
-            const targets = Array.from(game.user.targets || []);
-            let targetDamageButtons = "";
-            if (numericDamage > 0) {
-              if (targets.length > 0) {
-                targetDamageButtons = targets.map(t => `
-                  <button type="button" class="crows-apply-damage-btn btn-chat-damage" data-target-actor-id="${t.actor?.id || ''}" data-target-token-id="${t.id}" data-damage-amount="${numericDamage}">
-                    <i class="fas fa-shield-virus"></i> Apply ${numericDamage} Damage to ${t.name}
-                  </button>
-                `).join("");
-              } else {
-                targetDamageButtons = `
-                  <button type="button" class="crows-apply-damage-btn btn-chat-damage" data-damage-amount="${numericDamage}">
-                    <i class="fas fa-shield-virus"></i> Apply ${numericDamage} Damage to Target
-                  </button>
-                `;
-              }
-            }
-
-            const cardHtml = `
-              <div class="crows-roll-card">
-                <div class="card-header weapon">
-                  <i class="fas fa-crosshairs"></i> ${this.actor.name}: ${item.name} (${charKey.capitalize()})
-                </div>
-                <div class="card-body">
-                  <div class="dice-roll-total">Roll: <strong>${total}</strong> <span class="formula">(${roll.result})</span></div>
-                  <div class="outcome ${tierClass}">${tierTitle}</div>
-                  <div class="damage-block">
-                    <strong>Damage / Effect:</strong> ${damageDesc}
-                  </div>
-                  <div class="weapon-meta">
-                    <span><b>Range:</b> ${item.system.weapon?.range || "Melee 1"}</span>
-                    ${item.system.traits ? `<span><b>Traits:</b> ${item.system.traits}</span>` : ""}
-                  </div>
-                  ${targetDamageButtons ? `
-                  <div class="crows-chat-actions flexcol" style="margin-top: 8px; gap: 4px;">
-                    ${targetDamageButtons}
-                  </div>
-                  ` : ''}
-                </div>
-              </div>
-            `;
-
-            await roll.toMessage({
-              speaker: ChatMessage.getSpeaker({ actor: this.actor }),
-              flavor: `${this.actor.name} attacked with ${item.name}`,
-              content: cardHtml
-            });
-          }
-        },
-        cancel: {
-          label: "Cancel"
-        }
-      },
-      default: "roll"
-    }).render(true);
+    return showWeaponAttackDialog(this.actor, this.actor.items.get(event.currentTarget.dataset.itemId));
   }
 
   async _onRollUsageDice(event) {
@@ -625,7 +419,7 @@ export class CrowsMonsterSheet extends ActorSheet {
     const item = this.actor.items.get(itemId);
     if (!item) return;
 
-    const currentUD = item.system.consumable?.currentUD || item.system.consumable?.maxUD || 1;
+    const currentUD = item.system.consumable?.currentUD ?? item.system.consumable?.maxUD ?? 0;
     if (currentUD <= 0) {
       ui.notifications.warn(`${item.name} has no usage dice remaining!`);
       return;
@@ -716,91 +510,8 @@ export class CrowsMonsterSheet extends ActorSheet {
 
   async _onRollAttack(event) {
     event.preventDefault();
-    const element = event.currentTarget;
-    const itemId = $(element).parents(".item").data("itemId");
-    const attack = this.actor.items.get(itemId);
-    
-    // Bonus string like "+2" or "-1"
-    let bonusStr = attack.system.bonus || "+0";
-    
-    const rollFormula = `2d10 ${bonusStr}`;
-    const roll = new Roll(rollFormula);
-    await roll.evaluate();
-    
-    const naturalRoll = (roll.dice[0]?.results[0]?.result || 0) + (roll.dice[0]?.results[1]?.result || 0);
-    const total = roll.total;
-    
-    let tier = 1;
-    let tierLabel = "Failure";
-    let damageText = "Miss";
-    
-    if (total >= 12 && total <= 16) {
-        tier = 2;
-        tierLabel = "Partial / Mixed";
-        damageText = attack.system.tier2Damage;
-    } else if (total >= 17) {
-        tier = 3;
-        tierLabel = "Good";
-        damageText = attack.system.tier3Damage;
-    }
-    
-    let special = "";
-    if (naturalRoll === 19 || naturalRoll === 20) {
-        special = '<div style="color: #27ae60; font-weight: bold; font-size: 1.1em; text-transform: uppercase;">Critical Hit!</div>';
-        tier = 3;
-        tierLabel = "Critical Success";
-        damageText = attack.system.tier3Damage;
-    } else if (naturalRoll === 2 || naturalRoll === 3) {
-        special = '<div style="color: #c0392b; font-weight: bold; font-size: 1.1em; text-transform: uppercase;">Doom!</div>';
-        tier = 1;
-        tierLabel = "Automatic Failure";
-        damageText = "Miss";
-    }
-
-    // Extract numeric damage for target application
-    let numericDamage = 0;
-    if (tier >= 2 && damageText !== "Miss") {
-      numericDamage = this.actor.extractDamageNumber(damageText);
-    }
-
-    const targets = Array.from(game.user.targets || []);
-    let targetDamageButtons = "";
-    if (numericDamage > 0) {
-      if (targets.length > 0) {
-        targetDamageButtons = targets.map(t => `
-          <button type="button" class="crows-apply-damage-btn btn-chat-damage" data-target-actor-id="${t.actor?.id || ''}" data-target-token-id="${t.id}" data-damage-amount="${numericDamage}" style="margin-top: 6px; width: 100%;">
-            <i class="fas fa-shield-virus"></i> Apply ${numericDamage} Damage to ${t.name}
-          </button>
-        `).join("");
-      } else {
-        targetDamageButtons = `
-          <button type="button" class="crows-apply-damage-btn btn-chat-damage" data-damage-amount="${numericDamage}" style="margin-top: 6px; width: 100%;">
-            <i class="fas fa-shield-virus"></i> Apply ${numericDamage} Damage to Target
-          </button>
-        `;
-      }
-    }
-
-    const flavorHtml = `
-      <div class="crows-roll">
-        <h3>${this.actor.name} uses ${attack.name}</h3>
-        <div style="font-size: 1.2em; padding-bottom: 5px;"><strong>Tier ${tier}</strong>: ${tierLabel}</div>
-        ${special}
-        <div style="margin-top: 5px; padding: 5px; background: rgba(0,0,0,0.1); border-left: 3px solid #c0392b;">
-            <strong>Effect:</strong> ${damageText}
-        </div>
-        ${targetDamageButtons ? `
-        <div class="crows-chat-actions flexcol" style="margin-top: 8px;">
-          ${targetDamageButtons}
-        </div>
-        ` : ''}
-      </div>
-    `;
-    
-    roll.toMessage({
-      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
-      flavor: flavorHtml
-    });
+    const itemId = $(event.currentTarget).parents(".item").data("itemId");
+    return rollStatBlockAttack(this.actor, this.actor.items.get(itemId));
   }
 
   _onDragStart(event) {
@@ -825,69 +536,31 @@ export class CrowsMonsterSheet extends ActorSheet {
   async _onDropItem(event, data) {
     if (!this.actor.isOwner) return false;
     const item = await Item.implementation.fromDropData(data);
+    if (!item) return false;
+
+    const slotElement = event.target.closest("[data-slot]");
+    const listElement = event.target.closest("[data-list]");
+    const targetSlot = slotElement?.dataset.slot ?? listElement?.dataset.list ?? null;
+
+    // Rearranging within this sheet
+    if (item.parent?.uuid === this.actor.uuid) {
+      if (!targetSlot || item.type !== "equipment" || item.system.location === targetSlot) return false;
+      return CrowsLoot.placeItem(this.actor, item, targetSlot);
+    }
+
+    // From another actor, loot token, or container: transfer
+    if (item.parent) {
+      if (item.type !== "equipment") return this._onDropItemCreate(item.toObject());
+      return CrowsLoot.transfer(item, this.actor, { location: targetSlot });
+    }
+
+    // From a compendium or the sidebar: a fresh copy
     const itemData = item.toObject();
-    const sourceActor = item.actor;
-
-    // Find drop destination slot
-    const slotElement = event.target.closest('[data-slot]');
-    let targetSlot = null;
-    if (slotElement) {
-      targetSlot = slotElement.dataset.slot;
-    } else {
-      const listElement = event.target.closest('[data-list]');
-      if (listElement) {
-        targetSlot = listElement.dataset.list;
-      }
+    if (item.type === "equipment") {
+      const count = Math.max(1, Number(itemData.system?.slots) || 1);
+      const loc = (targetSlot && CrowsLoot.fits(this.actor, targetSlot, count)) ? targetSlot : CrowsLoot.findFreeSlot(this.actor, count);
+      foundry.utils.setProperty(itemData, "system.location", loc);
     }
-
-    if (!targetSlot) {
-      // Default to backpack1 or ground if no slot specified
-      targetSlot = (this.actor.system.slots > 0) ? "backpack1" : "ground";
-    }
-
-    const maxSlots = Math.max(0, parseInt(this.actor.system.slots, 10) || 0);
-    const slotCount = Math.max(1, parseInt(item.system?.slots ?? itemData.system?.slots, 10) || 1);
-
-    // If dropping into backpack/slot, ensure multi-slot item fits within configured slots
-    if (targetSlot.startsWith("backpack") || targetSlot.startsWith("slot")) {
-      const startNum = parseInt(targetSlot.replace(/^(?:backpack|slot)/, ""), 10);
-      if (maxSlots > 0 && (startNum + slotCount - 1 > maxSlots)) {
-        ui.notifications.warn(`"${item.name}" takes ${slotCount} slots and will not fit starting at Slot ${startNum} (max Slot ${maxSlots}).`);
-        return false;
-      }
-    }
-
-    // If item belongs to the same actor
-    if (this.actor.uuid === item.parent?.uuid) {
-      if (item.system?.location !== targetSlot) {
-        const updates = [];
-
-        // If target slot is already occupied (and not a list like ground/stash), swap them
-        if (targetSlot !== 'ground' && targetSlot !== 'stash') {
-          const existingItem = this.actor.items.find(i => i.system.location === targetSlot);
-          if (existingItem && existingItem.id !== item.id) {
-            updates.push({ _id: existingItem.id, "system.location": item.system.location });
-          }
-        }
-
-        updates.push({ _id: item.id, "system.location": targetSlot });
-        return this.actor.updateEmbeddedDocuments("Item", updates);
-      }
-      return super._onDropItem(event, data);
-    }
-
-    // Dropped from external actor or loot container / floor token
-    foundry.utils.setProperty(itemData, "system.location", targetSlot);
-    const created = await this._onDropItemCreate(itemData);
-
-    // If taken from a loot actor or token on the map, remove it from the source
-    if (sourceActor && sourceActor.type === "loot") {
-      await item.delete();
-      if (sourceActor.items.size === 0 && sourceActor.isToken) {
-        await sourceActor.token.delete();
-      }
-    }
-
-    return created;
+    return this._onDropItemCreate(itemData);
   }
 }

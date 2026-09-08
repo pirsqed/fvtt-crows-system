@@ -3,9 +3,9 @@ import os, sys
 from pathlib import Path
 
 SYSTEM = Path(__file__).resolve().parent.parent          # fvtt-crows-system/
-OUT = SYSTEM / "tools" / "out"                            # intermediate output (git-ignored)
+OUT = Path(os.environ.get("CROWS_BUILD_OUT", SYSTEM / "tools" / "out"))
 PACKS = SYSTEM / "packs"                                  # generated compendium JSON (git-ignored)
-ASSETS = SYSTEM / "assets"                                # generated art (git-ignored)
+ASSETS = Path(os.environ.get("CROWS_BUILD_ASSETS", SYSTEM / "assets"))
 
 
 def packet_dir():
@@ -15,7 +15,10 @@ def packet_dir():
     then ../playtest2_pdfs next to the system folder.
     """
     if "--packet" in sys.argv:
-        p = Path(sys.argv[sys.argv.index("--packet") + 1])
+        index = sys.argv.index("--packet") + 1
+        if index >= len(sys.argv) or sys.argv[index].startswith("--"):
+            sys.exit('--packet needs a folder path, e.g. --packet "C:/Crows Playtest"')
+        p = Path(sys.argv[index])
     elif os.environ.get("CROWS_PACKET"):
         p = Path(os.environ["CROWS_PACKET"])
     else:
@@ -29,8 +32,16 @@ def packet_dir():
 
 def find_pdf(packet, include=(), exclude=()):
     """Find the PDF in the packet whose filename contains every `include` fragment and no `exclude` fragment."""
-    for f in sorted(packet.rglob("*.pdf")):
+    matches = []
+    for f in sorted(packet.rglob("*")):
+        if not f.is_file() or f.suffix.lower() != ".pdf":
+            continue
         name = f.name.lower()
         if all(n.lower() in name for n in include) and not any(n.lower() in name for n in exclude):
-            return f
+            matches.append(f)
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        sys.exit(f"Multiple PDFs match {include}. Use a folder with one copy of each book:\n"
+                 + "\n".join(str(path) for path in matches))
     sys.exit(f"Could not find a PDF containing {include} (and not {exclude}) under {packet}")
