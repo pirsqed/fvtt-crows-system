@@ -1,32 +1,34 @@
-<form class="{{cssClass}} flexcol" autocomplete="off">
+<form class="{{cssClass}} flexcol crows-item-sheet crows-attack-sheet" autocomplete="off">
   <header class="sheet-header flexrow">
     <img class="profile-img" src="{{item.img}}" data-edit="img" title="{{item.name}}"/>
     <div class="header-fields flexcol">
-      <h1 class="charname"><input name="name" type="text" value="{{item.name}}" placeholder="Name"/></h1>
+      <h1 class="charname"><input name="name" type="text" value="{{item.name}}" placeholder="Attack Name"/></h1>
       
-      <div class="resource flexrow">
-        <label>Bonus</label>
-        <input type="text" name="system.bonus" value="{{system.bonus}}"/>
-      </div>
-      <div class="resource flexrow">
-        <label>Range</label>
-        <input type="text" name="system.range" value="{{system.range}}"/>
-      </div>
-      <div class="resource flexrow">
-        <label>Tier 2 Damage</label>
-        <input type="text" name="system.tier2Damage" value="{{system.tier2Damage}}"/>
-      </div>
-      <div class="resource flexrow">
-        <label>Tier 3 Damage</label>
-        <input type="text" name="system.tier3Damage" value="{{system.tier3Damage}}"/>
+      <div class="attack-props-grid">
+        <div class="prop-group">
+          <label><i class="fas fa-plus-minus"></i> Bonus</label>
+          <input type="text" name="system.bonus" value="{{system.bonus}}" placeholder="+0"/>
+        </div>
+        <div class="prop-group">
+          <label><i class="fas fa-crosshairs"></i> Range</label>
+          <input type="text" name="system.range" value="{{system.range}}" placeholder="Melee 1"/>
+        </div>
+        <div class="prop-group">
+          <label><i class="fas fa-sword"></i> Tier 2 Damage (12–16)</label>
+          <input type="text" name="system.tier2Damage" value="{{system.tier2Damage}}" placeholder="e.g. 2 dam"/>
+        </div>
+        <div class="prop-group">
+          <label><i class="fas fa-swords"></i> Tier 3 Damage (17+)</label>
+          <input type="text" name="system.tier3Damage" value="{{system.tier3Damage}}" placeholder="e.g. 4 dam"/>
+        </div>
       </div>
 
     </div>
   </header>
 
   <section class="sheet-body">
-    <div class="description-section" style="padding: 10px;">
-        <h3 style="margin-top: 0; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Special Effects & Notes</h3>
+    <div class="description-section">
+      <h3 class="notes-header-title"><i class="fas fa-scroll"></i> Special Effects & Notes</h3>
       {{editor enrichedNotes target="system.notes" button=true owner=owner editable=editable engine="prosemirror"}}
     </div>
   </section>

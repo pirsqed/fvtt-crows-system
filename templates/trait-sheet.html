@@ -1,4 +1,4 @@
-<form class="crows-item-sheet crows-trait-sheet flexcol" autocomplete="off">
+<form class="{{cssClass}} flexcol crows-item-sheet crows-trait-sheet" autocomplete="off">
   <!-- Sheet Header -->
   <header class="sheet-header flexrow">
     <img class="profile-img" src="{{item.img}}" data-edit="img" title="{{item.name}}" />
@@ -26,7 +26,7 @@
   <section class="sheet-body">
     <div class="tab details flexcol active" data-group="primary" data-tab="details">
       <!-- Properties Grid -->
-      <div class="header-props-grid">
+      <div class="trait-props-grid">
         <div class="prop-group">
           <label><i class="fas fa-sitemap"></i> Trait Tree</label>
           <select name="system.tree">

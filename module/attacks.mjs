@@ -117,7 +117,7 @@ export function showWeaponAttackDialog(actor, item) {
       }
     },
     default: "roll"
-  }).render(true);
+  }, { classes: ["crows", "dialog", "crows-dialog"] }).render(true);
 }
 
 /** Stat-block attacks keep their fixed bonus and effect text, without a weapon dialog. */

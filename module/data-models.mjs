@@ -90,6 +90,7 @@ export class EquipmentDataModel extends foundry.abstract.TypeDataModel {
       }),
       slots: new NumberField({ required: true, integer: true, min: 0, initial: 1 }),
       quantity: new NumberField({ required: true, integer: true, min: 0, initial: 1 }),
+      isGold: new BooleanField({ initial: false }),
       cost: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
       crafting: new StringField({ required: true, blank: true, initial: "" }),
       traits: new StringField({ required: true, blank: true, initial: "" }),
@@ -206,4 +207,3 @@ export class TraitDataModel extends foundry.abstract.TypeDataModel {
     };
   }
 }
-

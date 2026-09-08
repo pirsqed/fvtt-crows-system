@@ -1,3 +1,4 @@
+import { repairImportIcons } from "./icon-repairs.mjs";
 const SCOPE = "fvtt-crows-system";
 export const IMPORT_PACKS = [
   { file: "equipment.json", name: "crows-equipment", label: "Equipment & Spellbooks", fn: "importEquipment", type: "Item" },
@@ -10,7 +11,9 @@ export const IMPORT_PACKS = [
 export function canonical(value) {
   if (Array.isArray(value)) return value.map(canonical);
   if (!value || typeof value !== "object") return value;
-  return Object.fromEntries(Object.keys(value).sort().filter(key => !["_id", "_stats", "folder", "ownership", "sort"].includes(key))
+  return Object.fromEntries(Object.keys(value).sort().filter(key => !["_id", "_stats", "folder", "ownership", "sort"].includes(key)
+    // Adding the default gold field to older equipment is not a local content edit.
+    && !(key === "isGold" && value[key] === false))
     .map(key => [key, key === "flags" ? canonical(Object.fromEntries(Object.entries(value.flags ?? {})
       .map(([scope, flags]) => [scope, scope === SCOPE
         ? Object.fromEntries(Object.entries(flags).filter(([flag]) => flag !== "importSource")) : flags])
@@ -39,7 +42,7 @@ export async function readImport(pack) {
   const response = await fetch(`systems/${SCOPE}/packs/${pack.file}`, { cache: "no-store" });
   if (response.status === 404) return { pack, missing: true };
   if (!response.ok) throw new Error(`${pack.file}: could not read file (HTTP ${response.status}).`);
-  return { pack, data: validateImport(await response.json(), pack) };
+  return { pack, data: validateImport(repairImportIcons(await response.json()), pack) };
 }
 
 export class CrowsContentImport {

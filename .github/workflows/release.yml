@@ -29,7 +29,7 @@ jobs:
       - name: Build the system zip
         run: |
           zip -r fvtt-crows-system.zip . \
-            -x ".git/*" ".github/*" "tools/out/*" "tools/.venv/*" "tools/__pycache__/*" "packs/*.json" "assets/monsters/*"
+            -x ".git/*" ".github/*" "tools/out/*" "tools/.venv/*" "tools/__pycache__/*" "packs/*.json" "assets/monsters/*" "pdfs/*"
 
       - name: Publish release
         uses: softprops/action-gh-release@v2

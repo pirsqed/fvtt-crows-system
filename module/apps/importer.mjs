@@ -13,7 +13,7 @@ export class CrowsImporter extends FormApplication {
       title: "Crows: Import Playtest Content",
       template: "systems/fvtt-crows-system/templates/importer.html",
       classes: ["crows", "sheet", "crows-importer"],
-      width: 520,
+      width: 640,
       height: "auto",
       closeOnSubmit: false
     });

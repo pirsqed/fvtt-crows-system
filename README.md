@@ -17,7 +17,7 @@ Crows is © MCDM Productions LLC. This project is not affiliated with or endorse
 
 ## Importing the playtest content
 
-You need Python 3.10 or newer and the playtest packet from MCDM (the books, the Inventory Cards folder, and optionally the Monster Illustrations folder), extracted somewhere on disk. Keep one copy of each PDF in that folder; subfolders are fine.
+You need Python 3.10 or newer and the playtest packet from MCDM (the books, the Inventory Cards folder, and optionally the Monster Illustrations folder), extracted somewhere on disk. Keep one copy of each PDF in that folder; subfolders are fine. The default is `pdfs/` inside the system folder (create it if needed). `--packet` and `CROWS_PACKET` override this location. Press Enter at the launcher prompt to use the default. This folder is ignored by Git and excluded from releases.
 
 **Windows:** double-click **Build Playtest Content.cmd** in the system folder. Paste the extracted packet folder when prompted. On the first run it creates a local Python environment and installs the required libraries; this needs internet access. It then runs every exporter for you. The window stays open so you can read the result.
 
@@ -75,6 +75,18 @@ Individual imports are also available: `importEquipment()`, `importDungeonLoot()
 The tools use the PDFs' own structure (table borders, fonts, filled boxes) rather than guessing from raw text, so they are specific to the current playtest layout. Expect to adjust them when a new packet changes the layout.
 
 `tools/data/icons.json` maps item and trait names to Foundry's bundled icons and is the one piece of hand-curated data; it contains no game text.
+
+Maintainers can verify those paths and runtime core icons against a Foundry installation with `python tools/check_icons.py "C:/Program Files/Foundry Virtual Tabletop/resources/app/public"` (use the corresponding installation path on Linux).
+
+## Inventory and gold
+
+The Crow's gc display totals equipment marked **Gold coins**. The adjacent + creates a gold stack: set its quantity on the item sheet, up to 250 gc in one slot. Gold moves, drops, and occupies wounded backpack slots like other equipment. Existing Crow coin balances convert on GM startup; if there is not enough room, the balance stays visible as pending. Free slots and reload to finish conversion.
+
+Quantity controls appear on stackable items even at quantity 1. Drag an owned stack onto matching equipment to combine up to the destination's limit; any remainder stays at the source. Different properties, including greed and usage dice, prevent merging. A full inventory rejects new pickups and moves that cannot place displaced gear. Use map loot or container actors for external storage.
+
+Depleted supplies remain visible on inventory cards. Use the restore control after completing the required rest or refill; it restores the item's maximum usage dice.
+
+Known invalid core icon paths from older exports are corrected when importing. Exact matches on world items and actor inventories are repaired on active-GM startup. Re-import to update unedited compendium entries; locally edited compendium entries remain protected.
 
 ## Moving loot on the map
 

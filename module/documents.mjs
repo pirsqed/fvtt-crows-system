@@ -1,3 +1,5 @@
+import { goldTotal } from "./inventory.mjs";
+
 export class CrowsActor extends Actor {
   prepareDerivedData() {
     super.prepareDerivedData();
@@ -12,6 +14,7 @@ export class CrowsActor extends Actor {
     // Coin encumbrance (250 gc per slot)
     const coins = Number(system.coins) || 0;
     system.coinSlots = Math.ceil(coins / 250);
+    if (this.type === "crow") system.carriedGold = goldTotal(this.items);
 
     // Armor Defense (AD) calculation from all active sources:
     // 1. Temporary Magic / Buff AD (system.tempAD)
@@ -873,7 +876,7 @@ export class CrowsActor extends Actor {
         bindEvents();
         updatePreviewUI();
       }
-    }, { width: 540, classes: ["crows", "dialog", "ad-manager"] });
+    }, { width: 540, classes: ["crows", "dialog", "crows-dialog", "ad-manager"] });
 
     dialog.render(true);
   }
@@ -1019,6 +1022,25 @@ export class CrowsActor extends Actor {
 }
 
 export class CrowsItem extends Item {
+  async _preUpdate(changes, options, user) {
+    const result = await super._preUpdate(changes, options, user);
+    if (result === false || this.type !== "equipment") return result;
+    const update = foundry.utils.expandObject(changes).system ?? {};
+    const isGold = update.isGold ?? this.system.isGold;
+    const quantity = update.quantity ?? this.system.quantity;
+    const maxStack = isGold ? 250 : update.maxStack ?? this.system.maxStack;
+    if (("quantity" in update || "maxStack" in update || "isGold" in update) && quantity > maxStack) {
+      ui.notifications.warn(`This item holds at most ${maxStack}. Use another stack for the remainder.`);
+      return false;
+    }
+    if (isGold) {
+      changes["system.maxStack"] = 250;
+      changes["system.slots"] = 1;
+      changes["system.cost"] = 1;
+    }
+    return result;
+  }
+
   /**
    * Returns an array of slot identifiers occupied by this item based on location and slot count.
    * e.g. location "backpack1" with slots 4 -> ["backpack1", "backpack2", "backpack3", "backpack4"]

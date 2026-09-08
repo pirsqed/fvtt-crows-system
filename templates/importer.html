@@ -1,11 +1,18 @@
 <form class="crows-importer-form flexcol" autocomplete="off">
-  <p class="notes">
-    This system ships with no game content. Generate it from your own copy of the MCDM playtest packet by opening
-    <strong>Build Playtest Content.cmd</strong> in the system folder on Windows, using
-    <code>sh build-playtest-content.sh --setup --packet "&lt;packet folder&gt;"</code> on Linux, or running
-    <code>python tools/build_all.py --setup --packet "&lt;packet folder&gt;"</code> (see <code>README.md</code>),
-    then import the results here. Re-importing adds missing entries and updates unedited, tracked items. Existing untracked entries, local edits, and changed actors are preserved for review. No entries are deleted.
-  </p>
+  <header class="importer-intro">
+    <h2>Import your playtest content</h2>
+    <p>Build the files from your own PDFs, then import them below. Re-imports preserve local edits and never delete entries.</p>
+  </header>
+  <details class="importer-setup">
+    <summary>How to build the content</summary>
+    <ol>
+      <li>Put your extracted playtest packet in <code>pdfs/</code> inside the system folder.</li>
+      <li>Windows: open <strong>Build Playtest Content.cmd</strong>.<br>
+        Linux: run <code>sh build-playtest-content.sh --setup</code> from the system folder.</li>
+      <li>Click <strong>Re-check files</strong>, then import. See <code>README.md</code> for custom packet folders and remote servers.</li>
+    </ol>
+    <p>Only unedited, tracked entries are updated. Older imports, local edits, and changed actors are preserved for review.</p>
+  </details>
 
   <table class="importer-table">
     <thead>
@@ -16,7 +23,7 @@
       <tr class="{{#if this.found}}found{{else}}missing{{/if}}">
         <td>{{this.label}} <small>({{this.type}})</small></td>
         <td><code>packs/{{this.file}}</code></td>
-        <td>{{this.status}}</td>
+        <td><span class="status-badge {{#if this.found}}status-found{{else}}status-missing{{/if}}">{{this.status}}</span></td>
         <td>
           {{#if this.found}}
           <button type="button" class="btn-import-one" data-fn="{{this.fn}}" {{#unless ../isGM}}disabled{{/unless}}>Import</button>

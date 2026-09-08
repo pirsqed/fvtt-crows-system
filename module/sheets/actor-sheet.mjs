@@ -1,3 +1,4 @@
+import { canStack, goldStack, restoreUsageDice } from "../inventory.mjs";
 import { createRollState, rollFlags, renderRollState } from "../chat-state.mjs";
 import { showWeaponAttackDialog } from "../attacks.mjs";
 import { rollPowerRoll } from "../power-roll.mjs";
@@ -108,7 +109,7 @@ export class CrowsActorSheet extends ActorSheet {
     
     const items = (context.items || []).map(item => {
       const document = this.actor.items.get(item._id);
-      return { ...item, greedTier: document?.greedTier, greedTierLabel: document?.greedTierLabel,
+      return { ...item, system: document?.toObject?.(false).system ?? item.system, greedTier: document?.greedTier, greedTierLabel: document?.greedTierLabel,
         greedBonusGc: document?.greedBonusGc, effectiveCost: document?.effectiveCost };
     });
     context.items = items;
@@ -350,6 +351,7 @@ export class CrowsActorSheet extends ActorSheet {
     html.find('.item-attack').click(this._onRollAttack.bind(this));
     html.find('.item-retrieve').click(this._onRetrieveItem.bind(this));
     html.find('.item-ud-roll').click(this._onRollUsageDice.bind(this));
+    html.find('.item-ud-restore').click(event => restoreUsageDice(this.actor, event));
 
     // AD Manager Modal
     html.find('.armor-ad, .open-ad-manager').click(this._onOpenADManagerDialog.bind(this));
@@ -474,7 +476,12 @@ export class CrowsActorSheet extends ActorSheet {
     event.preventDefault();
     const header = event.currentTarget;
     const type = header.dataset.type || "equipment";
-    const location = header.dataset.location || (type === "trait" ? "traits" : "backpack1");
+    const location = type === "trait" ? "traits" : header.dataset.location || CrowsLoot.findFreeSlot(this.actor);
+    if (!location) { ui.notifications.warn("Free an inventory slot first."); return; }
+    if (header.dataset.gold) {
+      const [item] = await this.actor.createEmbeddedDocuments("Item", [goldStack(1, location)]);
+      return item.sheet.render(true);
+    }
     const data = {
       name: `New ${type.capitalize()}`,
       type: type,
@@ -510,7 +517,11 @@ export class CrowsActorSheet extends ActorSheet {
     const item = this.actor.items.get(li.data("itemId"));
     if (!item) return;
 
-    const newQty = Math.max(0, (item.system.quantity || 1) + delta);
+    const newQty = Math.max(0, (item.system.quantity ?? 1) + delta);
+    if (delta > 0 && newQty > (item.system.maxStack || 1)) {
+      ui.notifications.warn("This stack is full. Create another stack for additional items.");
+      return;
+    }
     if (newQty === 0) {
       return item.delete();
     }
@@ -606,7 +617,7 @@ export class CrowsActorSheet extends ActorSheet {
           }
         },
         default: "scatter"
-      }).render(true);
+      }, { classes: ["crows", "dialog", "crows-dialog"] }).render(true);
       return;
     }
 
@@ -827,7 +838,7 @@ export class CrowsActorSheet extends ActorSheet {
         }
       },
       default: "roll"
-    }).render(true);
+    }, { classes: ["crows", "dialog", "crows-dialog"] }).render(true);
   }
 
   async _onSpendExpertise(event) {
@@ -870,7 +881,7 @@ export class CrowsActorSheet extends ActorSheet {
     event.preventDefault();
     new Dialog({
       title: "Rest & Regain Expertises",
-      content: `<p>Regain all uses for all trained Expertises? (Rest activity per Page 8)</p>`,
+      content: `<div class="crows-dialog-form"><p>Regain all uses for all trained Expertises? (Rest activity per Page 8)</p></div>`,
       buttons: {
         confirm: {
           icon: '<i class="fas fa-bed"></i>',
@@ -901,7 +912,7 @@ export class CrowsActorSheet extends ActorSheet {
         }
       },
       default: "confirm"
-    }).render(true);
+    }, { classes: ["crows", "dialog", "crows-dialog"] }).render(true);
   }
 
   async _onExpertiseQtyAdjust(amount, event) {
@@ -929,7 +940,7 @@ export class CrowsActorSheet extends ActorSheet {
     event.preventDefault();
     new Dialog({
       title: "Rest Outside Miasma",
-      content: `<p>Purge all levels of Cruelty? (Finishing a rest in a location with no Miasma per Page 27)</p>`,
+      content: `<div class="crows-dialog-form"><p>Purge all levels of Cruelty? (Finishing a rest in a location with no Miasma per Page 27)</p></div>`,
       buttons: {
         confirm: {
           icon: '<i class="fas fa-sun"></i>',
@@ -944,7 +955,7 @@ export class CrowsActorSheet extends ActorSheet {
         }
       },
       default: "confirm"
-    }).render(true);
+    }, { classes: ["crows", "dialog", "crows-dialog"] }).render(true);
   }
 
   async _onDeleteMiasmaEffect(event) {
@@ -997,7 +1008,7 @@ export class CrowsActorSheet extends ActorSheet {
         }
       },
       default: "save"
-    }).render(true);
+    }, { classes: ["crows", "dialog", "crows-dialog"] }).render(true);
   }
 
   async _onRollMiasmaTest(event) {
@@ -1112,7 +1123,7 @@ export class CrowsActorSheet extends ActorSheet {
         }
       },
       default: "roll"
-    }).render(true);
+    }, { classes: ["crows", "dialog", "crows-dialog"] }).render(true);
   }
 
   async _onRollMiasmaEffect(event) {
@@ -1204,6 +1215,8 @@ export class CrowsActorSheet extends ActorSheet {
     const slotElement = event.target.closest("[data-slot]");
     const listElement = event.target.closest("[data-list]");
     const targetSlot = slotElement?.dataset.slot ?? listElement?.dataset.list ?? null;
+    const targetItem = this.actor.items.get(event.target.closest("[data-item-id]")?.dataset.itemId);
+    if (item.parent && canStack(item, targetItem)) return CrowsLoot.stack(item, targetItem);
 
     // Rearranging within this sheet: move the item and relocate anything it displaces
     if (item.parent?.uuid === this.actor.uuid) {
@@ -1222,6 +1235,7 @@ export class CrowsActorSheet extends ActorSheet {
     if (item.type === "equipment") {
       const count = Math.max(1, Number(itemData.system?.slots) || 1);
       const loc = (targetSlot && CrowsLoot.fits(this.actor, targetSlot, count)) ? targetSlot : CrowsLoot.findFreeSlot(this.actor, count);
+      if (!loc) { ui.notifications.warn("No free inventory slot. Drop an item on the map or into a container first."); return false; }
       foundry.utils.setProperty(itemData, "system.location", loc);
     }
     return this._onDropItemCreate(itemData);

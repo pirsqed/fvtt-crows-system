@@ -125,7 +125,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if sys.version_info < (3, 10):
         parser.exit(1, "Python 3.10 or newer is required.\n")
-    default = args.packet or Path(os.environ.get("CROWS_PACKET", SYSTEM.parent / "playtest2_pdfs"))
+    default = args.packet or Path(os.environ.get("CROWS_PACKET", SYSTEM / "pdfs"))
     if args.interactive:
         entered = input(f"\nExtracted playtest folder [{default}]: ").strip().strip('"')
         if entered:

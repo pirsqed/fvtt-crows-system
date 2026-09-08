@@ -8,6 +8,7 @@
  *    destination, then delete from the source. When the acting user doesn't own both ends the
  *    request is sent over the system socket and executed by the active GM's client.
  */
+import { canStack, stackAmount, goldStack } from "./inventory.mjs";
 const SOCKET = "system.fvtt-crows-system";
 const SYSTEM_ID = "fvtt-crows-system";
 export const LOOT_BASE_NAME = "Ground Loot";
@@ -50,7 +51,7 @@ export class CrowsLoot {
 
   /** Run an action locally when the user is a GM, otherwise ask the active GM to run it. */
   static async _request(action, payload) {
-    if (game.user.isGM) return CrowsLoot._execute(action, payload, game.user.id);
+    if (CrowsLoot.isActiveGM() || (game.user.isGM && !game.users.activeGM)) return CrowsLoot._execute(action, payload, game.user.id);
     if (!game.system.socket) {
       ui.notifications.warn("The loot socket isn't enabled on the server. Ask the Ref to restart Foundry.");
       return null;
@@ -66,6 +67,7 @@ export class CrowsLoot {
   static async _execute(action, payload, userId) {
     switch (action) {
       case "transfer": return CrowsLoot._doTransfer(payload, userId);
+      case "stack": return CrowsLoot._doStack(payload, userId);
       case "dropToGround": return CrowsLoot._doDropToGround(payload, userId);
       case "takeCoins": return CrowsLoot._doTakeCoins(payload, userId);
       case "setLocked": return CrowsLoot._doSetLocked(payload, userId);
@@ -130,9 +132,9 @@ export class CrowsLoot {
 
   static defaultImage(containerType, firstItem) {
     switch (containerType) {
-      case "chest": return "icons/containers/boxes/chest-wooden-ironbound-brown.webp";
-      case "corpse": return "icons/skills/wounds/skull-blood-trail-red.webp";
-      case "dropped_pack": return "icons/sundries/survival/backpack-worn-leather-brown.webp";
+      case "chest": return "icons/containers/chest/chest-simple-oak-steel-brown.webp";
+      case "corpse": return "icons/commodities/bones/skull-hollow-brown-red.webp";
+      case "dropped_pack": return "icons/containers/bags/pack-leather-brown.webp";
       case "stash": return "icons/containers/bags/sack-simple-leather-brown.webp";
       default: return firstItem?.img || "icons/svg/item-bag.svg";
     }
@@ -230,7 +232,7 @@ export class CrowsLoot {
 
   /** Can an item of `count` slots sit at `location` on `actor`? */
   static fits(actor, location, count = 1, excludeId = null) {
-    if (!location || location === "ground" || location === "stash") return true;
+    if (!location || location === "ground" || location === "stash") return actor.type !== "crow";
     const occ = CrowsLoot.occupancy(actor, excludeId);
     if (CrowsLoot.MAGIC_SLOTS.includes(location)) return !occ[location];
     if (location.startsWith("belt") && count > 1) return false;
@@ -245,13 +247,13 @@ export class CrowsLoot {
     const bp = Array.from({ length: CrowsLoot.maxBackpack(actor) }, (_, i) => `backpack${i + 1}`);
     const order = actor.type === "crow" ? ["belt1", "belt2", "belt3", "belt4", "hand1", "hand2", ...bp] : ["hand1", "hand2", ...bp];
     for (const loc of order) if (CrowsLoot.fits(actor, loc, count, excludeId)) return loc;
-    return "ground";
+    return actor.type === "crow" ? null : "ground";
   }
 
   /** Can an item of `count` slots be anchored at `location` at all (ignoring what's there now)? */
   static validAnchor(actor, location, count) {
     if (!location) return false;
-    if (location === "ground" || location === "stash") return true;
+    if (location === "ground" || location === "stash") return actor.type !== "crow";
     if (CrowsLoot.MAGIC_SLOTS.includes(location)) return count === 1;
     if (location.startsWith("belt") && count > 1) return false;
     if (location === "hand2" && count > 1) return false;
@@ -290,6 +292,10 @@ export class CrowsLoot {
       let dest = (oldLocation && !CrowsLoot.MAGIC_SLOTS.includes(oldLocation) === !CrowsLoot.MAGIC_SLOTS.includes(other.system.location)
                   && freeAt(oldLocation, c)) ? oldLocation : null;
       if (!dest) dest = order.find(loc => freeAt(loc, c)) ?? "ground";
+      if (dest === "ground" && actor.type === "crow") {
+        ui.notifications.warn("There is no room to move the displaced item. Free an inventory slot first.");
+        return null;
+      }
       CrowsLoot.spanFor(dest, c).forEach(s => claimed.add(s));
       updates.push({ _id: other.id, "system.location": dest });
     }
@@ -356,6 +362,7 @@ export class CrowsLoot {
     if (source.type === "loot" && !CrowsLoot._reachWarn(targetActor, source)) return null;
     if (targetActor.type === "loot" && !CrowsLoot._reachWarn(source, targetActor)) return null;
     const payload = { itemUuid: item.uuid, targetUuid: targetActor.uuid, location };
+    if (game.users.activeGM) return CrowsLoot._request("transfer", payload);
     if (targetActor.isOwner && source.isOwner) return CrowsLoot._doTransfer(payload, game.user.id);
     return CrowsLoot._request("transfer", payload);
   }
@@ -379,6 +386,94 @@ export class CrowsLoot {
     return pending;
   }
 
+  static async stack(item, targetItem) {
+    if (!canStack(item, targetItem)) return null;
+    const source = item.parent, target = targetItem.parent;
+    if (!source || !target) return null;
+    if (source.uuid !== target.uuid) {
+      if (!this.canTransfer(source, target, game.user)) return null;
+      if (source.type === "loot" && !this._reachWarn(target, source)) return null;
+      if (target.type === "loot" && !this._reachWarn(source, target)) return null;
+    } else if (!source.isOwner) return null;
+    const payload = { itemUuid: item.uuid, targetItemUuid: targetItem.uuid };
+    // Use the GM queue when available, including owned stacks, to serialize competing merges.
+    if (game.users.activeGM) return this._request("stack", payload);
+    if (source.isOwner && target.isOwner) return this._doStack(payload, game.user.id);
+    return this._request("stack", payload);
+  }
+
+  static _doStack(payload, userId) {
+    const pending = (this._transferQueue ?? Promise.resolve()).then(() => this._stackNow(payload, userId));
+    this._transferQueue = pending.catch(() => {});
+    return pending;
+  }
+
+  static async _stackNow({ itemUuid, targetItemUuid }, userId) {
+    const item = await fromUuid(itemUuid), other = await fromUuid(targetItemUuid);
+    if (!item?.parent || !other?.parent) return null;
+    const source = item.parent, target = other.parent, user = game.users.get(userId);
+    if (source.uuid === target.uuid) {
+      if (!user || !(user.isGM || source.testUserPermission(user, "OWNER"))) return null;
+    } else if (!this.canTransfer(source, target, user)) return null;
+    const amount = stackAmount(item, other);
+    if (!amount) { ui.notifications.warn("That stack is full or the items no longer match."); return null; }
+    const remaining = item.system.quantity - amount;
+    const previousQuantity = other.system.quantity;
+    const updates = [{ _id: other.id, "system.quantity": previousQuantity + amount }];
+    if (source.uuid === target.uuid) {
+      // Zero the source in the same update; a failed deletion cannot duplicate supplies.
+      updates.push({ _id: item.id, "system.quantity": remaining });
+      await target.updateEmbeddedDocuments("Item", updates);
+      if (!remaining) await item.delete();
+    } else {
+      await target.updateEmbeddedDocuments("Item", updates);
+      try { await item.update({ "system.quantity": remaining }); }
+      catch (error) {
+        await other.update({ "system.quantity": previousQuantity });
+        throw error;
+      }
+      if (!remaining) await item.delete();
+      await this.cleanupIfEmpty(source);
+    }
+    return amount;
+  }
+
+  /** Plan every new gold stack before writing, so insufficient space leaves the balance intact. */
+  static planGold(actor, amount) {
+    const planned = [], inventory = Array.from(actor.items);
+    while (amount > 0) {
+      const location = this.findFreeSlot({ type: actor.type, system: actor.system, items: inventory }, 1);
+      if (!location) return null;
+      const data = goldStack(Math.min(250, amount), location);
+      planned.push(data); inventory.push({ ...data, id: `planned-${planned.length}` });
+      amount -= data.system.quantity;
+    }
+    return planned;
+  }
+
+  static async migrateGold() {
+    if (!this.isActiveGM()) return;
+    const actors = new Map(game.actors.filter(a => a.type === "crow").map(a => [a.uuid, a]));
+    for (const scene of game.scenes) for (const token of scene.tokens) {
+      if (!token.actorLink && token.actor?.type === "crow") actors.set(token.actor.uuid, token.actor);
+    }
+    for (const actor of actors.values()) {
+      const balance = Number(actor.system.coins) || 0;
+      if (!balance) continue;
+      // Mark created stacks so retrying an interrupted migration does not create the gold twice.
+      const converted = Array.from(actor.items).reduce((n, item) =>
+        n + (Number(item.getFlag(SYSTEM_ID, "convertedCoins")) || 0), 0);
+      const data = this.planGold(actor, Math.max(0, balance - converted));
+      if (!data) {
+        ui.notifications.warn(`${actor.name}: free space for ${balance} gc, then reload to convert the saved balance.`);
+        continue;
+      }
+      for (const item of data) item.flags = { [SYSTEM_ID]: { convertedCoins: item.system.quantity } };
+      if (data.length) await actor.createEmbeddedDocuments("Item", data);
+      await actor.update({ "system.coins": 0 });
+    }
+  }
+
   static async _transferNow({ itemUuid, targetUuid, location }, userId) {
     const item = await fromUuid(itemUuid);
     const target = await fromUuid(targetUuid);
@@ -390,6 +485,7 @@ export class CrowsLoot {
     const count = Math.max(1, Number(data.system?.slots) || 1);
     let loc = "ground";
     if (target.type !== "loot") loc = (location && CrowsLoot.fits(target, location, count)) ? location : CrowsLoot.findFreeSlot(target, count);
+    if (!loc) { ui.notifications.warn(`${target.name} has no room for ${item.name}.`); return null; }
     foundry.utils.setProperty(data, "system.location", loc);
     const [created] = await target.createEmbeddedDocuments("Item", [data]);
     await item.delete();
@@ -436,17 +532,33 @@ export class CrowsLoot {
     }
     if (!CrowsLoot._reachWarn(targetActor, lootActor)) return null;
     const payload = { lootUuid: lootActor.uuid, targetUuid: targetActor.uuid };
+    if (game.users.activeGM) return CrowsLoot._request("takeCoins", payload);
     if (lootActor.isOwner && targetActor.isOwner) return CrowsLoot._doTakeCoins(payload, game.user.id);
     return CrowsLoot._request("takeCoins", payload);
   }
 
-  static async _doTakeCoins({ lootUuid, targetUuid }, userId) {
+  static _doTakeCoins(payload, userId) {
+    const pending = (this._transferQueue ?? Promise.resolve()).then(() => this._takeCoinsNow(payload, userId));
+    this._transferQueue = pending.catch(() => {});
+    return pending;
+  }
+
+  static async _takeCoinsNow({ lootUuid, targetUuid }, userId) {
     const loot = await fromUuid(lootUuid);
     const target = await fromUuid(targetUuid);
     const amount = Number(loot?.system.coins) || 0;
     if (!loot || !target || amount <= 0) return null;
-    await target.update({ "system.coins": (Number(target.system.coins) || 0) + amount });
-    await loot.update({ "system.coins": 0 });
+    if (!this.canTransfer(loot, target, game.users.get(userId))) return null;
+    if (target.type === "crow") {
+      const data = this.planGold(target, amount);
+      if (!data) { ui.notifications.warn(`${target.name} needs space for ${amount} gc.`); return null; }
+      const created = await target.createEmbeddedDocuments("Item", data);
+      try { await loot.update({ "system.coins": 0 }); }
+      catch (error) { await target.deleteEmbeddedDocuments("Item", created.map(item => item.id)); throw error; }
+    } else {
+      await target.update({ "system.coins": (Number(target.system.coins) || 0) + amount });
+      await loot.update({ "system.coins": 0 });
+    }
     await CrowsLoot._announce(userId, target, loot, `${amount} gc`);
     await CrowsLoot.cleanupIfEmpty(loot);
     return amount;
@@ -537,6 +649,7 @@ export class CrowsLoot {
       delete copy._id;
       foundry.utils.setProperty(copy, "system.location", target.type === "loot" ? "ground"
         : CrowsLoot.findFreeSlot(target, Math.max(1, Number(copy.system?.slots) || 1)));
+      if (!copy.system.location) { ui.notifications.warn(`${target.name} has no free inventory slot.`); return false; }
       await target.createEmbeddedDocuments("Item", [copy]);
       return false;
     }

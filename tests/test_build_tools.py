@@ -9,10 +9,19 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 import build_all
-from common import find_pdf
+from common import find_pdf, packet_dir
+import common
 
 
 class BuildTests(unittest.TestCase):
+    def test_default_packet_is_system_pdfs_independent_of_working_directory(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "pdfs").mkdir()
+            with patch.object(common, "SYSTEM", root), patch.object(sys, "argv", ["exporter.py"]), \
+                 patch.dict(common.os.environ, {}, clear=True):
+                self.assertEqual(packet_dir(), (root / "pdfs").resolve())
+
     def test_pdf_discovery_handles_subfolders_and_uppercase_extensions(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

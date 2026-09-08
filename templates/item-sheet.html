@@ -48,10 +48,10 @@
               <option value="ring" {{#if (eq system.location "ring")}}selected{{/if}}>Finger / Ring</option>
               <option value="boots" {{#if (eq system.location "boots")}}selected{{/if}}>Feet / Boots</option>
             </optgroup>
-            <optgroup label="Storage">
+            {{#unless isCrowItem}}<optgroup label="Storage">
               <option value="ground" {{#if (eq system.location "ground")}}selected{{/if}}>Ground (Scene)</option>
               <option value="stash" {{#if (eq system.location "stash")}}selected{{/if}}>Stash (Camp)</option>
-            </optgroup>
+            </optgroup>{{/unless}}
           </select>
         </div>
 
@@ -91,6 +91,10 @@
         </div>
       </div>
 
+      <div class="form-group flexrow">
+        <label>Gold coins (count toward carried gc)</label>
+        <input type="checkbox" name="system.isGold" {{checked system.isGold}} />
+      </div>
       <!-- Greed Bonus Option -->
       <div class="form-group flexrow greed-bonus-group">
         <label><i class="fas fa-coins"></i> Greed Bonus</label>

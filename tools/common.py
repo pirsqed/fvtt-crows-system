@@ -12,7 +12,7 @@ def packet_dir():
     """Folder holding the MCDM playtest packet (books, Inventory Cards, Monster Illustrations).
 
     Resolution order: --packet <dir> argument, CROWS_PACKET environment variable,
-    then ../playtest2_pdfs next to the system folder.
+    then pdfs/ inside the system folder.
     """
     if "--packet" in sys.argv:
         index = sys.argv.index("--packet") + 1
@@ -22,7 +22,7 @@ def packet_dir():
     elif os.environ.get("CROWS_PACKET"):
         p = Path(os.environ["CROWS_PACKET"])
     else:
-        p = SYSTEM.parent / "playtest2_pdfs"
+        p = SYSTEM / "pdfs"
     p = p.expanduser().resolve()
     if not p.is_dir():
         sys.exit(f"Playtest packet folder not found: {p}\n"

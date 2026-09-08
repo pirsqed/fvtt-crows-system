@@ -1,3 +1,4 @@
+import { canStack } from "../inventory.mjs";
 import { rollPowerRoll } from "../power-roll.mjs";
 import { CrowsLoot } from "../loot.mjs";
 
@@ -194,7 +195,7 @@ export class CrowsLootSheet extends ActorSheet {
         cancel: { label: "Cancel" }
       },
       default: "roll"
-    }).render(true);
+    }, { classes: ["crows", "dialog", "crows-dialog"] }).render(true);
   }
 
   async _onScatterOntoMap(event) {
@@ -212,6 +213,8 @@ export class CrowsLootSheet extends ActorSheet {
   async _onDropItem(event, data) {
     const item = await Item.implementation.fromDropData(data);
     if (!item) return false;
+    const targetItem = this.actor.items.get(event.target.closest("[data-item-id]")?.dataset.itemId);
+    if (item.parent && canStack(item, targetItem)) return CrowsLoot.stack(item, targetItem);
     if (item.parent?.uuid === this.actor.uuid) return false;
     if (item.parent) return CrowsLoot.transfer(item, this.actor);
     if (!this.isEditable) return false;

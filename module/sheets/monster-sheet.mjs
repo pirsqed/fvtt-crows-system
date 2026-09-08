@@ -1,3 +1,4 @@
+import { canStack, goldStack, restoreUsageDice } from "../inventory.mjs";
 import { showWeaponAttackDialog, rollStatBlockAttack } from "../attacks.mjs";
 import { rollPowerRoll } from "../power-roll.mjs";
 import { CrowsLoot } from "../loot.mjs";
@@ -23,7 +24,7 @@ export class CrowsMonsterSheet extends ActorSheet {
     
     // Pass attacks and traits specifically
     const items = this.actor.items.map(item => {
-      const iObj = item.toObject();
+      const iObj = item.toObject(false);
       iObj.greedTier = item.greedTier;
       iObj.greedTierLabel = item.greedTierLabel;
       iObj.greedBonusGc = item.greedBonusGc;
@@ -149,6 +150,7 @@ export class CrowsMonsterSheet extends ActorSheet {
 
     // Roll Usage Dice on consumable equipment
     html.find('.item-ud-roll').click(this._onRollUsageDice.bind(this));
+    html.find('.item-ud-restore').click(event => restoreUsageDice(this.actor, event));
 
     // Trait chat sharing
     html.find('.trait-post-chat').click(this._onPostTraitToChat.bind(this));
@@ -256,7 +258,11 @@ export class CrowsMonsterSheet extends ActorSheet {
     const item = this.actor.items.get(itemId);
     if (!item) return;
 
-    const newQty = Math.max(0, (item.system.quantity || 1) + delta);
+    const newQty = Math.max(0, (item.system.quantity ?? 1) + delta);
+    if (delta > 0 && newQty > (item.system.maxStack || 1)) {
+      ui.notifications.warn("This stack is full. Create another stack for additional items.");
+      return;
+    }
     if (newQty === 0) {
       return item.delete();
     }
@@ -404,7 +410,7 @@ export class CrowsMonsterSheet extends ActorSheet {
         }
       },
       default: "roll"
-    }).render(true);
+    }, { classes: ["crows", "dialog", "crows-dialog"] }).render(true);
   }
 
   async _onRollWeaponAttack(event) {
@@ -541,6 +547,8 @@ export class CrowsMonsterSheet extends ActorSheet {
     const slotElement = event.target.closest("[data-slot]");
     const listElement = event.target.closest("[data-list]");
     const targetSlot = slotElement?.dataset.slot ?? listElement?.dataset.list ?? null;
+    const targetItem = this.actor.items.get(event.target.closest("[data-item-id]")?.dataset.itemId);
+    if (item.parent && canStack(item, targetItem)) return CrowsLoot.stack(item, targetItem);
 
     // Rearranging within this sheet
     if (item.parent?.uuid === this.actor.uuid) {

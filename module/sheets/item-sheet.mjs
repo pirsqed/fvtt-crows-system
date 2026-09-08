@@ -18,6 +18,7 @@ export class CrowsItemSheet extends ItemSheet {
     const itemData = this.item.toObject(false);
     context.system = itemData.system;
     context.owner = this.item.isOwner;
+    context.isCrowItem = this.item.parent?.type === "crow";
     context.editable = this.isEditable;
     if (this.item.type === 'attack') {
       context.enrichedNotes = await TextEditor.enrichHTML(this.item.system.notes || "", {async: true});

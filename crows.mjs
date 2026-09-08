@@ -10,8 +10,9 @@ import { CrowsLoot } from "./module/loot.mjs";
 import { CrowsLootDrag } from "./module/loot-drag.mjs";
 import { CrowsDungeonTimer } from "./module/apps/dungeon-timer.mjs";
 import { CrowsImporter } from "./module/apps/importer.mjs";
+import { repairWorldIcons } from "./module/icon-repairs.mjs";
 
-Hooks.once("init", () => {
+Hooks.once("init", async () => {
   console.log("Crows | Initializing MCDM Crows System (Playtest 2 & Physical Ground Loot)");
 
   // Configure custom Document implementations
@@ -85,7 +86,7 @@ Hooks.once("init", () => {
     {
       id: "vulnerable",
       name: "Vulnerable",
-      img: "icons/skills/wounds/injury-bleeding-body-red.webp",
+      img: "icons/skills/wounds/injury-pain-body-orange.webp",
       description: "Each time you take damage, you take an additional 1d6 damage. Ends at the end of a DT."
     },
     {
@@ -97,13 +98,13 @@ Hooks.once("init", () => {
     {
       id: "grabbed",
       name: "Grabbed",
-      img: "icons/skills/melee/unarmed-claws-beast.webp",
+      img: "icons/weapons/fist/claw-grey-black.webp",
       description: "Speed is 0, can't flank, attacks against you gain an edge."
     },
     {
       id: "prone",
       name: "Prone",
-      img: "icons/skills/movement/feet-fall-down-orange.webp",
+      img: "icons/svg/falling.svg",
       description: "Speed halved, bane on melee attacks, melee attacks against you gain edge, ranged attacks against you take bane."
     },
     {
@@ -118,7 +119,7 @@ Hooks.once("init", () => {
   CONFIG.Actor.trackableAttributes = {
     crow: {
       bar: ["stamina"],
-      value: ["derivedSpeed", "totalWounds", "coins"]
+      value: ["derivedSpeed", "totalWounds", "carriedGold"]
     },
     monster: {
       bar: ["stamina"],
@@ -129,6 +130,7 @@ Hooks.once("init", () => {
       value: ["coins"]
     }
   };
+  await loadTemplates(["systems/fvtt-crows-system/templates/inventory-controls.html"]);
 });
 
 // Register Canvas Drop Hook for Ground Loot
@@ -270,6 +272,11 @@ Hooks.once("ready", () => {
   CrowsLoot.activateSocket();
   CrowsChatActions.activate([...EXPERTISES_CONFIG.general, ...EXPERTISES_CONFIG.spellcasting, ...EXPERTISES_CONFIG.weapon]);
   CrowsLoot.migrateLootOwnership();
+  repairWorldIcons().catch(error => console.error("Crows | Icon repair failed", error));
+  CrowsLoot.migrateGold().catch(error => {
+    console.error("Crows | Gold conversion failed", error);
+    ui.notifications.error("Gold conversion could not finish. Check the console before retrying.");
+  });
 
   // Initialize and render the Hourglass Dungeon Turn HUD
   const timerHUD = new CrowsDungeonTimer();

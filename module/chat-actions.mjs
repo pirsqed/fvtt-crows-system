@@ -135,13 +135,24 @@ export class CrowsChatActions {
       if (!actor?.isOwner) throw new Error("You do not own this roll's actor.");
       const options = Object.entries(actor.system.expertises ?? {}).filter(([, exp]) => exp.value > 0);
       if (!options.length) throw new Error("No expertise uses remain.");
-      return new Dialog({ title: "Apply Expertise (+1 Tier)",
-        content: `<p>Choose an expertise with the Ref.</p><select name="expertise">${options.map(([key, exp]) =>
-          `<option value="${escapeHTML(key)}">${escapeHTML(this.expertiseLabels?.[key] ?? key)} (${exp.value}/${exp.max})</option>`).join("")}</select>`,
-        buttons: { apply: { label: "Apply", callback: async html => {
-          try { await this.request({ messageId: message.id, action: "expertise", key: html.find('[name="expertise"]').val() }); }
-          catch (err) { ui.notifications.warn(err.message); }
-        } }, cancel: { label: "Cancel" } } }).render(true);
+      return new Dialog({
+        title: "Apply Expertise (+1 Tier)",
+        content: `<form class="crows-dialog-form"><p>Choose an expertise with the Ref.</p><div class="form-group"><select name="expertise">${options.map(([key, exp]) =>
+          `<option value="${escapeHTML(key)}">${escapeHTML(this.expertiseLabels?.[key] ?? key)} (${exp.value}/${exp.max})</option>`).join("")}</select></div></form>`,
+        buttons: {
+          apply: {
+            icon: '<i class="fas fa-check"></i>',
+            label: "Apply",
+            callback: async html => {
+              try { await this.request({ messageId: message.id, action: "expertise", key: html.find('[name="expertise"]').val() }); }
+              catch (err) { ui.notifications.warn(err.message); }
+            }
+          },
+          cancel: {
+            label: "Cancel"
+          }
+        }
+      }, { classes: ["crows", "dialog", "crows-dialog"] }).render(true);
     }
     if (data.action === "damage") {
       const selected = state.targets[Number(data.targetIndex)];
