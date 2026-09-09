@@ -2,9 +2,9 @@
   "id": "fvtt-crows-system",
   "title": "Crows (Unofficial)",
   "description": "An unofficial system for Crows, the survival-horror dungeon crawler by MCDM Productions, built against the public playtest. Ships with no game content: run the included Python tools on your own copy of the playtest packet to generate and import it.",
-  "version": "1.2.0",
+  "version": "0.2.0",
   "compatibility": {
-    "minimum": 12,
+    "minimum": 14,
     "verified": 14
   },
   "authors": [
@@ -15,7 +15,7 @@
   ],
   "url": "https://github.com/pirsqed/fvtt-crows-system",
   "manifest": "https://raw.githubusercontent.com/pirsqed/fvtt-crows-system/main/system.json",
-  "download": "https://github.com/pirsqed/fvtt-crows-system/releases/latest/download/fvtt-crows-system.zip",
+  "download": "https://github.com/pirsqed/fvtt-crows-system/releases/download/v0.2.0/fvtt-crows-system.zip",
   "bugs": "https://github.com/pirsqed/fvtt-crows-system/issues",
   "readme": "README.md",
   "grid": {
@@ -26,7 +26,9 @@
     "crows.mjs"
   ],
   "styles": [
-    "styles/crows.css"
+    "styles/crows.css",
+    "styles/character-creator.css",
+    "styles/village.css"
   ],
   "packs": [],
   "languages": [],
@@ -34,12 +36,14 @@
     "Actor": {
       "crow": {},
       "monster": {},
-      "loot": {}
+      "loot": {},
+      "village": {}
     },
     "Item": {
       "equipment": {},
       "attack": {},
-      "trait": {}
+      "trait": {},
+      "villageEntry": {}
     }
   },
   "socket": true,

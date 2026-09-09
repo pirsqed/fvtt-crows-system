@@ -6,11 +6,27 @@ import { CrowsActorSheet, EXPERTISES_CONFIG } from "./module/sheets/actor-sheet.
 import { CrowsMonsterSheet } from "./module/sheets/monster-sheet.mjs";
 import { CrowsLootSheet } from "./module/sheets/loot-sheet.mjs";
 import { CrowsItemSheet } from "./module/sheets/item-sheet.mjs";
+import { VillageDataModel, VillageEntryDataModel } from "./module/village-data-models.mjs";
+import { CrowsVillageSheet } from "./module/sheets/village-sheet.mjs";
+import { CrowsVillageEntrySheet } from "./module/sheets/village-entry-sheet.mjs";
 import { CrowsLoot } from "./module/loot.mjs";
 import { CrowsLootDrag } from "./module/loot-drag.mjs";
 import { CrowsDungeonTimer } from "./module/apps/dungeon-timer.mjs";
 import { CrowsImporter } from "./module/apps/importer.mjs";
 import { repairWorldIcons } from "./module/icon-repairs.mjs";
+import { CrowsCharacterCreator, addCharacterCreatorButton, addCharacterCreatorToDocumentDirectory,
+  refreshCharacterCreatorButtons } from "./module/apps/character-creator.mjs";
+
+Hooks.on("renderActorDirectory", addCharacterCreatorButton);
+Hooks.on("renderDocumentDirectory", addCharacterCreatorToDocumentDirectory);
+Hooks.on("renderSidebar", refreshCharacterCreatorButtons);
+Hooks.once("ready", refreshCharacterCreatorButtons);
+Hooks.on("updateUser", user => {
+  if (user.id === game.user.id) refreshCharacterCreatorButtons();
+});
+Hooks.on("updateSetting", setting => {
+  if (setting.key === "core.permissions") refreshCharacterCreatorButtons();
+});
 
 Hooks.once("init", async () => {
   console.log("Crows | Initializing MCDM Crows System (Playtest 2 & Physical Ground Loot)");
@@ -23,12 +39,14 @@ Hooks.once("init", async () => {
   CONFIG.Actor.dataModels = {
     crow: CrowDataModel,
     monster: MonsterDataModel,
-    loot: LootDataModel
+    loot: LootDataModel,
+    village: VillageDataModel
   };
   CONFIG.Item.dataModels = {
     equipment: EquipmentDataModel,
     attack: AttackDataModel,
-    trait: TraitDataModel
+    trait: TraitDataModel,
+    villageEntry: VillageEntryDataModel
   };
 
   // Register Sheets
@@ -36,9 +54,11 @@ Hooks.once("init", async () => {
   Actors.registerSheet("crows", CrowsActorSheet, { types: ["crow"], makeDefault: true });
   Actors.registerSheet("crows", CrowsMonsterSheet, { types: ["monster"], makeDefault: true });
   Actors.registerSheet("crows", CrowsLootSheet, { types: ["loot"], makeDefault: true });
+  Actors.registerSheet("crows", CrowsVillageSheet, { types: ["village"], makeDefault: true });
 
   Items.unregisterSheet("core", ItemSheet);
-  Items.registerSheet("crows", CrowsItemSheet, { makeDefault: true });
+  Items.registerSheet("crows", CrowsItemSheet, { types: ["equipment", "attack", "trait"], makeDefault: true });
+  Items.registerSheet("crows", CrowsVillageEntrySheet, { types: ["villageEntry"], makeDefault: true });
 
   // Register Synchronized World Setting for Dungeon Turn Timer
   game.settings.register("fvtt-crows-system", "dungeonTimerState", {
@@ -73,6 +93,12 @@ Hooks.once("init", async () => {
     icon: "fas fa-download",
     type: CrowsImporter,
     restricted: true
+  });
+
+  // Available to players as well as GMs; creation checks Actor permissions.
+  game.settings.registerMenu("fvtt-crows-system", "characterCreator", {
+    name: "Character Creator", label: "Create a Crow", hint: "Create a new crow from your locally generated playtest content.",
+    icon: "fas fa-feather", type: CrowsCharacterCreator, restricted: false
   });
 
   // Playtest 2 Status Effects
@@ -130,7 +156,10 @@ Hooks.once("init", async () => {
       value: ["coins"]
     }
   };
-  await loadTemplates(["systems/fvtt-crows-system/templates/inventory-controls.html"]);
+  await loadTemplates([
+    "systems/fvtt-crows-system/templates/inventory-controls.html",
+    "systems/fvtt-crows-system/templates/usage-dice.html"
+  ]);
 });
 
 // Register Canvas Drop Hook for Ground Loot
@@ -284,6 +313,7 @@ Hooks.once("ready", () => {
 
   // Expose system helper utilities
   game.crows = {
+    createCrow: () => new CrowsCharacterCreator().render(true),
     timerHUD: timerHUD,
 
     /**

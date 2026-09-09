@@ -9,6 +9,7 @@ Crows is © MCDM Productions LLC. This project is not affiliated with or endorse
 ## What the system does
 
 - Crow (player character) sheets with the slot-based inventory (hands, belt, numbered backpack, magic item slots), wounds that occupy backpack slots, speed penalties, expertise use pools, Miasma and cruelty tracking.
+- A four-step character creator with background and gold rolls, characteristic choices, starting kits and traits, NPC connections, and linked starting pets.
 - The 2d10 tiered test with edges, banes, double edges and banes, crits and dooms, and post-roll expertise upgrades from chat.
 - Weapon attacks with tier damage, targeted damage application, and an armor defense allocation dialog.
 - Usage dice rolling on equipment and spellbooks.
@@ -69,7 +70,7 @@ Individual imports are also available: `importEquipment()`, `importDungeonLoot()
 |---|---|---|
 | `extract_cards.py` + `build_packs.py` | Inventory Cards PDFs | equipment, dungeon loot, and a report comparing kits with the Characters book |
 | `extract_traits.py` | Characters book | all trait trees, with prerequisites derived from the diagram connectors |
-| `extract_backgrounds.py` | Characters book | starting characteristics, Stamina, trait, expertises, and kits per background |
+| `extract_backgrounds.py` | Characters book | starting characteristics, Stamina, trait, expertises, kits per background, and NPC connection benefits |
 | `extract_monsters.py` | Ref book | every stat block as an actor with attacks and features, plus downscaled monster art |
 
 The tools use the PDFs' own structure (table borders, fonts, filled boxes) rather than guessing from raw text, so they are specific to the current playtest layout. Expect to adjust them when a new packet changes the layout.
@@ -77,6 +78,36 @@ The tools use the PDFs' own structure (table borders, fonts, filled boxes) rathe
 `tools/data/icons.json` maps item and trait names to Foundry's bundled icons and is the one piece of hand-curated data; it contains no game text.
 
 Maintainers can verify those paths and runtime core icons against a Foundry installation with `python tools/check_icons.py "C:/Program Files/Foundry Virtual Tabletop/resources/app/public"` (use the corresponding installation path on Linux).
+
+## Creating a crow
+
+Build the playtest content first (rebuild older exports to add `packs/connections.json`). In the **Actors** directory, click **Create a Crow**, or use **Settings → System Settings → Character Creator**. A script macro can also open it:
+
+```js
+game.crows.createCrow()
+```
+
+The creator reads the local generated packs directly; importing compendiums is not required. It shows an actionable error if a required file or grant is missing. Players need Foundry's **Create Actors** permission to finish; without it they can preview through Settings and ask the GM to create their crow.
+
+Background rolls use Foundry's standard Roll chat messages: `1d6 * 10 + 1d6` displays the d66 result and the selected background. Starting gold also posts a standard roll, including any background gold bonus in the formula and total. Both use Foundry's current chat visibility setting. Manual entries do not post a roll.
+
+Roll the two background dice separately, assign the permitted characteristics, name your crow and feature, roll or enter starting gold, and add your village connection. Background selection and rerolls are available for Ref-approved choices or physical dice. The review shows every starting item and its assigned location before creating a new actor. Going back keeps your choices. Existing actors are never replaced.
+
+The creator preserves kit quantities, gives lore books their individual subjects, adds the starting trait, and fills all starting expertise pools. Pets become separately owned actors linked from the crow's biography. Connection details are saved in biography and creation flags. Choose an optional home village on the NPC connection step: if you own that village, the creator also adds the Crow and connection to its sheet. Otherwise the home choice is saved and the Ref can add the Crow from the village sheet. A starting Reputation trait also asks for its merchant choice.
+
+Equipment is placed into available hands, belt, and backpack slots. Overflow remains in home storage and is called out before creation. Cumbersome weapons start stowed because the current sheet represents hand occupancy by slot count. Review your loadout on the sheet before adventuring. Gold uses the system's existing separate loose-coin stack, with the empty purse retained; purse capacity rules are not automated by the creator.
+
+This version creates new crows at **0 XP**. Replacement-character advancement, retirement bonuses, shopping, and village construction are not part of the wizard. Trait and connection descriptions are references; conditional benefits are not automatically applied. If a save fails or returns an incomplete result, the creator blocks another save and displays a reference ID. Check the Actors directory for the crow and pets before opening a fresh creator; a server failure may have saved some documents.
+
+## Villages
+
+Create an Actor with type **village** in the Actors directory. Each village has its own institutions, NPCs, quests, notes, prosperity, treasury, and cycle/day counters. No Crows are required. Ownership controls who can view or edit the sheet; notes are shared with anyone who can view it.
+
+Use **Add starting institutions** for the five standard level-1 institutions, then add the group's chosen sixth institution. This adds only missing types. Institutions can link to village NPCs as stewards and track services, current/maximum levels, and a pending level with its availability cycle. Apply due changes manually. Costs, prosperity adjustments, and cycle advancement remain the Ref's responsibility. Sale value updates from prosperity. **Roll village event** sends a standard Foundry roll to chat; consult the Village Event table and record the outcome in event notes.
+
+Add NPCs independently, optionally linking their actor sheets. Quests track their issuer, status, reward, deadline, and notes. These records are embedded in their village, so editing one village does not alter another.
+
+Use **Add Crow** or drag a Crow from the Actors directory to record them. Each Crow has one optional home village; **Set as home** changes that choice if you own the Crow. The character creator also offers visible villages as home choices. A home-village membership copies the Crow's NPC connection; other memberships do not. Copied connections can be edited independently in the village. Re-adding a Crow preserves existing edits. Changing home keeps old village records for the Ref to review or remove. Missing linked actors leave their records intact.
 
 ## Inventory and gold
 
@@ -135,3 +166,7 @@ Historical cards retain their text and damage buttons, but need a new roll to us
 the new expertise flow; their old damage buttons do not have replay protection.
 
 This is playtest software tracking a playtest game. Rules will change and so will this system. Issues and pull requests are welcome.
+
+### At the table
+
+See [Playing the playtest](MANUAL-PLAY.md) for spellcasting, XP, companion wounds, and the steps handled manually.
