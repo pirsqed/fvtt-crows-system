@@ -1,0 +1,53 @@
+.crows-village .window-content { background: #171d1b; color: #e6e7df; padding: 18px; }
+.crows-village { --village-border: #49524a; --village-accent: #d6bd82; }
+.crows-village form { min-height: 0; }
+.crows-village .village-form { height: 100%; display: flex; flex-direction: column; gap: 16px; }
+.crows-village label { display: block; color: #d9ddce; font-weight: 600; }
+.crows-village input, .crows-village select, .crows-village textarea { width: 100%; color: #f0eee6; background: #101614; border: 1px solid var(--village-border); border-radius: 4px; padding: 7px 9px; margin-top: 5px; font: inherit; font-weight: normal; }
+.crows-village input, .crows-village select { height: 34px; }
+.crows-village select option { background: #171d1b; color: #f0eee6; }
+.crows-village textarea { height: auto; min-height: 110px; resize: vertical; line-height: 1.55; }
+.crows-village input:focus, .crows-village select:focus, .crows-village textarea:focus { outline: 2px solid var(--village-accent); box-shadow: none; }
+.crows-village button { width: auto; background: #2b382f; border: 1px solid #63705d; color: #f0eee6; padding: 3px 12px; border-radius: 4px; white-space: normal; }
+.crows-village button:hover { background: #3b4b3d; box-shadow: none; }
+.crows-village button:disabled { opacity: .5; }
+.crows-village .village-header { display: flex; gap: 18px; align-items: center; }
+.crows-village .village-header img { width: 88px; height: 88px; object-fit: cover; border: 1px solid var(--village-border); }
+.crows-village .village-header > div { flex: 1; }
+.crows-village .village-name { font-size: 27px; height: 42px; margin: 4px 0 9px; }
+.crows-village .village-caption { color: var(--village-accent); font-size: 12px; font-weight: 600; }
+.crows-village .village-tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--village-border); flex: 0 0 auto; }
+.crows-village .village-tabs a { flex: 1; padding: 10px 4px; text-align: center; color: #d9ddce; border-bottom: 3px solid transparent; text-shadow: none; }
+.crows-village .village-tabs a:hover, .crows-village .village-tabs a:focus-visible { color: #f0eee6; }
+.crows-village .village-tabs a.active { color: var(--village-accent); border-bottom-color: var(--village-accent); }
+.crows-village .village-body { flex: 1; overflow-y: auto; min-height: 0; padding-right: 7px; }
+.crows-village .village-body > .tab { display: none; }
+.crows-village .village-body > .tab.active { display: block; }
+.crows-village .village-metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 18px; }
+.crows-village .village-stat { display: flex; flex-direction: column; gap: 9px; text-align: center; }
+.crows-village .village-stat strong { font-size: 23px; color: var(--village-accent); }
+.crows-village .village-field { margin-bottom: 16px; }
+.crows-village .village-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 20px 0 12px; }
+.crows-village h2 { font-size: 20px; border: 0; margin: 0; }
+.crows-village h2 small { display: block; font-size: 12px; color: #b4bead; margin-top: 5px; }
+.crows-village h3 { font-size: 18px; margin: 0; border: 0; }
+.crows-village h4 { font-size: 14px; margin: 12px 0 5px; color: var(--village-accent); }
+.crows-village .village-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; }
+.crows-village .village-card { background: #202923; border: 1px solid var(--village-border); border-radius: 6px; padding: 16px; min-width: 0; overflow-wrap: anywhere; }
+.crows-village .village-card header { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+.crows-village .village-badge { font-size: 11px; color: #e0cfa5; border: 1px solid #716d51; padding: 3px 7px; border-radius: 12px; white-space: nowrap; }
+.crows-village .village-level { color: var(--village-accent); font-weight: 600; }
+.crows-village .village-level span { color: #b4bead; font-weight: normal; margin-left: 10px; }
+.crows-village .village-prose { line-height: 1.6; font-weight: normal; overflow-wrap: anywhere; }
+.crows-village .village-prose:empty { display: none; }
+.crows-village .village-card footer, .crows-village .village-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.crows-village .village-card footer { margin-top: 16px; }
+.crows-village .village-remove { margin-left: auto; }
+.crows-village .village-muted, .crows-village .village-empty, .crows-village .village-sheet-footer { color: #b4bead; font-size: 13px; line-height: 1.5; }
+.crows-village .village-empty { padding: 20px 0; }
+.crows-village .village-sheet-footer { flex: 0 0 auto; border-top: 1px solid var(--village-border); padding-top: 9px; }
+.crows-village .village-entry-form { display: flex; flex-direction: column; height: 100%; }
+.crows-village .village-entry-fields { overflow-y: auto; flex: 1; min-height: 0; padding-right: 8px; }
+.crows-village .village-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+.crows-village .village-entry-form > footer { padding-top: 12px; }
+.crows-village .village-entry-form > footer button { width: 100%; }

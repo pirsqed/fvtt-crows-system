@@ -1,0 +1,31 @@
+<form class="village-entry-form" autocomplete="off">
+  <header><span class="village-caption">{{kindLabel}}</span><label class="village-field">Name<input name="name" value="{{item.name}}" required></label></header>
+  <div class="village-entry-fields">
+    <label class="village-field">Status<select name="system.status">{{#each statuses}}<option value="{{key}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></label>
+    {{#if institution}}
+    <label class="village-field">Institution type<input name="system.category" value="{{system.category}}"></label>
+    <div class="village-grid"><label>Level<input type="number" name="system.level" value="{{system.level}}" min="1" max="6" data-dtype="Number"></label><label>Maximum level<input type="number" name="system.maxLevel" value="{{system.maxLevel}}" min="1" max="6" data-dtype="Number"></label></div>
+    <div class="village-grid"><label>Pending level (0 = none)<input type="number" name="system.pendingLevel" value="{{system.pendingLevel}}" min="0" max="6" data-dtype="Number"></label><label>Available in cycle<input type="number" name="system.readyCycle" value="{{system.readyCycle}}" min="0" data-dtype="Number"></label></div>
+    <label class="village-field">Steward (village NPC)<select name="system.npcId"><option value="">None / use name below</option>{{#each npcOptions}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></label>
+    <label class="village-field">Steward name<input name="system.steward" value="{{system.steward}}"></label>
+    <label class="village-field">Services<textarea name="system.services" rows="5">{{system.services}}</textarea></label>
+    {{/if}}
+    {{#if npc}}
+    <label class="village-field">Role<input name="system.role" value="{{system.role}}"></label>
+    <label class="village-field">Linked actor (optional)<select name="system.actorId"><option value="">None</option>{{#each actorOptions}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></label>
+    {{/if}}
+    {{#if crow}}
+    <label class="village-field">NPC connection's name<input name="system.npcName" value="{{system.npcName}}"></label>
+    <label class="village-field">Relationship<textarea name="system.relationship" rows="5">{{system.relationship}}</textarea></label>
+    <label class="village-field">Connection benefit<input name="system.benefit" value="{{system.benefit}}"></label>
+    <label class="village-field">Benefit description<textarea name="system.benefitDescription" rows="5">{{system.benefitDescription}}</textarea></label>
+    {{/if}}
+    {{#if quest}}
+    <label class="village-field">From (village NPC)<select name="system.npcId"><option value="">None</option>{{#each npcOptions}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></label>
+    <label class="village-field">Reward<input name="system.reward" value="{{system.reward}}"></label>
+    <label class="village-field">Due<input name="system.due" value="{{system.due}}" placeholder="Cycle, day, or condition"></label>
+    {{/if}}
+    <label class="village-field">Notes<textarea name="system.description" rows="7">{{system.description}}</textarea></label>
+  </div>
+  {{#if editable}}<footer><button type="submit"><i class="fas fa-save"></i> Save record</button></footer>{{/if}}
+</form>

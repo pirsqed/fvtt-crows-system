@@ -1,0 +1,73 @@
+<form class="village-form" autocomplete="off">
+  <header class="village-header">
+    <img src="{{actor.img}}" data-edit="img" title="Village image" alt="">
+    <div><span class="village-caption">Village</span><input class="village-name" name="name" value="{{actor.name}}" aria-label="Village name" required>
+      <label>Location<input name="system.location" value="{{system.location}}" placeholder="Region or location"></label></div>
+  </header>
+  <nav class="village-tabs tabs" data-group="primary" aria-label="Village sections">
+    <a class="item" data-tab="overview">Overview</a><a class="item" data-tab="institutions">Institutions</a>
+    <a class="item" data-tab="npcs">NPCs</a><a class="item" data-tab="quests">Quests</a><a class="item" data-tab="notes">Notes</a>
+  </nav>
+  <section class="village-body">
+    <div class="tab" data-group="primary" data-tab="overview">
+      <div class="village-metrics">
+        <label>Prosperity<input type="number" name="system.prosperity" value="{{system.prosperity}}" min="-10" max="10" step="1" data-dtype="Number"></label>
+        <label>Cycle<input type="number" name="system.cycle" value="{{system.cycle}}" min="1" step="1" data-dtype="Number"></label>
+        <label>Day<input type="number" name="system.day" value="{{system.day}}" min="1" max="10" step="1" data-dtype="Number"></label>
+        <label>Treasury (gc)<input type="number" name="system.treasury" value="{{system.treasury}}" min="0" step="1" data-dtype="Number"></label>
+        <div class="village-stat"><span>Sale value</span><strong>{{salePercent}}%</strong></div>
+      </div>
+      <label class="village-field">Description{{#if editable}}<textarea name="system.description" rows="4">{{system.description}}</textarea>{{else}}<div class="village-prose">{{{descriptionHTML}}}</div>{{/if}}</label>
+      <div class="village-section-heading"><h2>Crows</h2>{{#if editable}}<button type="button" data-village-action="add" data-kind="crow"><i class="fas fa-plus"></i> Add Crow</button>{{/if}}</div>
+      <div class="village-cards">{{#each crows}}<article class="village-card">
+        <header><h3>{{displayName}}</h3><span class="village-badge">{{statusLabel}}</span></header>
+        {{#if isHome}}<p class="village-caption">Home village</p>{{/if}}
+        {{#if system.npcName}}<p>NPC connection: <strong>{{system.npcName}}</strong></p>{{/if}}
+        {{#if missingActor}}<p class="village-muted">Linked Crow unavailable. The village record is retained.</p>{{/if}}
+        <div class="village-prose">{{{descriptionHTML}}}</div>
+        <footer>{{#if canOpenActor}}<button type="button" class="village-view-action" data-village-action="open-actor" data-entry-id="{{id}}">Open Crow</button>{{/if}}
+          <button type="button" class="village-view-action" data-village-action="view" data-entry-id="{{id}}">{{#if ../editable}}Edit{{else}}View{{/if}} record</button>
+          {{#if ../editable}}{{#if canSetHome}}<button type="button" data-village-action="set-home" data-entry-id="{{id}}">Set as home</button>{{/if}}<button type="button" class="village-remove" data-village-action="delete" data-entry-id="{{id}}" aria-label="Remove {{displayName}}"><i class="fas fa-trash"></i></button>{{/if}}</footer>
+      </article>{{else}}<p class="village-empty">No Crows recorded. {{#if editable}}Add a Crow or drag one from the Actors directory.{{/if}}</p>{{/each}}</div>
+    </div>
+    <div class="tab" data-group="primary" data-tab="institutions">
+      <div class="village-section-heading"><h2>Institutions</h2>{{#if editable}}<div class="village-actions">{{#if hasStarterInstitutions}}<button type="button" data-village-action="starting">Add starting institutions</button>{{/if}}<button type="button" data-village-action="add" data-kind="institution">Add institution</button></div>{{/if}}</div>
+      <div class="village-cards">{{#each institutions}}<article class="village-card">
+        <header><h3>{{displayName}}</h3><span class="village-badge">{{statusLabel}}</span></header>
+        <p class="village-level">Level {{system.level}} / {{system.maxLevel}} <span>{{system.category}}</span></p>
+        {{#if stewardName}}<p>Steward: {{stewardName}}</p>{{/if}}
+        {{#if system.pendingLevel}}<p>Pending level {{system.pendingLevel}} · Cycle {{system.readyCycle}}</p>{{/if}}
+        <div class="village-prose">{{{servicesHTML}}}</div><div class="village-prose">{{{descriptionHTML}}}</div>
+        <footer><button type="button" class="village-view-action" data-village-action="view" data-entry-id="{{id}}">{{#if ../editable}}Edit{{else}}View{{/if}} institution</button>
+          {{#if ../editable}}{{#if ready}}<button type="button" data-village-action="apply-level" data-entry-id="{{id}}">Apply level change</button>{{/if}}<button type="button" class="village-remove" data-village-action="delete" data-entry-id="{{id}}" aria-label="Remove {{displayName}}"><i class="fas fa-trash"></i></button>{{/if}}</footer>
+      </article>{{else}}<p class="village-empty">No institutions recorded. Add the starting institutions or create your own.</p>{{/each}}</div>
+    </div>
+    <div class="tab" data-group="primary" data-tab="npcs">
+      <div class="village-section-heading"><h2>NPCs</h2>{{#if editable}}<button type="button" data-village-action="add" data-kind="npc">Add NPC</button>{{/if}}</div>
+      <div class="village-cards">{{#each people}}<article class="village-card">
+        <header><h3>{{displayName}}</h3><span class="village-badge">{{#if isConnection}}Crow connection{{else}}{{statusLabel}}{{/if}}</span></header>
+        {{#if isConnection}}<p>Connection to {{crowName}}</p><div class="village-prose">{{{relationshipHTML}}}</div><h4>{{system.benefit}}</h4><div class="village-prose">{{{benefitHTML}}}</div>{{else}}<p>{{system.role}}</p>{{/if}}
+        <div class="village-prose">{{{descriptionHTML}}}</div>
+        <footer><button type="button" class="village-view-action" data-village-action="view" data-entry-id="{{id}}">{{#if ../editable}}Edit{{else}}View{{/if}} record</button>
+          {{#if canOpenActor}}<button type="button" class="village-view-action" data-village-action="open-actor" data-entry-id="{{id}}">Open {{#if isConnection}}Crow{{else}}actor{{/if}}</button>{{/if}}
+          {{#if ../editable}}{{#unless isConnection}}<button type="button" class="village-remove" data-village-action="delete" data-entry-id="{{id}}" aria-label="Remove {{displayName}}"><i class="fas fa-trash"></i></button>{{/unless}}{{/if}}</footer>
+      </article>{{else}}<p class="village-empty">No NPCs recorded. NPCs can be added independently of the Crows.</p>{{/each}}</div>
+    </div>
+    <div class="tab" data-group="primary" data-tab="quests">
+      <div class="village-section-heading"><h2>Quests <small>{{activeQuests}} open or in progress</small></h2>{{#if editable}}<button type="button" data-village-action="add" data-kind="quest">Add quest</button>{{/if}}</div>
+      <div class="village-cards">{{#each quests}}<article class="village-card">
+        <header><h3>{{displayName}}</h3><span class="village-badge">{{statusLabel}}</span></header>
+        {{#if issuerName}}<p>From: {{issuerName}}</p>{{/if}}{{#if system.reward}}<p>Reward: {{system.reward}}</p>{{/if}}{{#if system.due}}<p>Due: {{system.due}}</p>{{/if}}
+        <div class="village-prose">{{{descriptionHTML}}}</div>
+        <footer><button type="button" class="village-view-action" data-village-action="view" data-entry-id="{{id}}">{{#if ../editable}}Edit{{else}}View{{/if}} quest</button>{{#if ../editable}}<button type="button" class="village-remove" data-village-action="delete" data-entry-id="{{id}}" aria-label="Remove {{displayName}}"><i class="fas fa-trash"></i></button>{{/if}}</footer>
+      </article>{{else}}<p class="village-empty">No quests recorded.</p>{{/each}}</div>
+    </div>
+    <div class="tab" data-group="primary" data-tab="notes">
+      <label class="village-field">Notes{{#if editable}}<textarea name="system.notes" rows="10">{{system.notes}}</textarea>{{else}}<div class="village-prose">{{{notesHTML}}}</div>{{/if}}</label>
+      <div class="village-section-heading"><h2>Village events</h2>{{#if editable}}<button type="button" data-village-action="event"><i class="fas fa-dice-d10"></i> Roll village event</button>{{/if}}</div>
+      <p class="village-muted">Roll 1d10 + prosperity in chat, then consult the Village Event table.</p>
+      <label class="village-field">Event notes{{#if editable}}<textarea name="system.eventNotes" rows="8">{{system.eventNotes}}</textarea>{{else}}<div class="village-prose">{{{eventNotesHTML}}}</div>{{/if}}</label>
+    </div>
+  </section>
+  <footer class="village-sheet-footer">{{#if editable}}Changes save automatically.{{else}}Read-only village record.{{/if}}</footer>
+</form>
