@@ -209,7 +209,7 @@ export class CrowsLoot {
   /** Slots an item of `count` slots occupies when anchored at `location`. */
   static spanFor(location, count = 1) {
     count = Math.max(1, count);
-    const m = location?.match(/^(backpack|slot)(\d+)$/);
+    const m = location?.match(/^(backpack|slot|belt)(\d+)$/);
     if (m) return Array.from({ length: count }, (_, i) => `${m[1]}${Number(m[2]) + i}`);
     if (location === "hand1" && count >= 2) return ["hand1", "hand2"];
     return [location];
@@ -235,7 +235,8 @@ export class CrowsLoot {
     if (!location || location === "ground" || location === "stash") return actor.type !== "crow";
     const occ = CrowsLoot.occupancy(actor, excludeId);
     if (CrowsLoot.MAGIC_SLOTS.includes(location)) return !occ[location];
-    if (location.startsWith("belt") && count > 1) return false;
+    const b = location.match(/^belt(\d+)$/);
+    if (b && Number(b[1]) + count - 1 > 4) return false;
     if (location === "hand2" && count > 1) return false;
     const m = location.match(/^backpack(\d+)$/);
     if (m && Number(m[1]) + count - 1 > CrowsLoot.maxBackpack(actor)) return false;
@@ -255,7 +256,8 @@ export class CrowsLoot {
     if (!location) return false;
     if (location === "ground" || location === "stash") return actor.type !== "crow";
     if (CrowsLoot.MAGIC_SLOTS.includes(location)) return count === 1;
-    if (location.startsWith("belt") && count > 1) return false;
+    const b = location.match(/^belt(\d+)$/);
+    if (b && Number(b[1]) + count - 1 > 4) return false;
     if (location === "hand2" && count > 1) return false;
     const m = location.match(/^backpack(\d+)$/);
     if (m && Number(m[1]) + count - 1 > CrowsLoot.maxBackpack(actor)) return false;

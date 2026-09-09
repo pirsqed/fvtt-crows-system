@@ -90,7 +90,8 @@ export class CrowsChatActions {
         throw new Error("That token was not a target of this attack.");
       if (request.revision !== state.revision) throw new Error("This roll changed. Reopen the damage dialog.");
       const damage = (state.special && !state.expertise ? state.special : state.outcomes[state.tier]).numericDamage;
-      if (!(damage > 0) || request.allocation.damageTotal !== damage) throw new Error("Damage no longer matches the roll.");
+      if (!(damage > 0) || !Number.isSafeInteger(request.allocation?.damageTotal) || request.allocation.damageTotal < 1)
+        throw new Error("Enter a positive whole damage amount.");
       if (request.snapshot !== damageSnapshot(target)) throw new Error("The target changed. Reopen the damage dialog.");
       key = `damage:${request.targetUuid}`;
       apply = () => target.applyAllocatedDamage(request.allocation);
@@ -102,7 +103,8 @@ export class CrowsChatActions {
     } else throw new Error("Unknown chat action.");
     if (state.actions[key]) throw new Error("This action has already been applied or needs review.");
     // Persist the claim first. A disconnect or partial write must not silently allow a second application.
-    state.actions[key] = { status: "pending", userId };
+    state.actions[key] = { status: "pending", userId,
+      ...(request.action === "damage" ? { damageTotal: request.allocation.damageTotal } : {}) };
     await this.save(message, state);
     try {
       const result = await apply();

@@ -8,6 +8,8 @@ export class CrowDataModel extends foundry.abstract.TypeDataModel {
         mind: new NumberField({ required: true, integer: true, initial: 0 }),
         strength: new NumberField({ required: true, integer: true, initial: 0 })
       }),
+      totalXP: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
+      spentXP: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
       background: new StringField({ required: true, blank: true, initial: "" }),
       stamina: new SchemaField({
         value: new NumberField({ required: true, integer: true, min: 0, initial: 10 }),
@@ -83,6 +85,7 @@ export class EquipmentDataModel extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
       description: new HTMLField({ required: true, blank: true }),
+      shortDescription: new StringField({ required: true, blank: true, initial: "" }),
       location: new StringField({ 
         required: true, 
         blank: false, 
@@ -90,6 +93,7 @@ export class EquipmentDataModel extends foundry.abstract.TypeDataModel {
       }),
       slots: new NumberField({ required: true, integer: true, min: 0, initial: 1 }),
       quantity: new NumberField({ required: true, integer: true, min: 0, initial: 1 }),
+      useQtyPlusMinus: new BooleanField({ required: true, initial: false }),
       isGold: new BooleanField({ initial: false }),
       cost: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
       crafting: new StringField({ required: true, blank: true, initial: "" }),
@@ -99,6 +103,8 @@ export class EquipmentDataModel extends foundry.abstract.TypeDataModel {
       greedBonus: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
       
       // Weapon details
+      isShield: new BooleanField({ initial: false }),
+      isSpellbook: new BooleanField({ initial: false }),
       isWeapon: new BooleanField({ required: true, initial: false }),
       weapon: new SchemaField({
         range: new StringField({ required: true, blank: true, initial: "Melee 1" }),
@@ -128,6 +134,21 @@ export class EquipmentDataModel extends foundry.abstract.TypeDataModel {
       })
     };
   }
+
+  static migrateData(source) {
+    if ("use_qty_plus_minus" in source && !("useQtyPlusMinus" in source)) {
+      source.useQtyPlusMinus = Boolean(source.use_qty_plus_minus);
+    }
+    return super.migrateData(source);
+  }
+
+  get use_qty_plus_minus() {
+    return this.useQtyPlusMinus;
+  }
+
+  set use_qty_plus_minus(value) {
+    this.useQtyPlusMinus = Boolean(value);
+  }
 }
 
 export class MonsterDataModel extends foundry.abstract.TypeDataModel {
@@ -146,6 +167,7 @@ export class MonsterDataModel extends foundry.abstract.TypeDataModel {
         mind: new NumberField({ required: true, integer: true, initial: 0 }),
         strength: new NumberField({ required: true, integer: true, initial: 0 })
       }),
+      woundSlots: new ArrayField(new NumberField({ required: true, integer: true, min: 1 }), { initial: [] }),
       slots: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
       coins: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
       tempAD: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),

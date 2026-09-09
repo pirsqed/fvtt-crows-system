@@ -80,6 +80,18 @@ test("damage cannot be redirected to a different token, and doom cannot be upgra
   await assert.rejects(CrowsChatActions.execute({ messageId: message.id, action: "expertise", key: "athletics" }, "player"), /no longer/);
 });
 
+test("manually adjusted damage is recorded and still cannot be applied twice", async () => {
+  const { actor, message } = fixture();
+  message.state.tier = 2;
+  const request = { messageId: message.id, action: "damage", targetUuid: "Scene.old.Token.target",
+    snapshot: damageSnapshot(actor), revision: 0, allocation: { damageTotal: 4 } };
+  await CrowsChatActions.execute(request, "player");
+  assert.equal(actor.system.stamina.value, 6);
+  assert.equal(message.state.actions["damage:Scene.old.Token.target"].damageTotal, 4);
+  assert.match(message.content, /4 damage/);
+  await assert.rejects(CrowsChatActions.execute({ ...request, snapshot: damageSnapshot(actor) }, "player"), /already/);
+});
+
 test("partial failures remain marked for review and do not spend again", async () => {
   const { actor, message } = fixture();
   let calls = 0;

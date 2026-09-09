@@ -1,3 +1,4 @@
+import { activeDefense, canEquip, woundCapacity, woundMap, woundUpdate, woundStats } from "./equipment-rules.mjs";
 import { goldTotal } from "./inventory.mjs";
 
 export class CrowsActor extends Actor {
@@ -40,7 +41,7 @@ export class CrowsActor extends Actor {
         const isStowed = loc === "ground" || loc === "stash";
         const currentAD = Number(item.system.armor?.defense) || 0;
         const maxAD = Number(item.system.armor?.maxDefense) || currentAD;
-        const isActive = isEquipped && !isStowed;
+        const isActive = activeDefense(item);
 
         if (isActive) {
           totalAD += currentAD;
@@ -61,41 +62,19 @@ export class CrowsActor extends Actor {
 
     system.totalAD = totalAD;
     system.adSources = adSources;
+    if (this.type === "monster") {
+      Object.assign(system, woundStats(this));
+      // Keep the source's multiple movement modes and units intact.
+      system.derivedSpeed = String(system.speed ?? "5").replace(/\d+/g,
+        value => String(Math.max(0, Number(value) - system.speedPenalty)));
+    }
+
 
     if (this.type === "crow") {
-      // Calculate total wounds from woundedSlots
-      const woundedSlots = system.woundedSlots || {};
-      let totalWounds = 0;
-      for (let i = 1; i <= 10; i++) {
-        if (woundedSlots[`slot${i}`]) totalWounds++;
-      }
-      system.totalWounds = totalWounds;
-      system.isDead = totalWounds >= 10;
-
-      // Calculate Speed penalties (Speed -1 for each backpack slot containing BOTH an item and a wound)
-      let speedPenalty = 0;
-      const occupiedBackpackSlots = {};
-      for (const item of this.items) {
-        if (item.type === "equipment") {
-          const slots = item.getOccupiedSlots ? item.getOccupiedSlots() : [item.system?.location];
-          for (const s of slots) {
-            if (s && s.startsWith("backpack")) {
-              const slotNum = s.replace("backpack", "");
-              occupiedBackpackSlots[slotNum] = item;
-            }
-          }
-        }
-      }
-
-      for (let i = 1; i <= 10; i++) {
-        if (woundedSlots[`slot${i}`] && occupiedBackpackSlots[i]) {
-          speedPenalty++;
-        }
-      }
-
-      const baseSpeed = Number(system.speed ?? 5);
-      system.derivedSpeed = Math.max(0, baseSpeed - speedPenalty);
-      system.speedPenalty = speedPenalty;
+      Object.assign(system, woundStats(this));
+      system.derivedSpeed = Math.max(0, Number(system.speed ?? 5) - system.speedPenalty);
+      system.availableXP = Math.max(0, (system.totalXP || 0) - (system.spentXP || 0));
+      system.xpOverspent = (system.spentXP || 0) > (system.totalXP || 0);
 
       // Ensure expertises values are bounded
       if (system.expertises) {
@@ -351,11 +330,11 @@ export class CrowsActor extends Actor {
 
     // 4. Backpack Wounds (for Crows)
     const woundedSlotNames = [];
-    if (this.type === "crow" && woundsCount > 0) {
-      const woundedSlots = foundry.utils.duplicate(this.system.woundedSlots || {});
+    if (woundCapacity(this) > 0 && woundsCount > 0) {
+      const woundedSlots = woundMap(this);
       let remainingWoundsToApply = woundsCount;
 
-      for (let i = 1; i <= 10 && remainingWoundsToApply > 0; i++) {
+      for (let i = 1; i <= woundCapacity(this) && remainingWoundsToApply > 0; i++) {
         const key = `slot${i}`;
         if (!woundedSlots[key]) {
           woundedSlots[key] = true;
@@ -363,7 +342,7 @@ export class CrowsActor extends Actor {
           remainingWoundsToApply--;
         }
       }
-      actorUpdates["system.woundedSlots"] = woundedSlots;
+      Object.assign(actorUpdates, woundUpdate(this, woundedSlots));
     }
 
     // Execute item updates
@@ -392,6 +371,7 @@ export class CrowsActor extends Actor {
    */
   async openDamageAllocationDialog(initialDamage = 1, { commit } = {}) {
     const isCrow = this.type === "crow";
+    const hasWounds = woundCapacity(this) > 0;
     const system = this.system;
     let initialDmg = Math.max(1, parseInt(initialDamage, 10) || 1);
 
@@ -404,7 +384,7 @@ export class CrowsActor extends Actor {
         const isStowed = loc === "ground" || loc === "stash";
         const currentAD = Number(item.system.armor?.defense) || 0;
         const maxAD = Number(item.system.armor?.maxDefense) || currentAD;
-        const isActive = isEquipped && !isStowed;
+        const isActive = activeDefense(item);
 
         orderedItemSources.push({
           id: item.id,
@@ -438,7 +418,7 @@ export class CrowsActor extends Actor {
                 <button type="button" class="btn-reorder btn-move-down" data-index="${idx}" ${idx === orderedItemSources.length - 1 ? 'disabled' : ''} title="Move Down (Absorb later)">▼</button>
               </div>
               <label class="toggle-source-chk-lbl" title="Include/Exclude this item from absorbing damage">
-                <input type="checkbox" class="chk-toggle-source" data-index="${idx}" ${s.enabled ? 'checked' : ''} />
+                <input type="checkbox" class="chk-toggle-source" data-index="${idx}" ${s.enabled ? 'checked' : ''} ${s.active ? "" : "disabled"} />
               </label>
               <div class="ad-source-main flexcol">
                 <div class="ad-source-title flexrow">
@@ -471,10 +451,10 @@ export class CrowsActor extends Actor {
               <span class="stat-lbl"><i class="fas fa-heart"></i> Stamina</span>
               <span class="stat-num">${curStamina} / ${maxStamina}</span>
             </div>
-            ${isCrow ? `
-            <div class="ad-stat-box flexcol wounds ${totalWounds >= 8 ? 'critical' : ''}">
+            ${hasWounds ? `
+            <div class="ad-stat-box flexcol wounds ${totalWounds >= woundCapacity(this) - 2 ? 'critical' : ''}">
               <span class="stat-lbl"><i class="fas fa-skull"></i> Wounds</span>
-              <span class="stat-num">${totalWounds} / 10</span>
+              <span class="stat-num">${totalWounds} / ${woundCapacity(this)}</span>
             </div>
             ` : ''}
           </div>
@@ -577,7 +557,7 @@ export class CrowsActor extends Actor {
 
           // 2. Ordered Items
           for (const s of orderedItemSources) {
-            if (s.enabled && s.ad > 0 && remaining > 0) {
+            if (s.active && s.enabled && s.ad > 0 && remaining > 0) {
               const abs = Math.min(s.ad, remaining);
               remaining -= abs;
               const newDef = s.ad - abs;
@@ -620,7 +600,7 @@ export class CrowsActor extends Actor {
             if (remainingAfterStamina > 0) {
               woundsCount = remainingAfterStamina;
               breakdown.push({
-                source: isCrow ? "Backpack Wounds" : "Excess Damage (Dead/Defeated)",
+                source: hasWounds ? "Backpack Wounds" : "Excess Damage (Dead/Defeated)",
                 absorbed: remainingAfterStamina,
                 woundsCount: woundsCount,
                 type: "wounds"
@@ -656,7 +636,7 @@ export class CrowsActor extends Actor {
             } else if (b.type === "stamina") {
               lines.push(`<span class="preview-step danger"><i class="fas fa-heart-crack"></i> Stamina takes <b>${b.absorbed} damage</b> (${this.system.stamina.value} ➔ ${b.remainingAD})</span>`);
             } else if (b.type === "wounds") {
-              if (isCrow) {
+              if (hasWounds) {
                 lines.push(`<span class="preview-step critical"><i class="fas fa-skull"></i> <b>${b.woundsCount} Excess Damage</b> inflicts <b>+${b.woundsCount} Backpack Wounds!</b></span>`);
               } else {
                 lines.push(`<span class="preview-step critical"><i class="fas fa-skull"></i> <b>${b.woundsCount} Excess Damage</b> &bull; Target Defeated!</span>`);
@@ -851,12 +831,12 @@ export class CrowsActor extends Actor {
               if (gmUsers.length > 0) {
                 const curStam = Number(this.system?.stamina?.value) ?? 0;
                 const maxStam = Number(this.system?.stamina?.max) ?? 10;
-                const isDefeated = curStam <= 0;
+                const isDefeated = hasWounds ? this.system.isDead : curStam <= 0;
                 const gmContent = `
                   <div style="font-size: 0.85rem; color: #cbd5e1; background: rgba(15, 23, 42, 0.7); padding: 8px; border-radius: 4px; border: 1px solid rgba(239, 68, 68, 0.3);">
                     <div style="font-weight: bold; margin-bottom: 4px;"><i class="fas fa-eye"></i> [GM Info] ${this.name}</div>
                     <div>Took <strong>${alloc.damageTotal} damage</strong> &bull; Remaining Stamina: <b>${curStam} / ${maxStam}</b></div>
-                    ${isDefeated ? `<div style="color: #ef4444; font-weight: bold; margin-top: 4px;"><i class="fas fa-skull"></i> Stamina reached 0 (${this.name} defeated / dead)!</div>` : ''}
+                    ${isDefeated ? `<div style="color: #ef4444; font-weight: bold; margin-top: 4px;"><i class="fas fa-skull"></i> ${hasWounds ? "All inventory slots wounded" : "Stamina reached 0"} (${this.name} defeated / dead)!</div>` : ''}
                   </div>
                 `;
                 await ChatMessage.create({
@@ -952,11 +932,11 @@ export class CrowsActor extends Actor {
       });
 
       const excess = remainingDamage - staminaDamage;
-      if (excess > 0 && this.type === "crow") {
+      if (excess > 0 && woundCapacity(this) > 0) {
         woundsCount = excess;
-        const woundedSlots = foundry.utils.duplicate(this.system.woundedSlots || {});
+        const woundedSlots = woundMap(this);
         let rem = excess;
-        for (let i = 1; i <= 10 && rem > 0; i++) {
+        for (let i = 1; i <= woundCapacity(this) && rem > 0; i++) {
           const key = `slot${i}`;
           if (!woundedSlots[key]) {
             woundedSlots[key] = true;
@@ -964,7 +944,7 @@ export class CrowsActor extends Actor {
             rem--;
           }
         }
-        actorUpdates["system.woundedSlots"] = woundedSlots;
+        Object.assign(actorUpdates, woundUpdate(this, woundedSlots));
         breakdown.push({
           source: "Backpack Wounds",
           absorbed: excess,
@@ -1026,10 +1006,19 @@ export class CrowsItem extends Item {
     const result = await super._preUpdate(changes, options, user);
     if (result === false || this.type !== "equipment") return result;
     const update = foundry.utils.expandObject(changes).system ?? {};
+    const nextItem = { name: changes.name ?? this.name, system: { ...this.system, ...update } };
+    if (!canEquip(nextItem)) {
+      changes["system.isEquipped"] = false;
+      if (changes.system) changes.system.isEquipped = false;
+    }
+    if ("use_qty_plus_minus" in update && !("useQtyPlusMinus" in update)) {
+      changes["system.useQtyPlusMinus"] = Boolean(update.use_qty_plus_minus);
+      if (changes.system) changes.system.useQtyPlusMinus = Boolean(update.use_qty_plus_minus);
+    }
     const isGold = update.isGold ?? this.system.isGold;
     const quantity = update.quantity ?? this.system.quantity;
     const maxStack = isGold ? 250 : update.maxStack ?? this.system.maxStack;
-    if (("quantity" in update || "maxStack" in update || "isGold" in update) && quantity > maxStack) {
+    if (("quantity" in update || "maxStack" in update || "isGold" in update) && maxStack > 1 && quantity > maxStack) {
       ui.notifications.warn(`This item holds at most ${maxStack}. Use another stack for the remainder.`);
       return false;
     }
@@ -1052,12 +1041,12 @@ export class CrowsItem extends Item {
     const location = this.system?.location || "backpack1";
     const slotCount = Math.max(1, parseInt(this.system?.slots, 10) || 1);
 
-    if (location.startsWith("backpack") || location.startsWith("slot")) {
-      const match = location.match(/^(backpack|slot)(\d+)$/);
+    if (location.startsWith("backpack") || location.startsWith("slot") || location.startsWith("belt")) {
+      const match = location.match(/^(backpack|slot|belt)(\d+)$/);
       if (match) {
         const prefix = match[1];
         const startNum = parseInt(match[2], 10);
-        const maxSlots = Math.max(10, Number(this.actor?.system?.slots) || 10);
+        const maxSlots = prefix === "belt" ? 4 : Math.max(10, Number(this.actor?.system?.slots) || 10);
         const slots = [];
         for (let i = 0; i < slotCount; i++) {
           const num = startNum + i;
@@ -1076,9 +1065,15 @@ export class CrowsItem extends Item {
 
   prepareDerivedData() {
     super.prepareDerivedData();
+    if (this.type === "village") return;
 
     if (this.type === "equipment") {
+      if (!canEquip(this)) this.system.isEquipped = false;
       this.occupiedSlots = this.getOccupiedSlots();
+      const qty = this.system.quantity != null ? Math.max(0, Number(this.system.quantity)) : 1;
+      const maxStack = Math.max(1, Number(this.system.maxStack) || 1);
+      this.stackPercent = Math.min(100, Math.max(0, Math.round((qty / maxStack) * 100)));
+
       const consumable = this.system.consumable;
       if (consumable?.usageDice && !consumable.maxUD) {
         const match = consumable.usageDice.match(/\d+/);

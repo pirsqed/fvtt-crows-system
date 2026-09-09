@@ -1,3 +1,5 @@
+import { showSpellcastDialog } from "../spellcasting.mjs";
+
 export class CrowsItemSheet extends ItemSheet {
   get template() {
     const type = this.item.type === 'equipment' ? 'item' : this.item.type;
@@ -18,6 +20,7 @@ export class CrowsItemSheet extends ItemSheet {
     const itemData = this.item.toObject(false);
     context.system = itemData.system;
     context.owner = this.item.isOwner;
+    context.hasCaster = !!this.item.parent;
     context.isCrowItem = this.item.parent?.type === "crow";
     context.editable = this.isEditable;
     if (this.item.type === 'attack') {
@@ -38,6 +41,10 @@ export class CrowsItemSheet extends ItemSheet {
   activateListeners(html) {
     super.activateListeners(html);
 
+    html.find('.item-cast').click(event => {
+      event.preventDefault();
+      showSpellcastDialog(this.item.parent, this.item);
+    });
     html.find('.greed-tier-btn').click(async (ev) => {
       ev.preventDefault();
       const val = parseInt(ev.currentTarget.dataset.greed, 10) || 0;

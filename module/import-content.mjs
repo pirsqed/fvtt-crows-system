@@ -13,7 +13,8 @@ export function canonical(value) {
   if (!value || typeof value !== "object") return value;
   return Object.fromEntries(Object.keys(value).sort().filter(key => !["_id", "_stats", "folder", "ownership", "sort"].includes(key)
     // Adding the default gold field to older equipment is not a local content edit.
-    && !(key === "isGold" && value[key] === false))
+    && !(["isGold", "isShield", "isSpellbook", "useQtyPlusMinus", "use_qty_plus_minus"].includes(key) && value[key] === false)
+    && !(key === "woundSlots" && Array.isArray(value[key]) && !value[key].length))
     .map(key => [key, key === "flags" ? canonical(Object.fromEntries(Object.entries(value.flags ?? {})
       .map(([scope, flags]) => [scope, scope === SCOPE
         ? Object.fromEntries(Object.entries(flags).filter(([flag]) => flag !== "importSource")) : flags])

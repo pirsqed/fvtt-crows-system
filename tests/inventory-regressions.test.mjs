@@ -64,3 +64,57 @@ test("greed tiers reach character inventory and storage templates", async () => 
   assert.equal(data.inventoryList.stash[0].greedTier, "gold");
   assert.equal(data.inventoryList.stash[0].effectiveCost, 130);
 });
+
+test("quantity stepper nudges quantity and respects stack limits", async () => {
+  let warned = 0;
+  globalThis.ui = { notifications: { warn: () => warned++ } };
+  const sheet = new CrowsActorSheet();
+  const item = {
+    name: "Quiver of Arrows",
+    type: "equipment",
+    system: { quantity: 15, maxStack: 20, useQtyPlusMinus: true },
+    update: async data => { item.system.quantity = data["system.quantity"]; },
+    delete: async () => { item.deleted = true; }
+  };
+  sheet.actor = { items: new Map([["arrow1", item]]) };
+
+  // Nudge down (-1)
+  const eventMinus = {
+    preventDefault() {},
+    stopPropagation() {},
+    currentTarget: { dataset: { itemId: "arrow1" } }
+  };
+  await sheet._onQuantityAdjust(-1, eventMinus);
+  assert.equal(item.system.quantity, 14);
+
+  // Nudge up (+1)
+  await sheet._onQuantityAdjust(1, eventMinus);
+  assert.equal(item.system.quantity, 15);
+
+  // Exceed max stack
+  item.system.quantity = 20;
+  await sheet._onQuantityAdjust(1, eventMinus);
+  assert.equal(warned, 1);
+  assert.equal(item.system.quantity, 20);
+
+  // When down to 0, cancel deletion to keep item at 0 quantity
+  globalThis.Dialog = { confirm: async () => false };
+  item.system.quantity = 1;
+  await sheet._onQuantityAdjust(-1, eventMinus);
+  assert.equal(item.system.quantity, 0);
+  assert.equal(item.deleted, undefined);
+
+  // If already at 0, decrementing does nothing
+  await sheet._onQuantityAdjust(-1, eventMinus);
+  assert.equal(item.system.quantity, 0);
+
+  // From 0, incrementing goes to 1
+  await sheet._onQuantityAdjust(1, eventMinus);
+  assert.equal(item.system.quantity, 1);
+
+  // When user confirms deletion at 0
+  globalThis.Dialog = { confirm: async () => true };
+  await sheet._onQuantityAdjust(-1, eventMinus);
+  assert.equal(item.deleted, true);
+});
+

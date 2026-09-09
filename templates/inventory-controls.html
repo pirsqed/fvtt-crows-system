@@ -1,17 +1,31 @@
-<div class="inventory-card-controls" data-item-id="{{item._id}}">
-  {{#if (gt item.system.maxStack 1)}}
-  <div class="qty-control flexrow" title="Drag matching items onto this stack to combine them">
-    <button type="button" class="item-qty-minus" aria-label="Decrease quantity"><i class="fas fa-minus"></i></button>
-    <span class="qty-label">{{item.system.quantity}} / {{item.system.maxStack}}</span>
-    <button type="button" class="item-qty-plus" aria-label="Increase quantity"><i class="fas fa-plus"></i></button>
-  </div>
+{{#if (or (gt item.system.maxStack 1) item.system.useQtyPlusMinus item.system.use_qty_plus_minus)}}
+<div class="inventory-card-controls flexrow" data-item-id="{{item._id}}">
+  {{#if (or item.system.useQtyPlusMinus item.system.use_qty_plus_minus)}}
+  <button type="button" class="item-qty-minus btn-qty-stepper" data-item-id="{{item._id}}" title="Decrease quantity (-1)">
+    <i class="fas fa-minus"></i>
+  </button>
   {{/if}}
-  {{#if item.system.consumable.maxUD}}
-  <div class="ud-controls {{#if (eq item.system.consumable.currentUD 0)}}depleted{{/if}}">
-    <button type="button" class="btn-ud item-ud-roll" data-item-id="{{item._id}}" title="Roll usage dice">
-      {{#if (eq item.system.consumable.currentUD 0)}}Depleted{{else}}UD {{item.system.consumable.currentUD}} / {{item.system.consumable.maxUD}}{{/if}}
-    </button>
-    <button type="button" class="item-ud-restore" data-item-id="{{item._id}}" title="Restore usage dice after resting or refilling" aria-label="Restore usage dice"><i class="fas fa-rotate-right"></i></button>
+  <div class="qty-progress-wrapper" title="Stack: {{item.system.quantity}}{{#if (gt item.system.maxStack 1)}} / {{item.system.maxStack}}{{/if}} (Click to edit quantity)">
+    <div class="qty-progress-bar">
+      {{#if (gt item.system.maxStack 1)}}
+      <div class="qty-progress-fill" style="width: {{item.stackPercent}}%;"></div>
+      {{/if}}
+      <input type="number" class="item-qty-input" data-item-id="{{item._id}}"
+        data-max-stack="{{item.system.maxStack}}" value="{{item.system.quantity}}"
+        min="0" {{#if (gt item.system.maxStack 1)}}max="{{item.system.maxStack}}"{{/if}} step="1" />
+    </div>
+    {{#if (gt item.system.maxStack 1)}}
+    <div class="qty-max-hint">Max {{item.system.maxStack}}</div>
+    {{/if}}
   </div>
+  {{#if (or item.system.useQtyPlusMinus item.system.use_qty_plus_minus)}}
+  <button type="button" class="item-qty-plus btn-qty-stepper" data-item-id="{{item._id}}" title="Increase quantity (+1)">
+    <i class="fas fa-plus"></i>
+  </button>
   {{/if}}
 </div>
+{{/if}}
+
+{{#if item.system.isSpellbook}}
+<button type="button" class="item-cast" data-item-id="{{item._id}}" title="Cast this spellbook with Mind">Cast</button>
+{{/if}}

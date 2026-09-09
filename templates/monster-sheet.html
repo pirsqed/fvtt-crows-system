@@ -68,6 +68,17 @@
         </div>
       </div>
 
+      {{#if hasWounds}}
+      <div class="companion-wounds">
+        <strong>Wounds {{system.totalWounds}} / {{system.woundCapacity}}{{#if system.isDead}} — DEAD{{/if}}</strong>
+        <span>Current speed: {{system.derivedSpeed}}</span>
+        <p>Toggle a slot to add or remove a wound. A wounded slot containing equipment reduces speed by 1.</p>
+        <div class="companion-wound-slots">
+          {{#each woundSlots}}<button type="button" class="companion-wound-toggle {{#if wounded}}active{{/if}}"
+            data-slot-num="{{number}}" aria-pressed="{{wounded}}" title="Toggle wound in slot {{number}}">{{number}}</button>{{/each}}
+        </div>
+      </div>
+      {{/if}}
       <div class="characteristics flexrow">
         <div class="characteristic flexcol">
           <label class="rollable-characteristic" data-char="agility" title="Click to roll 2d10 + Agility">
@@ -188,6 +199,7 @@
                   <span class="multi-slot-badge"><i class="fas fa-hands"></i> 2-Handed</span>
                   {{/if}}
                 </div>
+                {{> "systems/fvtt-crows-system/templates/usage-dice.html" item=this.item}}
 
                 {{#if this.item.system.isWeapon}}
                 <div class="weapon-bar flexrow">
@@ -203,13 +215,19 @@
                   </a>
                   <div class="ad-stepper flexrow" title="Armor Defense: {{this.item.system.armor.defense}} / {{this.item.system.armor.maxDefense}}">
                     <span class="ad-lbl">AD:</span>
-                    <button type="button" class="armor-ad-minus btn-stepper-mini" data-item-id="{{this.item._id}}" title="Reduce AD">-</button>
-                    <span class="ad-qty {{#if (eq this.item.system.armor.defense 0)}}broken{{/if}}">{{this.item.system.armor.defense}}/{{this.item.system.armor.maxDefense}}</span>
-                    <button type="button" class="armor-ad-plus btn-stepper-mini" data-item-id="{{this.item._id}}" title="Increase / Repair AD">+</button>
+                    <div class="ad-stepper-controls flexrow">
+                      <button type="button" class="armor-ad-minus btn-stepper-mini" data-item-id="{{this.item._id}}" title="Reduce AD">-</button>
+                      <span class="ad-qty {{#if (eq this.item.system.armor.defense 0)}}broken{{/if}}">{{this.item.system.armor.defense}}/{{this.item.system.armor.maxDefense}}</span>
+                      <button type="button" class="armor-ad-plus btn-stepper-mini" data-item-id="{{this.item._id}}" title="Increase / Repair AD">+</button>
+                    </div>
                   </div>
                 </div>
                 {{/if}}
-
+                {{#if this.item.system.shortDescription}}
+                <div class="item-short-desc" title="{{this.item.system.shortDescription}}">
+                  {{this.item.system.shortDescription}}
+                </div>
+                {{/if}}
               </div>
             {{> "systems/fvtt-crows-system/templates/inventory-controls.html" item=this.item}}
                 </div>
@@ -241,7 +259,7 @@
         {{#if hasSlots}}
         <div class="monster-slots-grid">
           {{#each inventorySlots}}
-          <div class="slot-card backpack-slot span-{{this.colSpan}} {{#if this.isMergedSpan}}merged-span{{/if}} {{#if this.item}}occupied item{{else}}empty{{/if}}"
+          <div class="slot-card backpack-slot {{#if this.isWounded}}wounded{{/if}} span-{{this.colSpan}} {{#if this.isMergedSpan}}merged-span{{/if}} {{#if this.item}}occupied item{{else}}empty{{/if}}"
                data-slot="{{this.id}}"
                {{#if this.item}}data-item-id="{{this.item._id}}" draggable="true"{{/if}}>
 
@@ -285,14 +303,8 @@
                     <span class="multi-slot-badge" title="Occupies Slots {{this.spanStart}}–{{this.spanEnd}}"><i class="fas fa-th-large"></i> {{this.spanTotal}} Slots</span>
                     {{/if}}
                   </div>
+                  {{> "systems/fvtt-crows-system/templates/usage-dice.html" item=this.item}}
 
-                  {{#if this.item.system.isWeapon}}
-                  <div class="weapon-bar flexrow">
-                    <button type="button" class="btn-attack item-attack" data-item-id="{{this.item._id}}">
-                      <i class="fas fa-crosshairs"></i> Attack ({{this.item.system.weapon.range}})
-                    </button>
-                  </div>
-                  {{/if}}
                   {{#if this.item.system.isArmor}}
                   <div class="item-armor-bar flexrow">
                     <a class="armor-equip-toggle {{#if (eq this.item.system.isEquipped false)}}stowed{{else}}worn{{/if}}" data-item-id="{{this.item._id}}" title="Toggle Worn vs Stowed">
@@ -300,13 +312,20 @@
                     </a>
                     <div class="ad-stepper flexrow" title="Armor Defense: {{this.item.system.armor.defense}} / {{this.item.system.armor.maxDefense}}">
                       <span class="ad-lbl">AD:</span>
-                      <button type="button" class="armor-ad-minus btn-stepper-mini" data-item-id="{{this.item._id}}" title="Reduce AD">-</button>
-                      <span class="ad-qty {{#if (eq this.item.system.armor.defense 0)}}broken{{/if}}">{{this.item.system.armor.defense}}/{{this.item.system.armor.maxDefense}}</span>
-                      <button type="button" class="armor-ad-plus btn-stepper-mini" data-item-id="{{this.item._id}}" title="Increase / Repair AD">+</button>
+                      <div class="ad-stepper-controls flexrow">
+                        <button type="button" class="armor-ad-minus btn-stepper-mini" data-item-id="{{this.item._id}}" title="Reduce AD">-</button>
+                        <span class="ad-qty {{#if (eq this.item.system.armor.defense 0)}}broken{{/if}}">{{this.item.system.armor.defense}}/{{this.item.system.armor.maxDefense}}</span>
+                        <button type="button" class="armor-ad-plus btn-stepper-mini" data-item-id="{{this.item._id}}" title="Increase / Repair AD">+</button>
+                      </div>
                     </div>
                   </div>
                   {{/if}}
 
+                  {{#if this.item.system.shortDescription}}
+                  <div class="item-short-desc" title="{{this.item.system.shortDescription}}">
+                    {{this.item.system.shortDescription}}
+                  </div>
+                  {{/if}}
                 </div>
               </div>
 

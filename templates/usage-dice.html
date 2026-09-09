@@ -1,0 +1,10 @@
+{{#if item.system.consumable.maxUD}}
+<div class="ud-controls flexrow {{#if (eq item.system.consumable.currentUD 0)}}depleted{{/if}}" data-item-id="{{item._id}}">
+  <button type="button" class="btn-ud item-ud-roll" data-item-id="{{item._id}}" title="Roll usage dice">
+    <i class="fas fa-dice-d6"></i> {{#if (eq item.system.consumable.currentUD 0)}}Depleted{{else}}UD {{item.system.consumable.currentUD}}/{{item.system.consumable.maxUD}}{{/if}}
+  </button>
+  <button type="button" class="item-ud-restore btn-ud-restore-mini" data-item-id="{{item._id}}" title="Restore usage dice after resting or refilling" aria-label="Restore usage dice">
+    <i class="fas fa-rotate-right"></i>
+  </button>
+</div>
+{{/if}}

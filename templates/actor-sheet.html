@@ -26,8 +26,10 @@
           <i class="fas fa-coins"></i>
           <strong>{{system.carriedGold}}</strong>
           <span class="coin-unit">gc</span>
-          <a class="item-create" data-type="equipment" data-gold="true" title="Create a gold stack"><i class="fas fa-plus"></i></a>
-          {{#if system.coins}}<small title="Free space and reload to convert this saved balance">+ {{system.coins}} pending</small>{{/if}}
+          <a class="item-create" data-type="equipment" data-gold="true" title="Create a gold stack"><i
+              class="fas fa-plus"></i></a>
+          {{#if system.coins}}<small title="Free space and reload to convert this saved balance">+ {{system.coins}}
+            pending</small>{{/if}}
         </div>
       </div>
 
@@ -67,10 +69,11 @@
           title="Edit base speed. Each backpack slot containing both an item and a wound reduces current speed by 1.">
           <label class="resource-label"><i class="fas fa-running"></i> Speed</label>
           <div class="resource-content flexrow flex-center">
-            <input type="number" name="system.speed" value="{{system.speed}}" min="0" step="1" data-dtype="Number" aria-label="Base speed" />
+            <input type="number" name="system.speed" value="{{system.speed}}" min="0" step="1" data-dtype="Number"
+              aria-label="Base speed" />
             {{#if (gt system.speedPenalty 0)}}
-            <span class="speed-penalty-tag"
-              title="Reduced by {{system.speedPenalty}} from backpack wounds">→ {{system.derivedSpeed}}</span>
+            <span class="speed-penalty-tag" title="Reduced by {{system.speedPenalty}} from backpack wounds">→
+              {{system.derivedSpeed}}</span>
             {{/if}}
           </div>
         </div>
@@ -149,59 +152,47 @@
                 class="slot-card hand-slot {{#if this.isTwoHanded}}two-handed full-width{{/if}} {{#if this.item}}occupied item{{else}}empty{{/if}}"
                 data-slot="{{this.id}}" {{#if this.item}}data-item-id="{{this.item._id}}" draggable="true" {{/if}} {{#if
                 this.isTwoHanded}}style="flex: 1 1 100%;" {{/if}}>
-                <div class="slot-header flexrow">
-                  <span class="slot-tag">{{this.label}}</span>
-                  {{#if this.item}}
-                  <div class="card-quick-actions flexrow">
-                    {{#if (gt this.item.system.greedBonus 0)}}
-                    <div class="greed-sticker mini {{this.item.greedTier}} item-greed-sticker"
-                      data-item-id="{{this.item._id}}"
-                      title="+{{this.item.system.greedBonus}}% {{this.item.greedTierLabel}} Greed Bonus! (Click to cycle)">
-                      <div class="sticker-inner">
-                        <span class="sticker-val">+{{this.item.system.greedBonus}}%</span>
-                      </div>
-                    </div>
-                    {{/if}}
-                    <a class="item-edit" data-item-id="{{this.item._id}}" title="Edit Item"><i
-                        class="fas fa-edit"></i></a>
-                    <a class="item-delete" data-item-id="{{this.item._id}}" title="Drop/Delete"><i
-                        class="fas fa-trash"></i></a>
-                  </div>
-                  {{/if}}
-                </div>
 
                 {{#if this.item}}
-                <div class="item card-content flexrow" data-item-id="{{this.item._id}}" data-slot-id="{{this.id}}">
-                  <div class="thumb-container">
-                    <img class="item-thumb item-edit" src="{{this.item.img}}" data-item-id="{{this.item._id}}"
-                      title="Click to view details" />
-                    {{#if (gt this.item.system.greedBonus 0)}}
-                    <div class="greed-sticker {{this.item.greedTier}} item-greed-sticker"
-                      data-item-id="{{this.item._id}}"
-                      title="+{{this.item.system.greedBonus}}% {{this.item.greedTierLabel}} Greed Bonus! (Click to cycle)">
-                      <div class="sticker-inner">
-                        <span class="sticker-plus">+</span><span
-                          class="sticker-val">{{this.item.system.greedBonus}}%</span>
-                        <span class="sticker-tag">GREED</span>
+                <a class="item-delete card-delete-btn" data-item-id="{{this.item._id}}" title="Delete Item">
+                  <i class="fas fa-trash"></i>
+                </a>
+                {{/if}}
+
+                {{#if this.item}}
+                <div class="item card-content flexcol" data-item-id="{{this.item._id}}" data-slot-id="{{this.id}}">
+                  <div class="item-identity-row flexrow">
+                    <div class="thumb-container">
+                      <img class="item-thumb item-edit" src="{{this.item.img}}" data-item-id="{{this.item._id}}"
+                        title="Click to view details" />
+                      {{#if (gt this.item.system.greedBonus 0)}}
+                      <div class="greed-sticker mini {{this.item.greedTier}} item-greed-sticker"
+                        data-item-id="{{this.item._id}}"
+                        title="+{{this.item.system.greedBonus}}% {{this.item.greedTierLabel}} Greed Bonus! (Click to cycle)">
+                        <div class="sticker-inner">
+                          <span class="sticker-val">+{{this.item.system.greedBonus}}%</span>
+                        </div>
                       </div>
-                    </div>
-                    {{/if}}
-                  </div>
-                  <div class="item-details flexcol">
-                    <div class="item-title item-edit" data-item-id="{{this.item._id}}" title="Click to view details">
-                      {{this.item.name}}
-                      {{#if this.isTwoHanded}}
-                      <span class="multi-slot-badge"><i class="fas fa-hands"></i> 2-Handed</span>
                       {{/if}}
                     </div>
-
-                    {{#if this.item.system.isWeapon}}
-                    <div class="weapon-bar flexrow">
-                      <button type="button" class="btn-attack item-attack" data-item-id="{{this.item._id}}">
-                        <i class="fas fa-crosshairs"></i> Attack ({{this.item.system.weapon.range}})
-                      </button>
+                    <div class="item-title-col flexcol">
+                      <div class="item-title item-edit" data-item-id="{{this.item._id}}" title="Click to view details">
+                        {{this.item.name}}
+                      </div>
+                      {{> "systems/fvtt-crows-system/templates/usage-dice.html" item=this.item}}
+                      <div class="item-pill-row flexrow">
+                        {{#if this.isTwoHanded}}
+                        <span class="two-handed-badge"><i class="fas fa-hands"></i> 2-Handed</span>
+                        {{else if this.item.system.isWeapon}}
+                        {{#if (eq this.item.system.weapon.hands 2)}}
+                        <span class="two-handed-badge"><i class="fas fa-hands"></i> 2H</span>
+                        {{/if}}
+                        {{/if}}
+                      </div>
                     </div>
-                    {{/if}}
+                  </div>
+
+                  <div class="item-resource-row flexrow">
                     {{#if this.item.system.isArmor}}
                     <div class="item-armor-bar flexrow">
                       <a class="armor-equip-toggle {{#if (eq this.item.system.isEquipped false)}}stowed{{else}}worn{{/if}}"
@@ -212,24 +203,57 @@
                       <div class="ad-stepper flexrow"
                         title="Armor Defense: {{this.item.system.armor.defense}} / {{this.item.system.armor.maxDefense}}">
                         <span class="ad-lbl">AD:</span>
-                        <button type="button" class="armor-ad-minus btn-stepper-mini" data-item-id="{{this.item._id}}"
-                          title="Reduce AD">-</button>
-                        <span
-                          class="ad-qty {{#if (eq this.item.system.armor.defense 0)}}broken{{/if}}">{{this.item.system.armor.defense}}/{{this.item.system.armor.maxDefense}}</span>
-                        <button type="button" class="armor-ad-plus btn-stepper-mini" data-item-id="{{this.item._id}}"
-                          title="Increase / Repair AD">+</button>
+                        <div class="ad-stepper-controls flexrow">
+                          <button type="button" class="armor-ad-minus btn-stepper-mini" data-item-id="{{this.item._id}}"
+                            title="Reduce AD">-</button>
+                          <span
+                            class="ad-qty {{#if (eq this.item.system.armor.defense 0)}}broken{{/if}}">{{this.item.system.armor.defense}}/{{this.item.system.armor.maxDefense}}</span>
+                          <button type="button" class="armor-ad-plus btn-stepper-mini" data-item-id="{{this.item._id}}"
+                            title="Increase / Repair AD">+</button>
+                        </div>
                       </div>
                     </div>
                     {{/if}}
-
                   </div>
-                {{> "systems/fvtt-crows-system/templates/inventory-controls.html" item=this.item}}
+
+                  {{#if this.item.system.isWeapon}}
+                  <div class="item-actions-row flexrow">
+                    <button type="button" class="btn-attack item-attack" data-item-id="{{this.item._id}}"
+                      title="Roll Attack with {{this.item.name}}">
+                      <i class="fas fa-crosshairs"></i> Attack ({{this.item.system.weapon.range}})
+                    </button>
+                  </div>
+                  {{/if}}
+
+                  {{#if this.item.system.shortDescription}}
+                  <div class="item-short-desc" title="{{this.item.system.shortDescription}}">
+                    {{this.item.system.shortDescription}}
+                  </div>
+                  {{/if}}
                 </div>
                 {{else}}
                 <div class="empty-slot-placeholder">
                   <span>Empty Hand</span>
                 </div>
                 {{/if}}
+
+                <!-- Hand Slot Footer -->
+                <div class="slot-card-footer flexrow">
+                  <div class="slot-footer-left">
+                    {{#if this.item}}
+                    {{> "systems/fvtt-crows-system/templates/inventory-controls.html" item=this.item}}
+                    {{/if}}
+                  </div>
+                  <div class="slot-tag-group">
+                    <span class="slot-tag-badge {{#if this.isTwoHanded}}gold{{/if}}">
+                      {{#if this.isTwoHanded}}
+                      <i class="fas fa-hands"></i> Both Hands
+                      {{else}}
+                      <i class="fas fa-hand-paper"></i> {{this.label}}
+                      {{/if}}
+                    </span>
+                  </div>
+                </div>
               </div>
               {{/each}}
             </div>
@@ -241,43 +265,54 @@
               <h3><i class="fas fa-band-aid"></i> Quick Belt (4 Slots)</h3>
               <span class="zone-hint">Fast access in combat without rolling to retrieve</span>
             </div>
-            <div class="belt-grid flexrow">
+            <div class="belt-grid">
               {{#each beltSlots}}
-              <div class="slot-card belt-slot {{#if this.item}}occupied item{{else}}empty{{/if}}"
+              <div
+                class="slot-card belt-slot span-{{this.colSpan}} {{#if this.isMergedSpan}}merged-span{{/if}} {{#if this.item}}occupied item{{else}}empty{{/if}}"
                 data-slot="{{this.id}}" {{#if this.item}}data-item-id="{{this.item._id}}" draggable="true" {{/if}}>
-                <div class="slot-header flexrow">
-                  <span class="slot-tag">{{this.label}}</span>
-                  {{#if this.item}}
-                  <div class="card-quick-actions flexrow">
-                    <a class="item-edit" data-item-id="{{this.item._id}}" title="Edit Item"><i
-                        class="fas fa-edit"></i></a>
-                    <a class="item-delete" data-item-id="{{this.item._id}}" title="Delete"><i
-                        class="fas fa-trash"></i></a>
-                  </div>
-                  {{/if}}
-                </div>
 
                 {{#if this.item}}
-                <div class="item card-content flexrow" data-item-id="{{this.item._id}}" data-slot-id="{{this.id}}">
-                  <div class="thumb-container">
-                    <img class="item-thumb item-edit" src="{{this.item.img}}" data-item-id="{{this.item._id}}"
-                      title="Click to view details" />
-                    {{#if (gt this.item.system.greedBonus 0)}}
-                    <div class="greed-sticker {{this.item.greedTier}} item-greed-sticker"
-                      data-item-id="{{this.item._id}}"
-                      title="+{{this.item.system.greedBonus}}% {{this.item.greedTierLabel}} Greed Bonus! (Click to cycle)">
-                      <div class="sticker-inner">
-                        <span class="sticker-plus">+</span><span
-                          class="sticker-val">{{this.item.system.greedBonus}}%</span>
-                        <span class="sticker-tag">GREED</span>
+                <a class="item-delete card-delete-btn" data-item-id="{{this.item._id}}" title="Delete Item">
+                  <i class="fas fa-trash"></i>
+                </a>
+                {{/if}}
+
+                {{#if this.item}}
+                <div class="item card-content flexcol" data-item-id="{{this.item._id}}" data-slot-id="{{this.id}}">
+                  <div class="item-identity-row flexrow">
+                    <div class="thumb-container">
+                      <img class="item-thumb item-edit" src="{{this.item.img}}" data-item-id="{{this.item._id}}"
+                        title="Click to view details" />
+                      {{#if (gt this.item.system.greedBonus 0)}}
+                      <div class="greed-sticker mini {{this.item.greedTier}} item-greed-sticker"
+                        data-item-id="{{this.item._id}}"
+                        title="+{{this.item.system.greedBonus}}% {{this.item.greedTierLabel}} Greed Bonus! (Click to cycle)">
+                        <div class="sticker-inner">
+                          <span class="sticker-val">+{{this.item.system.greedBonus}}%</span>
+                        </div>
+                      </div>
+                      {{/if}}
+                    </div>
+                    <div class="item-title-col flexcol">
+                      <div class="item-title item-edit" data-item-id="{{this.item._id}}" title="Click to view details">
+                        {{this.item.name}}
+                      </div>
+                      {{> "systems/fvtt-crows-system/templates/usage-dice.html" item=this.item}}
+                      <div class="item-pill-row flexrow">
+                        {{#if (gt this.spanTotal 1)}}
+                        <span class="multi-slot-badge" title="Occupies {{this.spanTotal}} Belt Slots"><i
+                            class="fas fa-th-large"></i> {{this.spanTotal}} Slots</span>
+                        {{/if}}
+                        {{#if this.item.system.isWeapon}}
+                        {{#if (eq this.item.system.weapon.hands 2)}}
+                        <span class="two-handed-badge"><i class="fas fa-hands"></i> 2H</span>
+                        {{/if}}
+                        {{/if}}
                       </div>
                     </div>
-                    {{/if}}
                   </div>
-                  <div class="item-details flexcol">
-                    <div class="item-title item-edit" data-item-id="{{this.item._id}}" title="Click to view details">
-                      {{this.item.name}}</div>
 
+                  <div class="item-resource-row flexrow">
                     {{#if this.item.system.isArmor}}
                     <div class="item-armor-bar flexrow">
                       <a class="armor-equip-toggle {{#if (eq this.item.system.isEquipped false)}}stowed{{else}}worn{{/if}}"
@@ -288,25 +323,46 @@
                       <div class="ad-stepper flexrow"
                         title="Armor Defense: {{this.item.system.armor.defense}} / {{this.item.system.armor.maxDefense}}">
                         <span class="ad-lbl">AD:</span>
-                        <button type="button" class="armor-ad-minus btn-stepper-mini" data-item-id="{{this.item._id}}"
-                          title="Reduce AD">-</button>
-                        <span
-                          class="ad-qty {{#if (eq this.item.system.armor.defense 0)}}broken{{/if}}">{{this.item.system.armor.defense}}/{{this.item.system.armor.maxDefense}}</span>
-                        <button type="button" class="armor-ad-plus btn-stepper-mini" data-item-id="{{this.item._id}}"
-                          title="Increase / Repair AD">+</button>
+                        <div class="ad-stepper-controls flexrow">
+                          <button type="button" class="armor-ad-minus btn-stepper-mini" data-item-id="{{this.item._id}}"
+                            title="Reduce AD">-</button>
+                          <span
+                            class="ad-qty {{#if (eq this.item.system.armor.defense 0)}}broken{{/if}}">{{this.item.system.armor.defense}}/{{this.item.system.armor.maxDefense}}</span>
+                          <button type="button" class="armor-ad-plus btn-stepper-mini" data-item-id="{{this.item._id}}"
+                            title="Increase / Repair AD">+</button>
+                        </div>
                       </div>
                     </div>
                     {{/if}}
-
                   </div>
-                {{> "systems/fvtt-crows-system/templates/inventory-controls.html" item=this.item}}
+
+                  {{#if this.item.system.shortDescription}}
+                  <div class="item-short-desc" title="{{this.item.system.shortDescription}}">
+                    {{this.item.system.shortDescription}}
+                  </div>
+                  {{/if}}
                 </div>
                 {{else}}
                 <div class="empty-slot-placeholder">
                   <span>Empty Belt Slot</span>
                 </div>
                 {{/if}}
-              </div>              {{/each}}
+
+                <!-- Belt Slot Footer -->
+                <div class="slot-card-footer flexrow">
+                  <div class="slot-footer-left">
+                    {{#if this.item}}
+                    {{> "systems/fvtt-crows-system/templates/inventory-controls.html" item=this.item}}
+                    {{/if}}
+                  </div>
+                  <div class="slot-tag-group">
+                    <span class="slot-tag-badge">
+                      <i class="fas fa-band-aid"></i> Belt
+                    </span>
+                  </div>
+                </div>
+              </div>
+              {{/each}}
             </div>
           </div>
 
@@ -328,32 +384,44 @@
                   <span class="slot-tag"><i class="{{this.icon}}"></i> {{this.label}}</span>
                   {{#if this.item}}
                   <div class="card-quick-actions flexrow">
-                    <a class="item-edit" data-item-id="{{this.item._id}}" title="Edit Item"><i
-                        class="fas fa-edit"></i></a>
-                    <a class="item-delete" data-item-id="{{this.item._id}}" title="Delete"><i
+                    <a class="item-delete" data-item-id="{{this.item._id}}" title="Delete Item"><i
                         class="fas fa-trash"></i></a>
                   </div>
                   {{/if}}
                 </div>
                 {{#if this.item}}
-                <div class="item card-content flexrow" data-item-id="{{this.item._id}}" data-slot-id="{{this.id}}">
-                  <div class="thumb-container">
-                    <img class="item-thumb item-edit" src="{{this.item.img}}" data-item-id="{{this.item._id}}"
-                      title="Click to view details" />
-                    {{#if (gt this.item.system.greedBonus 0)}}
-                    <div class="greed-sticker mini {{this.item.greedTier}} item-greed-sticker"
-                      data-item-id="{{this.item._id}}"
-                      title="+{{this.item.system.greedBonus}}% {{this.item.greedTierLabel}} Greed Bonus! (Click to cycle)">
-                      <div class="sticker-inner">
-                        <span class="sticker-val">+{{this.item.system.greedBonus}}%</span>
+                <div class="item card-content flexcol" data-item-id="{{this.item._id}}" data-slot-id="{{this.id}}">
+                  <div class="item-identity-row flexrow">
+                    <div class="thumb-container">
+                      <img class="item-thumb item-edit" src="{{this.item.img}}" data-item-id="{{this.item._id}}"
+                        title="Click to view details" />
+                      {{#if (gt this.item.system.greedBonus 0)}}
+                      <div class="greed-sticker mini {{this.item.greedTier}} item-greed-sticker"
+                        data-item-id="{{this.item._id}}"
+                        title="+{{this.item.system.greedBonus}}% {{this.item.greedTierLabel}} Greed Bonus! (Click to cycle)">
+                        <div class="sticker-inner">
+                          <span class="sticker-val">+{{this.item.system.greedBonus}}%</span>
+                        </div>
                       </div>
+                      {{/if}}
                     </div>
-                    {{/if}}
+                    <div class="item-name-block flexcol">
+                      <div class="item-title item-edit" data-item-id="{{this.item._id}}" title="Click to view details">
+                        {{this.item.name}}
+                      </div>
+                      {{> "systems/fvtt-crows-system/templates/usage-dice.html" item=this.item}}
+                    </div>
                   </div>
-                  <div class="item-title item-edit" data-item-id="{{this.item._id}}" title="Click to view details">
-                    {{this.item.name}}</div>
 
-                {{> "systems/fvtt-crows-system/templates/inventory-controls.html" item=this.item}}
+                  <div class="item-resource-row flexrow">
+                    {{> "systems/fvtt-crows-system/templates/inventory-controls.html" item=this.item}}
+                  </div>
+
+                  {{#if this.item.system.shortDescription}}
+                  <div class="item-short-desc" title="{{this.item.system.shortDescription}}">
+                    {{this.item.system.shortDescription}}
+                  </div>
+                  {{/if}}
                 </div>
                 {{else}}
                 <div class="empty-slot-placeholder">
@@ -387,85 +455,83 @@
         <div class="backpack-grid">
           {{#each backpackSlots}}
           <div
-            class="slot-card backpack-slot span-{{this.colSpan}} {{#if this.isMergedSpan}}merged-span{{/if}} {{#if this.isSpanChild}}span-child occupied{{else if this.item}}occupied item{{else}}empty{{/if}}"
+            class="slot-card backpack-slot span-{{this.colSpan}} {{#if this.isMergedSpan}}merged-span{{/if}} {{#if this.isSpanChild}}span-child occupied{{else if this.item}}occupied item{{else}}empty{{/if}} {{#if this.isWounded}}wounded{{else if this.hasSpeedPenalty}}wounded{{/if}}"
             data-slot="{{this.id}}" {{#if this.item}}data-item-id="{{this.item._id}}" draggable="true" {{else if
             this.isSpanChild}}data-item-id="{{this.parentItem._id}}" draggable="true" {{/if}}>
 
-            <div class="slot-header flexrow">
-              <div class="spanned-slot-tags flexrow">
-                {{#each this.slotsCovered as |cov|}}
-                <div class="slot-badge-unit flexrow">
-                  <div class="slot-dc" title="Retrieval DC {{cov.slotNum}}">#{{cov.slotNum}}</div>
-                  <a class="wound-toggle {{#if cov.isWounded}}active{{/if}}" data-slot-num="{{cov.slotNum}}"
-                    title="Click to toggle Wound on Slot {{cov.slotNum}}">
-                    <i class="fas fa-tint"></i> {{#if cov.isWounded}}WOUND{{else}}Clean{{/if}}
-                  </a>
-                </div>
-                {{/each}}
-              </div>
-
-              {{#if this.item}}
-              <div class="card-quick-actions flexrow">
-                <a class="item-edit" data-item-id="{{this.item._id}}" title="Edit Item"><i
-                    class="fas fa-edit"></i></a>
-                <a class="item-delete" data-item-id="{{this.item._id}}" title="Delete"><i
-                    class="fas fa-trash"></i></a>
-              </div>
-              {{else if this.isSpanChild}}
-              <div class="card-quick-actions flexrow">
-                <a class="item-edit" data-item-id="{{this.parentItem._id}}" title="Edit Main Item"><i
-                    class="fas fa-edit"></i></a>
-                <a class="item-delete" data-item-id="{{this.parentItem._id}}" title="Delete"><i
-                    class="fas fa-trash"></i></a>
-              </div>
-              {{/if}}
+            <!-- Top-Left Wound Drop(s): Absolute Positioning (0 layout shift) -->
+            <div class="wound-toggle-group flexrow">
+              {{#each this.slotsCovered as |cov|}}
+              <a class="wound-toggle icon-only {{#if cov.isWounded}}active{{/if}}" data-slot-num="{{cov.slotNum}}"
+                title="{{#if cov.isWounded}}Slot {{cov.slotNum}} is WOUNDED (Click to Clean){{else}}Slot {{cov.slotNum}} is Clean (Click to Mark Wound){{/if}}">
+                <i class="fas fa-tint"></i>
+              </a>
+              {{/each}}
             </div>
+
+            {{#if this.item}}
+            <a class="item-delete card-delete-btn" data-item-id="{{this.item._id}}" title="Delete Item">
+              <i class="fas fa-trash"></i>
+            </a>
+            {{else if this.isSpanChild}}
+            <a class="item-delete card-delete-btn" data-item-id="{{this.parentItem._id}}" title="Delete Item">
+              <i class="fas fa-trash"></i>
+            </a>
+            {{/if}}
 
             {{#if this.hasSpeedPenalty}}
             <div class="speed-warning-banner" title="Occupied slots with wounds reduce speed!">
-              <i class="fas fa-exclamation-triangle"></i> Speed -{{this.totalSpeedPenalty}} (Wounded Slot{{#if (gt
-              this.totalSpeedPenalty 1)}}s{{/if}})
+              <i class="fas fa-exclamation-triangle"></i> -{{this.totalSpeedPenalty}} Speed
             </div>
             {{/if}}
 
             {{#if this.item}}
             <div class="item card-content flexcol" data-item-id="{{this.item._id}}" data-slot-id="{{this.id}}">
-              <div class="item-top flexrow">
+              <div class="item-identity-row flexrow">
                 <div class="thumb-container">
                   <img class="item-thumb item-edit" src="{{this.item.img}}" data-item-id="{{this.item._id}}"
                     title="Click to view details" />
                   {{#if (gt this.item.system.greedBonus 0)}}
-                  <div class="greed-sticker {{this.item.greedTier}} item-greed-sticker"
+                  <div class="greed-sticker mini {{this.item.greedTier}} item-greed-sticker"
                     data-item-id="{{this.item._id}}"
                     title="+{{this.item.system.greedBonus}}% {{this.item.greedTierLabel}} Greed Bonus! (Click to cycle)">
                     <div class="sticker-inner">
-                      <span class="sticker-plus">+</span><span
-                        class="sticker-val">{{this.item.system.greedBonus}}%</span>
-                      <span class="sticker-tag">GREED</span>
+                      <span class="sticker-val">+{{this.item.system.greedBonus}}%</span>
                     </div>
                   </div>
                   {{/if}}
                 </div>
-                <div class="item-name-block flexcol">
+                <div class="item-title-col flexcol">
                   <div class="item-title item-edit" data-item-id="{{this.item._id}}" title="Click to view details">
                     {{this.item.name}}
+                  </div>
+                  {{> "systems/fvtt-crows-system/templates/usage-dice.html" item=this.item}}
+                  <div class="item-pill-row flexrow">
                     {{#if (gt this.spanTotal 1)}}
                     <span class="multi-slot-badge" title="Occupies Slots {{this.spanStart}}–{{this.spanEnd}}"><i
-                        class="fas fa-th-large"></i> {{this.spanTotal}} Slots
-                      ({{this.spanStart}}–{{this.spanEnd}})</span>
+                        class="fas fa-th-large"></i> {{this.spanTotal}} Slots</span>
+                    {{/if}}
+                    {{#if this.item.system.isWeapon}}
+                    {{#if (eq this.item.system.weapon.hands 2)}}
+                    <span class="two-handed-badge"><i class="fas fa-hands"></i> 2H</span>
+                    {{/if}}
                     {{/if}}
                   </div>
+                </div>
+              </div>
 
-                  {{#if this.item.system.isArmor}}
-                  <div class="item-armor-bar flexrow">
-                    <a class="armor-equip-toggle {{#if (eq this.item.system.isEquipped false)}}stowed{{else}}worn{{/if}}"
-                      data-item-id="{{this.item._id}}" title="Toggle Worn vs Stowed in Pack">
-                      <i class="fas fa-shield-alt"></i> {{#if (eq this.item.system.isEquipped
-                      false)}}Stowed{{else}}Worn{{/if}}
-                    </a>
-                    <div class="ad-stepper flexrow"
-                      title="Armor Defense: {{this.item.system.armor.defense}} / {{this.item.system.armor.maxDefense}}">
-                      <span class="ad-lbl">AD:</span>
+              <div class="item-resource-row flexrow">
+                {{#if this.item.system.isArmor}}
+                <div class="item-armor-bar flexrow">
+                  <a class="armor-equip-toggle {{#if (eq this.item.system.isEquipped false)}}stowed{{else}}worn{{/if}}"
+                    data-item-id="{{this.item._id}}" title="Toggle Worn vs Stowed in Pack">
+                    <i class="fas fa-shield-alt"></i> {{#if (eq this.item.system.isEquipped
+                    false)}}Stowed{{else}}Worn{{/if}}
+                  </a>
+                  <div class="ad-stepper flexrow"
+                    title="Armor Defense: {{this.item.system.armor.defense}} / {{this.item.system.armor.maxDefense}}">
+                    <span class="ad-lbl">AD:</span>
+                    <div class="ad-stepper-controls flexrow">
                       <button type="button" class="armor-ad-minus btn-stepper-mini" data-item-id="{{this.item._id}}"
                         title="Reduce AD">-</button>
                       <span
@@ -474,19 +540,15 @@
                         title="Increase / Repair AD">+</button>
                     </div>
                   </div>
-                  {{/if}}
-
                 </div>
+                {{/if}}
               </div>
 
-              <div class="item-bottom-actions flexrow">
-                <button type="button" class="btn-retrieve item-retrieve" data-slot-num="{{this.slotNum}}"
-                  data-item-id="{{this.item._id}}" title="Roll 1d10 vs DC {{this.slotNum}} to grab during combat">
-                  <i class="fas fa-dice-d10"></i> Retrieve (DC {{this.slotNum}})
-                </button>
-
+              {{#if this.item.system.shortDescription}}
+              <div class="item-short-desc" title="{{this.item.system.shortDescription}}">
+                {{this.item.system.shortDescription}}
               </div>
-            {{> "systems/fvtt-crows-system/templates/inventory-controls.html" item=this.item}}
+              {{/if}}
             </div>
             {{else if this.isSpanChild}}
             <div class="span-child-content flexrow" data-item-id="{{this.parentItem._id}}">
@@ -506,14 +568,34 @@
               <div class="span-info flexcol">
                 <span class="span-title item-edit" data-item-id="{{this.parentItem._id}}"
                   title="Click to view details">{{this.parentItem.name}}</span>
-                <span class="span-subtext">Wrapped from Slot {{this.spanStart}} (Row 2 continuation)</span>
+                <span class="span-subtext">Continued from Slot {{this.spanStart}}</span>
               </div>
             </div>
             {{else}}
             <div class="empty-slot-placeholder">
-              <span>{{#if this.isWounded}}Wounded Slot{{else}}Empty Slot{{/if}}</span>
+              <span>Empty</span>
             </div>
             {{/if}}
+
+            <!-- Bottom Row: Quantity / Controls on bottom-left, DC / Retrieve on bottom-right -->
+            <div class="backpack-slot-footer flexrow">
+              <div class="slot-footer-left">
+                {{#if this.item}}
+                {{> "systems/fvtt-crows-system/templates/inventory-controls.html" item=this.item}}
+                {{/if}}
+              </div>
+
+              <div class="slot-dc-group">
+                {{#if this.item}}
+                <button type="button" class="btn-retrieve-dc item-retrieve" data-slot-num="{{this.slotNum}}"
+                  data-item-id="{{this.item._id}}" title="Roll 1d10 vs DC {{this.slotNum}} to retrieve in combat">
+                  <i class="fas fa-hand-sparkles"></i> DC {{this.slotNum}}
+                </button>
+                {{else}}
+                <span class="slot-dc-tag" title="Retrieval DC {{this.slotNum}}">DC {{this.slotNum}}</span>
+                {{/if}}
+              </div>
+            </div>
 
           </div>
           {{/each}}
@@ -525,10 +607,21 @@
     <!-- ================= TRAITS TAB ================= -->
     <div class="tab traits flexcol" data-group="primary" data-tab="traits">
       <!-- Traits Header Bar -->
+      <div class="xp-ledger">
+        <label title="All XP earned; spending XP never reduces TXP">Total XP (TXP)
+          <input type="number" name="system.totalXP" value="{{system.totalXP}}" min="0" step="1" data-dtype="Number" />
+        </label>
+        <label title="XP spent on traits">Spent XP
+          <input type="number" name="system.spentXP" value="{{system.spentXP}}" min="0" step="1" data-dtype="Number" />
+        </label>
+        <div><span>Available XP</span><strong>{{system.availableXP}}</strong></div>
+        <p>Spend XP and apply advancement benefits after finishing a rest. Trait purchases and milestone benefits are manual.</p>
+        {{#if system.xpOverspent}}<p role="alert">Spent XP exceeds TXP. Check your ledger.</p>{{/if}}
+      </div>
       <div class="traits-top-bar flexrow">
         <div class="traits-title-block flexcol">
           <h3><i class="fas fa-sitemap"></i> Character Traits & Trees</h3>
-          <span class="traits-hint">Permanent capabilities and perks acquired through Training XP (TXP). Drag & drop
+          <span class="traits-hint">Permanent capabilities and perks acquired through XP (with total earned XP tracked as TXP). Drag & drop
             from the Traits compendium.</span>
         </div>
         <div class="traits-header-actions flexrow">

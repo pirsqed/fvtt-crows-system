@@ -153,3 +153,35 @@ test("old generated icons are repaired recursively and custom icons are preserve
   assert.equal(data[0].img, "custom/my-icon.webp");
   assert.equal(data[0].items[0].img, "icons/magic/death/skull-energy-light-purple.webp");
 });
+
+test("multi-slot items can occupy belt slots and respect belt boundaries", async () => {
+  const a = actor("belt-multi");
+  assert.equal(CrowsLoot.fits(a, "belt1", 2), true);
+  assert.equal(CrowsLoot.fits(a, "belt3", 2), true);
+  assert.equal(CrowsLoot.fits(a, "belt4", 2), false);
+  assert.equal(CrowsLoot.validAnchor(a, "belt4", 2), false);
+  assert.deepEqual(CrowsLoot.spanFor("belt1", 2), ["belt1", "belt2"]);
+  assert.deepEqual(CrowsLoot.spanFor("belt2", 3), ["belt2", "belt3", "belt4"]);
+
+  const greatsword = item(a, { type: "equipment", name: "Greatsword", system: { slots: 2, location: "ground" } });
+  await CrowsLoot.placeItem(a, greatsword, "belt1");
+  assert.equal(greatsword.system.location, "belt1");
+  assert.deepEqual(CrowsLoot.occupancy(a)["belt1"], greatsword);
+  assert.deepEqual(CrowsLoot.occupancy(a)["belt2"], greatsword);
+  assert.equal(CrowsLoot.fits(a, "belt2", 1), false);
+  assert.equal(CrowsLoot.fits(a, "belt3", 1), true);
+});
+
+test("equipment items support shortDescription without crashing or length limit", () => {
+  const a = actor("short-desc-test");
+  const torch = item(a, {
+    type: "equipment",
+    name: "Torch",
+    system: {
+      slots: 1,
+      shortDescription: "Sheds bright light in a 4-square radius for 1 hour."
+    }
+  });
+  assert.equal(torch.system.shortDescription, "Sheds bright light in a 4-square radius for 1 hour.");
+});
+

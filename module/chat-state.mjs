@@ -33,17 +33,23 @@ export function renderRollState(state) {
     for (const [index, target] of (state.targets.length ? state.targets : [null]).entries()) {
       const applied = target && state.actions[`damage:${target.uuid}`];
       actions += `<button type="button" class="crows-state-action crows-action-damage" data-action="damage" data-target-index="${target ? index : -1}" ${applied ? "disabled" : ""}>
-        ${applied ? escapeHTML(applied.status) : `Apply ${outcome.numericDamage} Damage to ${escapeHTML(target?.name ?? "Target")}`}</button>`;
+        ${applied ? escapeHTML(`${applied.status}${applied.damageTotal != null ? ` (${applied.damageTotal} damage)` : ""}`) : `Apply ${outcome.numericDamage} Damage to ${escapeHTML(target?.name ?? "Target")}`}</button>`;
     }
   }
   if (state.kind === "miasma" && !state.actions.miasma) {
     if (state.tier === 1) actions += '<button type="button" class="crows-state-action crows-action-miasma crows-action-gain" data-action="gain">Gain +1 Cruelty & Roll Miasma Effect</button>';
     if (state.tier === 3) actions += '<button type="button" class="crows-state-action crows-action-miasma crows-action-purge" data-action="clear">Purge All Cruelty</button>';
   }
+  const spellReminder = state.kind !== "spell" ? "" : state.isDoom
+    ? "Roll 1d100 + spell rank for a backlash instead of the spell, then roll spellbook usage dice."
+    : state.isCrit ? "Resolve the tier 3 effect. Do not roll spellbook usage dice on a critical casting."
+    : state.tier === 1 ? "After expertise: if this is still tier 1, roll 1d6 for chaos. On 1, roll 1d100 + spell rank for a backlash instead of the spell. Roll spellbook usage dice after resolving the casting."
+    : "Resolve the spell's effect, then roll spellbook usage dice. Effect duration dice are separate.";
   return `<div class="crows-roll-card"><div class="card-header">${escapeHTML(state.title)}</div>
     <div class="card-body"><div class="dice-roll-total">Roll: <strong>${state.total}</strong> <span class="formula">(${escapeHTML(state.formula)})</span></div>
     <div class="outcome ${escapeHTML(outcome.tierClass ?? "success")}">${escapeHTML(outcome.tierTitle)}</div>
     ${outcome.damageDesc ? `<div class="damage-block">${formatDamage(outcome.damageDesc)}</div>` : ""}
+    ${spellReminder ? `<p class="spell-reminder">${escapeHTML(spellReminder)}</p>` : ""}
     ${state.meta ? `<div class="weapon-meta">${escapeHTML(state.meta)}</div>` : ""}
     ${state.expertise ? `<div class="expertise-applied-tag">${escapeHTML(state.expertise.label)} applied (+1 Tier)</div>` : ""}
     ${Object.values(state.actions).some(action => action.status === "needs review" || action.status === "pending")

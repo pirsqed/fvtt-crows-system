@@ -1,3 +1,5 @@
+import { canEquip } from "../equipment-rules.mjs";
+import { showSpellcastDialog } from "../spellcasting.mjs";
 import { canStack, goldStack, restoreUsageDice } from "../inventory.mjs";
 import { createRollState, rollFlags, renderRollState } from "../chat-state.mjs";
 import { showWeaponAttackDialog } from "../attacks.mjs";
@@ -109,8 +111,12 @@ export class CrowsActorSheet extends ActorSheet {
     
     const items = (context.items || []).map(item => {
       const document = this.actor.items.get(item._id);
+      const rawQty = document?.system?.quantity ?? item.system.quantity;
+      const qty = rawQty != null ? Math.max(0, Number(rawQty)) : 1;
+      const maxStack = Math.max(1, Number(document?.system?.maxStack ?? item.system.maxStack) || 1);
+      const stackPercent = Math.min(100, Math.max(0, Math.round((qty / maxStack) * 100)));
       return { ...item, system: document?.toObject?.(false).system ?? item.system, greedTier: document?.greedTier, greedTierLabel: document?.greedTierLabel,
-        greedBonusGc: document?.greedBonusGc, effectiveCost: document?.effectiveCost };
+        greedBonusGc: document?.greedBonusGc, effectiveCost: document?.effectiveCost, stackPercent: stackPercent };
     });
     context.items = items;
     const woundedSlots = this.actor.system.woundedSlots || {};
@@ -138,13 +144,52 @@ export class CrowsActorSheet extends ActorSheet {
       ];
     }
 
-    // 2. Belt Slots (4 Quick Access Slots)
-    context.beltSlots = [
-      { id: "belt1", label: "Belt 1", item: items.find(i => i.system.location === "belt1") },
-      { id: "belt2", label: "Belt 2", item: items.find(i => i.system.location === "belt2") },
-      { id: "belt3", label: "Belt 3", item: items.find(i => i.system.location === "belt3") },
-      { id: "belt4", label: "Belt 4", item: items.find(i => i.system.location === "belt4") }
-    ];
+    // 2. Belt Slots (4 Quick Access Slots with Merged Spans for Multi-Slot Items)
+    const anchorItemsByBelt = {};
+    for (const item of items) {
+      const loc = item.system.location;
+      if (loc && loc.startsWith("belt")) {
+        const match = loc.match(/^belt(\d+)$/);
+        if (match) {
+          anchorItemsByBelt[parseInt(match[1], 10)] = item;
+        }
+      }
+    }
+
+    context.beltSlots = [];
+    let b = 1;
+    while (b <= 4) {
+      const slotId = `belt${b}`;
+      const item = anchorItemsByBelt[b];
+      if (item) {
+        const slotsCount = Math.max(1, parseInt(item.system.slots, 10) || 1);
+        const endNum = Math.min(4, b + slotsCount - 1);
+        const spanCount = endNum - b + 1;
+
+        context.beltSlots.push({
+          id: slotId,
+          slotNum: b,
+          label: "Belt",
+          item: item,
+          colSpan: spanCount,
+          isMergedSpan: spanCount > 1,
+          spanStart: b,
+          spanEnd: endNum,
+          spanTotal: slotsCount
+        });
+        b = endNum + 1;
+      } else {
+        context.beltSlots.push({
+          id: slotId,
+          slotNum: b,
+          label: "Belt",
+          item: null,
+          colSpan: 1,
+          isMergedSpan: false
+        });
+        b++;
+      }
+    }
 
     // 3. Backpack Slots (1 to 10 with True CSS Grid Spans & Row Wrap Handling)
     const anchorItemsBySlot = {};
@@ -352,6 +397,10 @@ export class CrowsActorSheet extends ActorSheet {
     html.find('.item-retrieve').click(this._onRetrieveItem.bind(this));
     html.find('.item-ud-roll').click(this._onRollUsageDice.bind(this));
     html.find('.item-ud-restore').click(event => restoreUsageDice(this.actor, event));
+    html.find('.item-cast').click(event => {
+      event.preventDefault(); event.stopPropagation();
+      showSpellcastDialog(this.actor, this.actor.items.get(event.currentTarget.dataset.itemId));
+    });
 
     // AD Manager Modal
     html.find('.armor-ad, .open-ad-manager').click(this._onOpenADManagerDialog.bind(this));
@@ -388,6 +437,8 @@ export class CrowsActorSheet extends ActorSheet {
     // Quantity adjustments
     html.find('.item-qty-plus').click(this._onQuantityAdjust.bind(this, 1));
     html.find('.item-qty-minus').click(this._onQuantityAdjust.bind(this, -1));
+    html.find('.item-qty-input').on('change', this._onQuantityInput.bind(this));
+    html.find('.item-qty-input').on('keydown', ev => { if (ev.key === 'Enter') ev.target.blur(); });
 
     // Standard Item CRUD & Inspection
     const resolveItemId = (ev) => {
@@ -513,19 +564,80 @@ export class CrowsActorSheet extends ActorSheet {
 
   async _onQuantityAdjust(delta, event) {
     event.preventDefault();
-    const li = $(event.currentTarget).closest(".item");
-    const item = this.actor.items.get(li.data("itemId"));
+    event.stopPropagation();
+    const currentTarget = event.currentTarget;
+    const target = typeof $ === "function" ? $(currentTarget) : null;
+    const itemId = currentTarget?.dataset?.itemId
+      || target?.data("itemId")
+      || target?.closest("[data-item-id]")?.data("itemId")
+      || target?.closest(".item")?.data("itemId");
+    const item = this.actor.items.get(itemId);
     if (!item) return;
 
-    const newQty = Math.max(0, (item.system.quantity ?? 1) + delta);
-    if (delta > 0 && newQty > (item.system.maxStack || 1)) {
-      ui.notifications.warn("This stack is full. Create another stack for additional items.");
+    const currentQty = item.system.quantity ?? 1;
+    if (currentQty === 0 && delta < 0) return;
+
+    const maxStack = Number(item.system.maxStack) || 1;
+    const newQty = Math.max(0, currentQty + delta);
+
+    if (delta > 0 && maxStack > 1 && newQty > maxStack) {
+      ui.notifications.warn(`Quantity cannot exceed maximum stack size of ${maxStack}.`);
       return;
     }
+
     if (newQty === 0) {
-      return item.delete();
+      const confirmed = await Dialog.confirm({
+        title: "Delete Item?",
+        content: `<p>You have 0 remaining. Would you like to remove <strong>${item.name}</strong> from your inventory?</p>`,
+        defaultYes: false
+      });
+      if (confirmed) {
+        return item.delete();
+      }
+      return item.update({ "system.quantity": 0 });
     }
+
     await item.update({ "system.quantity": newQty });
+  }
+
+  async _onQuantityInput(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const input = event.currentTarget;
+    const itemId = input.dataset.itemId;
+    const item = itemId ? this.actor.items.get(itemId) : null;
+    if (!item) return;
+
+    const maxStack = Math.max(1, Number(input.dataset.maxStack) || Number(item.system.maxStack) || 1);
+    const parsedVal = parseInt(input.value, 10);
+
+    if (isNaN(parsedVal)) {
+      input.value = item.system.quantity ?? 1;
+      return;
+    }
+
+    if (maxStack > 1 && parsedVal > maxStack) {
+      ui.notifications.warn(`Quantity cannot exceed maximum stack size of ${maxStack}.`);
+      input.value = item.system.quantity ?? 1;
+      return;
+    }
+
+    if (parsedVal <= 0) {
+      input.value = item.system.quantity ?? 1;
+      const confirmed = await Dialog.confirm({
+        title: "Delete Item?",
+        content: `<p>Setting quantity to 0 will delete <strong>${item.name}</strong>. Are you sure?</p>`,
+        defaultYes: false
+      });
+      if (confirmed) {
+        await item.delete();
+      } else {
+        await item.update({ "system.quantity": 0 });
+      }
+      return;
+    }
+
+    await item.update({ "system.quantity": parsedVal });
   }
 
   async _onDumpBackpack(event) {
@@ -1257,6 +1369,8 @@ export class CrowsActorSheet extends ActorSheet {
     const item = this.actor.items.get(itemId);
     if (!item) return;
 
+    if (!this.actor.isOwner) return;
+    if (!canEquip(item)) { ui.notifications.warn("Move the shield into a hand slot before equipping it."); return; }
     const newEquipped = !(item.system.isEquipped !== false);
     await item.update({ "system.isEquipped": newEquipped });
     ui.notifications.info(`${item.name} is now ${newEquipped ? 'Worn / Equipped' : 'Stowed in Pack'}.`);

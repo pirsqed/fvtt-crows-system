@@ -14,6 +14,10 @@
     <div class="header-fields flexcol">
       <h1 class="charname"><input name="name" type="text" value="{{item.name}}" placeholder="Item Name"/></h1>
       
+      <div class="short-desc-row">
+        <input type="text" name="system.shortDescription" value="{{system.shortDescription}}" placeholder="Short description for inventory card..." title="Short description displayed on inventory cards" />
+      </div>
+      
       <div class="header-props-grid">
         <div class="resource-group flexrow">
           <label>Location</label>
@@ -113,6 +117,11 @@
       </div>
 
       <div class="form-group flexrow">
+        <label><i class="fas fa-plus-minus"></i> Quantity Stepper (+/- buttons)</label>
+        <input type="checkbox" name="system.useQtyPlusMinus" {{checked (or system.useQtyPlusMinus system.use_qty_plus_minus)}} title="Show +/- buttons on inventory card to nudge quantity (great for arrows & ammo)"/>
+      </div>
+
+      <div class="form-group flexrow">
         <label>Item Traits</label>
         <input type="text" name="system.traits" value="{{system.traits}}" placeholder="e.g. Versatile, Silver, Light"/>
       </div>
@@ -129,6 +138,14 @@
         <label><input type="checkbox" name="system.isConsumable" {{checked system.isConsumable}}/> <i class="fas fa-flask"></i> Consumable / Spellbook</label>
       </div>
 
+      <div class="toggle-bar flexrow">
+        <label><input type="checkbox" name="system.isShield" {{checked system.isShield}}/> Shield (hand only)</label>
+        <label><input type="checkbox" name="system.isSpellbook" {{checked system.isSpellbook}}/> Spellbook</label>
+      </div>
+      {{#if system.isSpellbook}}
+      <p>Cast makes a Mind test. Resolve the spell's effects, chaos/backlash, and usage dice manually after expertise.</p>
+      {{#if hasCaster}}<button type="button" class="item-cast">Cast Spell</button>{{/if}}
+      {{/if}}
       <!-- Weapon Fieldset -->
       {{#if system.isWeapon}}
       <fieldset class="crows-fieldset">
@@ -168,7 +185,7 @@
       {{/if}}
 
       <!-- Consumable / Usage Dice Fieldset -->
-      {{#if system.isConsumable}}
+      {{#if (or system.isConsumable system.isSpellbook)}}
       <fieldset class="crows-fieldset">
         <legend><i class="fas fa-hourglass-half"></i> Usage Dice & Spell / Maneuver Effects</legend>
         <div class="form-row flexrow">
