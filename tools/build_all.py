@@ -14,7 +14,8 @@ from common import SYSTEM, find_pdf
 TOOLS = Path(__file__).resolve().parent
 STEPS = ["extract_cards.py", "extract_backgrounds.py", "build_packs.py", "extract_traits.py", "extract_monsters.py"]
 INSTALL = {"equipment.new.json": "equipment.json", "dungeon-loot.new.json": "dungeon-loot.json",
-           "traits.new.json": "traits.json", "monsters.new.json": "monsters.json", "backgrounds.json": "backgrounds.json"}
+           "traits.new.json": "traits.json", "monsters.new.json": "monsters.json", "backgrounds.json": "backgrounds.json",
+           "connections.json": "connections.json"}
 REQUIRED = [("Characters book", ["characters"], []), ("Ref book", ["ref book"], []),
             ("Inventory cards", ["cards"], ["profession", "poi", "annotated", "sheet"]),
             ("Profession cards", ["cards", "profession"], []), ("POI cards", ["cards", "poi"], [])]

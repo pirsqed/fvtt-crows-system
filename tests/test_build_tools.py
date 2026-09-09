@@ -14,6 +14,16 @@ import common
 
 
 class BuildTests(unittest.TestCase):
+    def test_spellbook_and_shield_flags_are_exported(self):
+        from build_packs import to_item
+        book = to_item({"name": "Flame", "spell": {"rank": 1, "discipline": "Elemental"}}, {})
+        shield = to_item({"name": "Wooden Shield", "armor_ad": 2}, {})
+        sword = to_item({"name": "Sword"}, {})
+        self.assertTrue(book["system"]["isSpellbook"])
+        self.assertTrue(shield["system"]["isShield"])
+        self.assertFalse(sword["system"]["isShield"])
+        self.assertFalse(sword["system"]["isSpellbook"])
+
     def test_default_packet_is_system_pdfs_independent_of_working_directory(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -56,7 +66,7 @@ class BuildTests(unittest.TestCase):
             root = Path(folder)
             for name in build_all.INSTALL:
                 (root / name).write_text(json.dumps([{"name": "Entry"}]), encoding="utf-8")
-            self.assertEqual(len(build_all.validate_outputs(root)), 5)
+            self.assertEqual(len(build_all.validate_outputs(root)), len(build_all.INSTALL))
             (root / "monsters.new.json").write_text("[]", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "non-empty"):
                 build_all.validate_outputs(root)

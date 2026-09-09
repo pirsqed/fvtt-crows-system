@@ -172,6 +172,7 @@ def to_item(card, img_lookup, relic=False):
 
     system = {
         "description": card_html(card, relic=relic),
+        "shortDescription": card.get("shortDescription") or card.get("short_description") or "",
         "location": "backpack1",
         "slots": card.get("slots", 1),
         "quantity": 1,
@@ -181,6 +182,8 @@ def to_item(card, img_lookup, relic=False):
         "maxStack": card.get("stack", 1) or 1,
         "isEquipped": True,
         "greedBonus": 0,
+        "isShield": bool(re.search(r"\bshield\b", name, re.I)),
+        "isSpellbook": bool(sp),
         "isWeapon": bool(w),
         "weapon": {
             "range": (w or {}).get("range", ""),

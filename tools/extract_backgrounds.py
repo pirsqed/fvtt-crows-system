@@ -192,6 +192,17 @@ def main():
             "backgrounds": out}
     OUT.mkdir(exist_ok=True)
     (OUT / "backgrounds_raw.json").write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+    # Read in column order: the connection list continues onto the following page.
+    text = "\n".join("\n".join(line["text"] for line in page_lines(page)) for page in doc)
+    section = text.split("NPC Connection\n", 1)[1].split("Village Cycle", 1)[0]
+    connections = []
+    for paragraph in re.split(r"[•●]", section)[1:]:
+        name, separator, description = norm(paragraph).partition(": ")
+        if separator:
+            connections.append({"name": name, "description": description})
+    if len(connections) != 10:
+        raise ValueError(f"Expected 10 NPC connection benefits, found {len(connections)}")
+    (OUT / "connections.json").write_text(json.dumps(connections, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"{len(out)} backgrounds -> {OUT / 'backgrounds_raw.json'}")
     missing_roll = [b["name"] for b in out if not b["roll"]]
     if missing_roll:
