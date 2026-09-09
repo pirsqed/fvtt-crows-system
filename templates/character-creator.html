@@ -1,0 +1,178 @@
+<form class="creator-form" autocomplete="off">
+  <header class="creator-masthead">
+    <div><span class="creator-eyebrow">CROWS / PLAYTEST 2</span>
+      <h1>Character Creator</h1>
+      <p>Create a new crow using the Playtest 2 rules.</p>
+    </div>
+    <i class="fas fa-feather" aria-hidden="true"></i>
+  </header>
+  <main class="creator-content">
+    {{#if loadError}}
+    <div class="creator-error" role="alert">{{loadError}}</div><button type="button" data-creator-action="retry">Retry
+      loading content</button>
+    {{else}}
+    {{#unless canCreate}}<div class="creator-error">Your Foundry role cannot create actors. You can preview a crow here;
+      ask the GM to create it.</div>{{/unless}}
+    {{#if error}}<div class="creator-error" role="alert">{{error}}</div>{{/if}}
+    {{#unless review}}<p class="creator-required-note"><span class="creator-required" aria-hidden="true">*</span> Required</p>{{/unless}}
+    {{#if first}}
+    <div class="creator-section-title">
+      <div><span class="creator-eyebrow">01 / BACKGROUND</span>
+        <h2>Select a background</h2>
+      </div><button type="button" class="creator-roll" data-creator-action="roll-background"><i class="fas fa-dice"></i>
+        Roll d66 <span class="creator-required" aria-hidden="true" title="Required">*</span></button>
+    </div>
+    <label class="creator-field">Background <span class="creator-required" aria-hidden="true" title="Required">*</span><select name="background" aria-required="true">
+        <option value="">Roll above, or choose with your Ref</option>{{#each backgrounds}}<option value="{{roll}}" {{#if
+          selected}}selected{{/if}}>{{roll}} · {{name}}</option>{{/each}}
+      </select></label>
+    <p class="creator-hint">Rerolls and direct selection are at your Ref's discretion.</p>
+    {{#if rolls}}<details class="creator-roll-history">
+      <summary>Roll history</summary>
+      <p>{{rolls}}</p>
+    </details>{{/if}}
+    {{#if background}}
+    <section class="creator-background">
+      <h2>{{background.name}}</h2>
+      <p>{{background.blurb}}</p>
+      <div class="creator-stat-strip">
+        <div class="creator-starting-characteristic"><strong>+2</strong><span>{{backgroundCharacteristic}}</span></div>
+        <div><strong>{{background.stamina}}</strong><span> Stamina</span></div>
+        <div><strong>5</strong><span> Speed</span></div>
+      </div>
+      <p class="creator-hint">{{#if backgroundHasChoice}}Choose one of these characteristics to start at 2 on the next screen.{{else}}Your {{backgroundCharacteristic}} starts at 2.{{/if}}
+        Assign 1 and 0, or 2 and −1, to the remaining characteristics.</p>
+      <h3>Starting trait: {{background.trait.name}}</h3>
+      <p class="creator-hint">{{background.trait.tree}}</p>
+      <div class="creator-trait-text">{{{traitHTML}}}</div>
+      <h3>Your expertises</h3>
+      <div class="creator-chips">{{#each background.expertises}}<div>{{name}} - Uses: <b>{{uses}}</b></div>{{/each}}
+      </div>
+      <h3>Starting equipment</h3>
+      <p class="creator-hint">Full starting kit, including the equipment every crow receives.</p>
+      <table class="creator-gear">
+        <thead><tr><th scope="col">Equipment</th><th scope="col">Quantity</th></tr></thead>
+        <tbody>{{#each startingEquipment}}<tr><td>{{name}}{{#if note}} <span class="creator-hint">({{note}})</span>{{/if}}</td><td>{{quantity}}</td></tr>{{/each}}</tbody>
+      </table>
+      <p><strong>Starting gold:</strong> 3d6{{#if background.extraGold}} + {{background.extraGold}}{{/if}} gc</p>
+      {{#if background.pets.length}}<h3>Starting pets</h3><ul>{{#each background.pets}}<li>{{this}}</li>{{/each}}</ul>{{/if}}
+    </section>
+    {{else}}<div class="creator-empty"><i class="fas fa-dice" aria-hidden="true"></i>
+      <p>Roll d66 or select a background to continue.</p>
+    </div>{{/if}}
+    {{/if}}
+    {{#if stepCrow}}
+    <span class="creator-eyebrow">02 / CHARACTER</span>
+    <h2>Character details</h2>
+    <label class="creator-field">Crow's name <span class="creator-required" aria-hidden="true" title="Required">*</span><input name="name" aria-required="true" value="{{draft.name}}"
+        placeholder="Character name" maxlength="100"></label>
+    <label class="creator-field">Distinguishing feature <span class="creator-required" aria-hidden="true" title="Required">*</span><textarea name="feature" aria-required="true" rows="4"
+        placeholder="Describe a distinguishing feature" maxlength="500">{{draft.feature}}</textarea></label>
+    {{#if backgroundHasChoice}}
+    <fieldset class="creator-radio-group"><legend>Background characteristic at +2 <span class="creator-required" aria-hidden="true" title="Required">*</span></legend>
+      <div class="creator-radio-options">{{#each primaryOptions}}
+        <label class="creator-radio-option"><input type="radio" name="primary" aria-required="true" value="{{key}}" {{#if selected}}checked{{/if}}><span>{{label}} +2</span></label>
+      {{/each}}</div>
+    </fieldset>
+    {{else}}<p class="creator-fixed-stat">Background characteristic: <strong>{{backgroundCharacteristic}} +2</strong></p>{{/if}}
+    <fieldset class="creator-radio-group"><legend>Remaining characteristic values <span class="creator-required" aria-hidden="true" title="Required">*</span></legend>
+      <div class="creator-radio-options">
+        <label class="creator-radio-option"><input type="radio" name="spread" aria-required="true" value="focused" {{#if focused}}checked{{/if}}><span>+2 / −1</span></label>
+        <label class="creator-radio-option"><input type="radio" name="spread" aria-required="true" value="balanced" {{#unless focused}}checked{{/unless}}><span>+1 / 0</span></label>
+      </div>
+    </fieldset>
+    <fieldset class="creator-radio-group"><legend>Give {{higherValue}} to <span class="creator-required" aria-hidden="true" title="Required">*</span></legend>
+      <div class="creator-radio-options">{{#each secondaryOptions}}
+        <label class="creator-radio-option"><input type="radio" name="secondary" aria-required="true" value="{{key}}" {{#if selected}}checked{{/if}}><span>{{label}}</span></label>
+      {{/each}}</div>
+    </fieldset>
+    <h3>Starting characteristics</h3>
+    <div class="creator-stat-strip" aria-live="polite" aria-label="Starting characteristics">{{#each stats}}<div><strong>{{displayValue}}</strong><span>{{label}}</span></div>{{/each}}</div>
+    <div class="creator-gold"><label class="creator-field">Starting gold roll (3–18) <span class="creator-required" aria-hidden="true" title="Required">*</span><input name="gold" aria-required="true" type="number"
+          min="3" max="18" step="1" value="{{draft.gold}}" placeholder="3d6 total"></label><button type="button"
+        data-creator-action="roll-gold"><i class="fas fa-dice"></i> Roll 3d6 <span class="creator-required" aria-hidden="true" title="Required">*</span></button><span><strong>{{goldTotal}}
+          gc</strong> including {{background.extraGold}} from background</span></div>
+    <p class="creator-hint">Roll starting gold or enter your physical dice total.</p>
+    {{#if reputation}}<label class="creator-field">Village merchant for {{background.trait.name}} <span class="creator-required" aria-hidden="true" title="Required">*</span><input
+        name="traitChoice" aria-required="true" value="{{draft.traitChoice}}" placeholder="Merchant or institution"
+        maxlength="200"></label>{{/if}}
+    {{/if}}
+    {{#if stepVillage}}
+    <span class="creator-eyebrow">03 / NPC CONNECTION</span>
+    <h2>NPC connection</h2>
+    <label class="creator-field">Home village (optional)<select name="homeVillageId"><option value="">Choose later</option>{{#each villages}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></label>
+    <p class="creator-hint">Choose an existing village for this Crow and their NPC connection. The Ref can create villages in the Actors directory.{{#if villageNeedsRef}} The Ref will need to add your Crow to the village sheet to import the connection.{{/if}}</p>
+    <label class="creator-field">NPC connection's name <span class="creator-required" aria-hidden="true" title="Required">*</span><input name="connectionName" aria-required="true"
+        value="{{draft.connectionName}}" placeholder="NPC name" maxlength="100"></label>
+    <label class="creator-field">Relationship <span class="creator-required" aria-hidden="true" title="Required">*</span><textarea name="relationship" aria-required="true" rows="4"
+        placeholder="Describe the relationship" maxlength="300">{{draft.relationship}}</textarea></label>
+    <label class="creator-field">Connection benefit <span class="creator-required" aria-hidden="true" title="Required">*</span><select name="connection" aria-required="true">
+        <option value="">Choose a benefit</option>{{#each connections}}<option {{#if selected}}selected{{/if}}
+          value="{{name}}">{{name}}</option>{{/each}}
+      </select></label>
+    {{#if connection}}<section class="creator-benefit">
+      <h3>{{connection.name}}</h3>
+      <p>{{connection.description}}</p>
+    </section>{{/if}}
+    {{/if}}
+    {{#if review}}
+    <span class="creator-eyebrow">04 / REVIEW</span>
+    <h2>{{draft.name}}</h2>
+    <p class="creator-subtitle">{{background.name}} · {{draft.feature}}</p>
+    <div class="creator-stat-strip">{{#each stats}}<div><strong>{{value}}</strong><span>{{label}}</span></div>{{/each}}
+      <div><strong>{{background.stamina}}</strong><span>Stamina</span></div>
+      <div><strong>5</strong><span>Speed</span></div>
+      <div><strong>{{goldTotal}}</strong><span>Gold</span></div>
+    </div>
+    <div class="creator-two-col">
+      <section>
+        <h3>{{background.trait.name}}</h3>
+        <p>{{background.trait.tree}} · Starting trait</p>{{#if draft.traitChoice}}<p>{{draft.traitChoice}}</p>{{/if}}
+        <details>
+          <summary>Trait rules</summary>
+          <div class="creator-trait-text">{{{traitHTML}}}</div>
+        </details>
+      </section>
+      <section>
+        <h3>NPC connection: {{draft.connectionName}}</h3>
+        {{#if homeVillageName}}<p>Home village: {{homeVillageName}}</p>{{/if}}
+        <p class="creator-written-text">{{draft.relationship}}</p>
+        <p>{{draft.connection}}</p>
+      </section>
+    </div>
+    <h3>Expertise uses</h3>
+    <div class="creator-chips">{{#each background.expertises}}<span>{{name}} <b>{{uses}}</b></span>{{/each}}</div>
+    <h3>Starting equipment</h3>
+    <table class="creator-gear">
+      <thead>
+        <tr>
+          <th>Equipment</th>
+          <th>Quantity</th>
+          <th>Location</th>
+        </tr>
+      </thead>
+      <tbody>{{#each gear}}<tr>
+          <td>{{name}}</td>
+          <td>{{quantity}}</td>
+          <td>{{location}}</td>
+        </tr>{{/each}}</tbody>
+    </table>
+    {{#if background.pets.length}}<h3>Starting pets</h3>
+    <p>{{#each background.pets}}{{this}} {{/each}} — created as separate pet actors linked in your biography.</p>{{/if}}
+    {{#if plan.overflow.length}}<div class="creator-error">Your kit exceeds carried capacity. These items will be kept
+      in home storage: {{#each plan.overflow}}{{this}}; {{/each}} Move gear on the sheet before leaving.</div>{{/if}}
+    <p class="creator-hint">Creates a new crow at 0 XP. Trait and connection rules are recorded for reference; their
+      conditional effects require play-time adjudication. Gold uses the system's separate coin stack, in addition to
+      your empty purse.</p>
+    {{/if}}
+    {{/if}}
+  </main>
+  {{#unless loadError}}<footer class="creator-footer"><span>New crow · 0 XP</span>
+    <div>{{#unless first}}<button type="button" data-creator-action="back" {{#if
+        attempted}}disabled{{/if}}>Back</button>{{/unless}}
+      {{#if review}}<button type="button" class="creator-primary" data-creator-action="create" {{#unless
+        plan}}disabled{{/unless}} {{#unless canCreate}}disabled{{/unless}} {{#if attempted}}disabled{{/if}}>Create
+        Crow</button>{{else}}<button type="button" class="creator-primary" data-creator-action="next" {{#unless
+        background}}disabled{{/unless}}>Continue <i class="fas fa-arrow-right"></i></button>{{/if}}</div>
+  </footer>{{/unless}}
+</form>
