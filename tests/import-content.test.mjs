@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CrowsContentImport, IMPORT_PACKS, validateImport } from "../module/import-content.mjs";
+import { CrowsContentImport, IMPORT_PACKS, validateImport, repairImportEquipment } from "../module/import-content.mjs";
 
 function setup() {
   const docs = [];
@@ -78,3 +78,22 @@ test("write failures report partial progress and stop subsequent packs", async (
   assert.equal(report.length, 1); assert.equal(report[0].created, 1); assert.match(report[0].error, /write failed/);
   assert.equal(docs.length, 1);
 });
+
+test("import sets higher stack limits for container items (Coin Purse, Quiver of Arrows, Case of Bolts)", () => {
+  const items = [
+    { name: "Coin Purse", type: "equipment", system: { maxStack: 1 } },
+    { name: "Quiver of Arrows", type: "equipment", system: { maxStack: 1 } },
+    { name: "Quiver of 20 Arrows", type: "equipment", system: { maxStack: 1 } },
+    { name: "Case of Bolts", type: "equipment", system: { maxStack: 1 } },
+    { name: "Case of Crossbow Bolts", type: "equipment", system: { maxStack: 1 } },
+    { name: "Sword", type: "equipment", system: { maxStack: 1 } }
+  ];
+  repairImportEquipment(items);
+  assert.equal(items[0].system.maxStack, 500);
+  assert.equal(items[1].system.maxStack, 20);
+  assert.equal(items[2].system.maxStack, 20);
+  assert.equal(items[3].system.maxStack, 20);
+  assert.equal(items[4].system.maxStack, 20);
+  assert.equal(items[5].system.maxStack, 1);
+});
+

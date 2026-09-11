@@ -39,11 +39,39 @@ export function validateImport(data, pack) {
   return data;
 }
 
+export const CONTAINER_STACK_SIZES = {
+  "coin purse": 500,
+  "quiver of arrows": 20,
+  "quiver of 20 arrows": 20,
+  "case of bolts": 20,
+  "case of crossbow bolts": 20,
+  "case of 20 crossbow bolts": 20
+};
+
+export function repairImportEquipment(data) {
+  if (!data || typeof data !== "object") return data;
+  if (Array.isArray(data)) {
+    data.forEach(repairImportEquipment);
+    return data;
+  }
+  if (data.type === "equipment" && data.name && data.system) {
+    const limit = CONTAINER_STACK_SIZES[data.name.trim().toLowerCase()];
+    if (limit) {
+      data.system.maxStack = limit;
+    }
+  }
+  if (Array.isArray(data.items)) {
+    data.items.forEach(repairImportEquipment);
+  }
+  return data;
+}
+
 export async function readImport(pack) {
   const response = await fetch(`systems/${SCOPE}/packs/${pack.file}`, { cache: "no-store" });
   if (response.status === 404) return { pack, missing: true };
   if (!response.ok) throw new Error(`${pack.file}: could not read file (HTTP ${response.status}).`);
-  return { pack, data: validateImport(repairImportIcons(await response.json()), pack) };
+  const raw = await response.json();
+  return { pack, data: validateImport(repairImportEquipment(repairImportIcons(raw)), pack) };
 }
 
 export class CrowsContentImport {

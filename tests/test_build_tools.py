@@ -24,6 +24,24 @@ class BuildTests(unittest.TestCase):
         self.assertFalse(sword["system"]["isShield"])
         self.assertFalse(sword["system"]["isSpellbook"])
 
+    def test_container_items_have_higher_stack_limits(self):
+        from build_packs import to_item
+        purse = to_item({"name": "Coin Purse"}, {})
+        quiver = to_item({"name": "Quiver of 20 Arrows"}, {})
+        quiver_direct = to_item({"name": "Quiver of Arrows"}, {})
+        bolts_alias = to_item({"name": "Case of 20 Crossbow Bolts"}, {})
+        bolts_case = to_item({"name": "Case of Bolts"}, {})
+        bolts_direct = to_item({"name": "Case of Crossbow Bolts"}, {})
+        sword = to_item({"name": "Sword", "stack": 1}, {})
+
+        self.assertEqual(purse["system"]["maxStack"], 500)
+        self.assertEqual(quiver["system"]["maxStack"], 20)
+        self.assertEqual(quiver_direct["system"]["maxStack"], 20)
+        self.assertEqual(bolts_alias["system"]["maxStack"], 20)
+        self.assertEqual(bolts_case["system"]["maxStack"], 20)
+        self.assertEqual(bolts_direct["system"]["maxStack"], 20)
+        self.assertEqual(sword["system"]["maxStack"], 1)
+
     def test_default_packet_is_system_pdfs_independent_of_working_directory(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)

@@ -19,8 +19,17 @@ DATA = Path(__file__).parent / "data"
 NAME_ALIASES = {  # card name -> name used in the existing pack / preferred name
     "Quiver of 20 Arrows": "Quiver of Arrows",
     "Case of 20 Crossbow Bolts": "Case of Crossbow Bolts",
+    "Case of Bolts": "Case of Crossbow Bolts",
     "Strong Poison": "Strong Poison Vial",
     "Miner's Pick": "Miner's Pick",
+}
+CONTAINER_STACK_SIZES = {
+    "coin purse": 500,
+    "quiver of arrows": 20,
+    "quiver of 20 arrows": 20,
+    "case of bolts": 20,
+    "case of crossbow bolts": 20,
+    "case of 20 crossbow bolts": 20,
 }
 DEFAULT_IMG = {
     "book": "icons/sundries/books/book-worn-brown.webp",
@@ -170,6 +179,15 @@ def to_item(card, img_lookup, relic=False):
     if not img:
         img = DEFAULT_IMG["book" if sp else "weapon" if w else "armor" if card.get("armor_ad") is not None else "default"]
 
+    card_name_norm = (card.get("name") or "").strip().lower()
+    disp_name_norm = name.strip().lower()
+    max_stack = (
+        CONTAINER_STACK_SIZES.get(disp_name_norm)
+        or CONTAINER_STACK_SIZES.get(card_name_norm)
+        or card.get("stack", 1)
+        or 1
+    )
+
     system = {
         "description": card_html(card, relic=relic),
         "shortDescription": card.get("shortDescription") or card.get("short_description") or "",
@@ -179,7 +197,7 @@ def to_item(card, img_lookup, relic=False):
         "cost": card.get("price") or 0,
         "crafting": (card.get("crafting") or {}).get("raw", ""),
         "traits": ", ".join(traits),
-        "maxStack": card.get("stack", 1) or 1,
+        "maxStack": max_stack,
         "isEquipped": True,
         "greedBonus": 0,
         "isShield": bool(re.search(r"\bshield\b", name, re.I)),
