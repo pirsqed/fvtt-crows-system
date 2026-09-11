@@ -1,5 +1,7 @@
 # Playing the playtest
 
+Before playing, the GM should review [player permissions and loot setup](README.md#gm-setup-player-permissions).
+
 The system handles rolls and the basic resource bookkeeping. Keep the rules and item descriptions handy for these table decisions:
 
 - **Weapon qualities:** qualities appear in attack chat. Apply their special effects yourself. Adjust the damage amount in the allocation dialog for effects such as Brutal before confirming it.

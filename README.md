@@ -79,6 +79,39 @@ The tools use the PDFs' own structure (table borders, fonts, filled boxes) rathe
 
 Maintainers can verify those paths and runtime core icons against a Foundry installation with `python tools/check_icons.py "C:/Program Files/Foundry Virtual Tabletop/resources/app/public"` (use the corresponding installation path on Linux).
 
+## GM setup: player permissions
+
+For Foundry 14, open **User Management** from Settings and use **Configure User Permissions**. Grant permissions to the role your players actually use (for example, Player); the role name alone does not guarantee a particular permission. Document ownership is separate: use an Actor's **Configure Ownership** menu to grant a player **Owner** access to their Crow and any companions they control.
+
+### Required access by action
+
+| Action | Player access / setup required |
+| --- | --- |
+| Finish **Create a Crow**, including starting pets | **Create Actors** for the player's role. Generated content must already be built. The creator grants its user ownership of the resulting Crow and pets. |
+| Preview the creator without Create Actors | Open it through **Settings → System Settings → Character Creator**. Finishing is blocked; the GM can create the Crow and assign ownership of both Crow and pets afterward. |
+| Edit a character, manage its inventory, or cast from its equipment | **Owner** access to that actor. **Create Items** is not required for equipment embedded in an owned actor. |
+| Drop owned equipment onto empty map space | Own the source actor, have a scene open, and keep a **GM connected**. The GM's client creates the ground-loot token; the player does **not** need Create Tokens, Create Actors, or Create Items for this action. |
+| Pick up ground loot or take container items/coins | **Observer** access to the unlocked loot actor and **Owner** access to the receiving Crow/NPC. Normally requires a connected GM because players do not own the loot actor. Inventory space and the loot reach setting also apply. |
+| Put equipment into a container | Own the source actor; have **Observer** access to the unlocked destination loot actor. Keep a GM connected for shared containers; reach and capacity rules still apply. |
+| Transfer directly to another Crow or NPC | The acting player must own both non-loot actors. A connected GM does not waive that restriction. Ask the GM to transfer it, or use unlocked shared loot so the recipient can pick it up. |
+| Place new loot from a world Item or compendium directly onto the map or a map token | **GM only** through the Crows map-drop workflow. This differs from dropping equipment already carried by an owned actor. |
+| Edit a village or automatically add a new Crow's connection to it | **Owner** access to the village. A visible village can be selected as home without ownership; the home choice is saved and the Ref can add the membership/connection afterward. |
+| Apply expertise or damage from chat | Own the actor being changed and keep a GM connected. Players cannot apply damage to an unowned enemy; the GM applies it. |
+| Import generated content or control the shared Dungeon Turn timer | The **active GM** handles imports and shared timer changes. Import destinations must be unlocked. |
+
+**Create Tokens** is only needed if you want players to place their own character tokens through Foundry's normal actor-to-scene workflow; the GM can place those instead. It is not needed to drag a Crows loose-item icon into inventory. **Create Items** governs standalone world Items, not normal equipment management on an owned actor. Players do not need a GM role for character creation or ordinary looting.
+
+The creator reads generated packs directly, so it does not require access to the imported compendiums. If players should browse or drag entries from those compendiums themselves, give them appropriate viewing access to those packs as well.
+
+### Loot setup and troubleshooting
+
+- New loot actors default to **Observer** access for players; GM startup also repairs older loot actors whose default access is lower. Use the container's **Locked** state to restrict normal taking/stowing, and hide its token when it should not appear on the map. Players do not need Owner access to shared loot.
+- For **Take**, **Take All**, and **Take Coins**, select the owned character token that should receive the loot. With no owned token selected, the system falls back to the user's assigned character. Assign that character and grant ownership separately. Dragging onto a sheet or token specifies the destination directly.
+- **Loot interaction reach (squares)** defaults to 1; 0 disables the distance check. For normal map play, place the character and loot on the same scene and move the character next to the loot. Reach checks use active character tokens and do not enforce distance when there is no applicable token to measure. GMs bypass reach checks.
+- Keep a GM logged into the world while players drop or move shared loot. Merely running the Foundry server is not enough. Transfers/stack merges between actors the player owns can work without a GM; ground drops still require one.
+- If the system warns that its loot socket is disabled, restart the **Foundry server**, then reconnect the GM and players. Browser refresh alone does not reload the system manifest.
+- If a pickup fails, check the receiving actor's ownership, loot Observer access, container lock, selected/assigned character, reach, and available slots before granting broader permissions.
+
 ## Creating a crow
 
 Build the playtest content first (rebuild older exports to add `packs/connections.json`). In the **Actors** directory, click **Create a Crow**, or use **Settings → System Settings → Character Creator**. A script macro can also open it:

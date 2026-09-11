@@ -91,6 +91,8 @@ These protect shared state and possessions. They are intentionally separate from
 - [ ] F7. Double-click End Turn: one check and one advance. Repeat a cruelty action: it applies once. If two GMs will be supported, verify only the active GM persists shared timer changes.
 - [ ] F8. Missing generated creator data gives an actionable error, with no partial Crow created. Failed PDF preflight leaves existing generated content intact. Record the files deliberately withheld in the test copy.
 
+- [ ] F9. Follow the README permissions setup using a Player role with Create Actors enabled and Create Items/Create Tokens disabled. Create a Crow with a pet, manage its equipment, and drop/pick up loot with a GM connected and only Observer access to the loot. Disable Create Actors: creator preview remains available through Settings, but finishing is blocked. Verify direct transfers to an unowned Crow fail, while shared-loot handoff works.
+
 Candidate / results / issue IDs:
 
 ### Existing tester world — run on a copy
