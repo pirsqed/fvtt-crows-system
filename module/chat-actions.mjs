@@ -1,4 +1,4 @@
-import { CHAT_SCOPE, getRollState, renderRollState, resolveActor, damageSnapshot, escapeHTML } from "./chat-state.mjs";
+import { CHAT_SCOPE, getRollState, renderRollState, renderUndoExpertise, resolveActor, damageSnapshot, escapeHTML } from "./chat-state.mjs";
 
 const SOCKET = `system.${CHAT_SCOPE}`;
 
@@ -70,7 +70,8 @@ export class CrowsChatActions {
     let key, apply;
     if (request.action === "expertise") {
       if (!owns(actor) || !state.expertiseAllowed) throw new Error("You do not own this roll's actor.");
-      if (state.expertise || state.isDoom || state.tier >= 3 || Object.keys(state.actions).length)
+      if (state.expertise || state.isDoom || state.tier >= 3
+        || Object.values(state.actions).some(action => action.status !== "cancelled"))
         throw new Error("This roll can no longer be upgraded.");
       const exp = actor.system.expertises?.[request.key];
       if (!exp || !(Number(exp.value) > 0)) throw new Error("No expertise uses remain.");
@@ -82,6 +83,26 @@ export class CrowsChatActions {
         state.expertise = { key: request.key, label: this.expertiseLabels?.[request.key] ?? request.key, remaining: result.remaining };
         state.revision++;
         return result;
+      };
+    } else if (request.action === "undo-expertise") {
+      if (!user.isGM) throw new Error("Only the Ref/GM can undo expertise.");
+      if (request.revision !== state.revision) throw new Error("This roll changed. Try again from the updated card.");
+      if (!state.expertise || state.actions.expertise?.status !== "applied"
+        || Object.values(state.actions).some(action => ["pending", "needs review"].includes(action.status)))
+        throw new Error("This expertise cannot be undone until pending actions have been reviewed.");
+      const exp = actor?.system.expertises?.[state.expertise.key];
+      if (!exp) throw new Error("The original actor or expertise is unavailable.");
+      key = "undo-expertise";
+      apply = async () => {
+        const remaining = Math.min(Number(exp.max), Number(exp.value) + 1);
+        if (!Number.isFinite(remaining)) throw new Error("The expertise uses need GM review.");
+        await actor.update({ [`system.expertises.${state.expertise.key}.value`]: remaining });
+        state.tier--;
+        state.expertise = null;
+        state.actions.expertise.status = "cancelled";
+        state.expertiseUndone = true;
+        state.revision++;
+        return { remaining };
       };
     } else if (request.action === "damage") {
       const target = await resolveActor(request.targetUuid);
@@ -101,14 +122,15 @@ export class CrowsChatActions {
       key = "miasma";
       apply = () => request.action === "gain" ? actor.adjustCruelty(1) : actor.clearCruelty();
     } else throw new Error("Unknown chat action.");
-    if (state.actions[key]) throw new Error("This action has already been applied or needs review.");
+    if (state.actions[key] && state.actions[key].status !== "cancelled")
+      throw new Error("This action has already been applied or needs review.");
     // Persist the claim first. A disconnect or partial write must not silently allow a second application.
     state.actions[key] = { status: "pending", userId,
       ...(request.action === "damage" ? { damageTotal: request.allocation.damageTotal } : {}) };
     await this.save(message, state);
     try {
       const result = await apply();
-      state.actions[key].status = "applied";
+      state.actions[key].status = request.action === "undo-expertise" ? "cancelled" : "applied";
       await this.save(message, state);
       return result;
     } catch (err) {
@@ -119,6 +141,12 @@ export class CrowsChatActions {
   }
 
   static bind(message, html) {
+    // Message content is shared; filter GM controls separately for each viewer.
+    if (!game.user.isGM) html.find('[data-action="undo-expertise"]').remove();
+    else if (!html.find('[data-action="undo-expertise"]').length) {
+      const control = renderUndoExpertise(getRollState(message));
+      if (control) html.find(".crows-chat-actions").append(control);
+    }
     html.find(".crows-state-action").click(async event => {
       event.preventDefault();
       const button = event.currentTarget;
@@ -169,7 +197,7 @@ export class CrowsChatActions {
         messageId: message.id, action: "damage", targetUuid, snapshot, revision: state.revision, allocation
       }) });
     }
-    await this.request({ messageId: message.id, action: data.action });
+    await this.request({ messageId: message.id, action: data.action, revision: state.revision });
     if (data.action === "gain") await actor.sheet._onRollMiasmaEffect();
   }
 }

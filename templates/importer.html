@@ -5,11 +5,13 @@
   </header>
   <details class="importer-setup">
     <summary>How to build the content</summary>
+    <p>First time? The setup guide walks through Python, finding your PDF folder, and hosting.</p>
+    <button type="button" class="btn-setup-guide">Open Setup Guide</button>
     <ol>
-      <li>Put your extracted playtest packet in <code>pdfs/</code> inside the system folder.</li>
-      <li>Windows: open <strong>Build Playtest Content.cmd</strong>.<br>
-        Linux: run <code>sh build-playtest-content.sh --setup</code> from the system folder.</li>
-      <li>Click <strong>Re-check files</strong>, then import. See <code>README.md</code> for custom packet folders and remote servers.</li>
+      <li>Extract your playtest ZIP into the included <code>pdfs/</code> folder inside the system folder. Its <code>ADD_PDFS_HERE.txt</code> note has the short instructions.</li>
+      <li>Windows: open <strong>build_playtest_content.cmd</strong>.<br>
+        Linux: run <code>sh build_playtest_content.sh --setup --interactive</code> from the system folder.</li>
+      <li>Click <strong>Re-check files</strong>, then import. The setup guide also covers custom packet folders and remote servers.</li>
     </ol>
     <p>Only unedited, tracked entries are updated. Older imports, local edits, and changed actors are preserved for review.</p>
   </details>

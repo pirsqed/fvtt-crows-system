@@ -6,7 +6,7 @@
   </header>
   <nav class="village-tabs tabs" data-group="primary" aria-label="Village sections">
     <a class="item" data-tab="overview">Overview</a><a class="item" data-tab="institutions">Institutions</a>
-    <a class="item" data-tab="npcs">NPCs</a><a class="item" data-tab="quests">Quests</a><a class="item" data-tab="notes">Notes</a>
+    <a class="item" data-tab="inventory">Inventory</a><a class="item" data-tab="crypt">Crypt</a><a class="item" data-tab="npcs">NPCs</a><a class="item" data-tab="quests">Quests</a><a class="item" data-tab="notes">Notes</a>
   </nav>
   <section class="village-body">
     <div class="tab" data-group="primary" data-tab="overview">
@@ -14,7 +14,7 @@
         <label>Prosperity<input type="number" name="system.prosperity" value="{{system.prosperity}}" min="-10" max="10" step="1" data-dtype="Number"></label>
         <label>Cycle<input type="number" name="system.cycle" value="{{system.cycle}}" min="1" step="1" data-dtype="Number"></label>
         <label>Day<input type="number" name="system.day" value="{{system.day}}" min="1" max="10" step="1" data-dtype="Number"></label>
-        <label>Treasury (gc)<input type="number" name="system.treasury" value="{{system.treasury}}" min="0" step="1" data-dtype="Number"></label>
+        <label title="Gold spent on merchant goods this cycle. Track toward 10,000 gc, then reset manually for the next cycle.">Prosperity progress<input type="number" name="system.treasury" value="{{system.treasury}}" min="0" step="1" data-dtype="Number"><small class="village-muted">gc spent this cycle / 10,000</small></label>
         <div class="village-stat"><span>Sale value</span><strong>{{salePercent}}%</strong></div>
       </div>
       <label class="village-field">Description{{#if editable}}<textarea name="system.description" rows="4">{{system.description}}</textarea>{{else}}<div class="village-prose">{{{descriptionHTML}}}</div>{{/if}}</label>
@@ -30,6 +30,16 @@
           {{#if ../editable}}{{#if canSetHome}}<button type="button" data-village-action="set-home" data-entry-id="{{id}}">Set as home</button>{{/if}}<button type="button" class="village-remove" data-village-action="delete" data-entry-id="{{id}}" aria-label="Remove {{displayName}}"><i class="fas fa-trash"></i></button>{{/if}}</footer>
       </article>{{else}}<p class="village-empty">No Crows recorded. {{#if editable}}Add a Crow or drag one from the Actors directory.{{/if}}</p>{{/each}}</div>
     </div>
+    <div class="tab" data-group="primary" data-tab="inventory">
+      <div class="village-section-heading"><h2>Shared inventory</h2>{{#if editable}}<button type="button" data-village-action="add-loot"><i class="fas fa-plus"></i> Add loot</button>{{/if}}</div>
+      <p class="village-muted">Store the spoils of your adventures here. {{#if editable}}Drag equipment from a Crow to deposit it, or onto a Crow's sheet to take it out. Items from the directory or a compendium are copied. Edit an item to change its quantity or notes.{{/if}}</p>
+      <div class="village-cards">{{#each inventory}}<article class="village-card village-inventory-item" data-item-id="{{id}}">
+        <header><h3>{{name}}</h3><span class="village-badge">Qty {{system.quantity}}</span></header>
+        {{#if system.shortDescription}}<p>{{system.shortDescription}}</p>{{/if}}
+        <footer><button type="button" class="village-view-action" data-village-action="view-loot" data-entry-id="{{id}}">{{#if ../editable}}Edit{{else}}View{{/if}} item</button>
+          {{#if ../editable}}<button type="button" class="village-remove" data-village-action="delete-loot" data-entry-id="{{id}}" aria-label="Remove {{name}}"><i class="fas fa-trash"></i></button>{{/if}}</footer>
+      </article>{{else}}<p class="village-empty">The village stores are empty. {{#if editable}}Add loot or drag in equipment when the Crows return from adventuring.{{/if}}</p>{{/each}}</div>
+    </div>
     <div class="tab" data-group="primary" data-tab="institutions">
       <div class="village-section-heading"><h2>Institutions</h2>{{#if editable}}<div class="village-actions">{{#if hasStarterInstitutions}}<button type="button" data-village-action="starting">Add starting institutions</button>{{/if}}<button type="button" data-village-action="add" data-kind="institution">Add institution</button></div>{{/if}}</div>
       <div class="village-cards">{{#each institutions}}<article class="village-card">
@@ -41,6 +51,21 @@
         <footer><button type="button" class="village-view-action" data-village-action="view" data-entry-id="{{id}}">{{#if ../editable}}Edit{{else}}View{{/if}} institution</button>
           {{#if ../editable}}{{#if ready}}<button type="button" data-village-action="apply-level" data-entry-id="{{id}}">Apply level change</button>{{/if}}<button type="button" class="village-remove" data-village-action="delete" data-entry-id="{{id}}" aria-label="Remove {{displayName}}"><i class="fas fa-trash"></i></button>{{/if}}</footer>
       </article>{{else}}<p class="village-empty">No institutions recorded. Add the starting institutions or create your own.</p>{{/each}}</div>
+    </div>
+    <div class="tab" data-group="primary" data-tab="crypt">
+      <div class="village-section-heading"><h2>Crypt</h2>{{#if editable}}<button type="button" data-village-action="add" data-kind="grave"><i class="fas fa-plus"></i> Add grave</button>{{/if}}</div>
+      <p class="village-muted">See the Character Book, page 51. Record your own boons and notes; tracking fields are updated manually.</p>
+      <div class="village-cards">{{#each graves}}<article class="village-card">
+        <header><h3>{{displayName}}</h3><span class="village-badge">{{statusLabel}}</span></header>
+        {{#if system.cryptBoon}}<h4>{{system.cryptBoon}}</h4>{{/if}}
+        {{#if system.boonHolderName}}<p>Holder: <strong>{{system.boonHolderName}}</strong></p>{{/if}}
+        <p>Uses remaining: {{system.boonUses}}</p>
+        {{#if system.boonCycle}}<p class="village-caption">Last granted: cycle {{system.boonCycle}}</p>{{/if}}
+        <div class="village-prose">{{{descriptionHTML}}}</div>
+        <footer><button type="button" class="village-view-action" data-village-action="view" data-entry-id="{{id}}">{{#if ../editable}}Edit{{else}}View{{/if}} grave</button>
+          {{#if system.cryptBoon}}<button type="button" class="village-view-action" data-village-action="claim-boon" data-entry-id="{{id}}">Claim boon</button>{{/if}}
+          {{#if ../editable}}<button type="button" class="village-remove" data-village-action="delete" data-entry-id="{{id}}" aria-label="Remove {{displayName}}"><i class="fas fa-trash"></i></button>{{/if}}</footer>
+      </article>{{else}}<p class="village-empty">No graves recorded.</p>{{/each}}</div>
     </div>
     <div class="tab" data-group="primary" data-tab="npcs">
       <div class="village-section-heading"><h2>NPCs</h2>{{#if editable}}<button type="button" data-village-action="add" data-kind="npc">Add NPC</button>{{/if}}</div>

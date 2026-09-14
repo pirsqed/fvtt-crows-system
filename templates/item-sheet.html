@@ -19,45 +19,12 @@
       </div>
       
       <div class="header-props-grid">
+        {{#if locationReport}}
         <div class="resource-group flexrow">
           <label>Location</label>
-          <select name="system.location">
-            <optgroup label="Equipped / Hands">
-              <option value="hand1" {{#if (eq system.location "hand1")}}selected{{/if}}>Hand 1</option>
-              <option value="hand2" {{#if (eq system.location "hand2")}}selected{{/if}}>Hand 2</option>
-            </optgroup>
-            <optgroup label="Quick Belt">
-              <option value="belt1" {{#if (eq system.location "belt1")}}selected{{/if}}>Belt 1</option>
-              <option value="belt2" {{#if (eq system.location "belt2")}}selected{{/if}}>Belt 2</option>
-              <option value="belt3" {{#if (eq system.location "belt3")}}selected{{/if}}>Belt 3</option>
-              <option value="belt4" {{#if (eq system.location "belt4")}}selected{{/if}}>Belt 4</option>
-            </optgroup>
-            <optgroup label="Backpack Slots">
-              <option value="backpack1" {{#if (eq system.location "backpack1")}}selected{{/if}}>Backpack 1</option>
-              <option value="backpack2" {{#if (eq system.location "backpack2")}}selected{{/if}}>Backpack 2</option>
-              <option value="backpack3" {{#if (eq system.location "backpack3")}}selected{{/if}}>Backpack 3</option>
-              <option value="backpack4" {{#if (eq system.location "backpack4")}}selected{{/if}}>Backpack 4</option>
-              <option value="backpack5" {{#if (eq system.location "backpack5")}}selected{{/if}}>Backpack 5</option>
-              <option value="backpack6" {{#if (eq system.location "backpack6")}}selected{{/if}}>Backpack 6</option>
-              <option value="backpack7" {{#if (eq system.location "backpack7")}}selected{{/if}}>Backpack 7</option>
-              <option value="backpack8" {{#if (eq system.location "backpack8")}}selected{{/if}}>Backpack 8</option>
-              <option value="backpack9" {{#if (eq system.location "backpack9")}}selected{{/if}}>Backpack 9</option>
-              <option value="backpack10" {{#if (eq system.location "backpack10")}}selected{{/if}}>Backpack 10</option>
-            </optgroup>
-            <optgroup label="Magic Attunement Doll">
-              <option value="head" {{#if (eq system.location "head")}}selected{{/if}}>Head</option>
-              <option value="neck" {{#if (eq system.location "neck")}}selected{{/if}}>Neck</option>
-              <option value="waist" {{#if (eq system.location "waist")}}selected{{/if}}>Waist</option>
-              <option value="gloves" {{#if (eq system.location "gloves")}}selected{{/if}}>Arms / Gloves</option>
-              <option value="ring" {{#if (eq system.location "ring")}}selected{{/if}}>Finger / Ring</option>
-              <option value="boots" {{#if (eq system.location "boots")}}selected{{/if}}>Feet / Boots</option>
-            </optgroup>
-            {{#unless isCrowItem}}<optgroup label="Storage">
-              <option value="ground" {{#if (eq system.location "ground")}}selected{{/if}}>Ground (Scene)</option>
-              <option value="stash" {{#if (eq system.location "stash")}}selected{{/if}}>Stash (Camp)</option>
-            </optgroup>{{/unless}}
-          </select>
+          <span class="item-location-report">{{locationReport}}</span>
         </div>
+        {{/if}}
 
         <div class="resource-group flexrow">
           <label>Slots Taken</label>
@@ -80,7 +47,19 @@
 
   <section class="sheet-body">
     <div class="tab details flexcol" data-group="primary" data-tab="details">
-      
+      <section class="supply-settings">
+        <label>Item contains <select name="system.contentsType">
+          <option value="" {{#unless system.contentsType}}selected{{/unless}}>Nothing</option>
+          <option value="gold" {{#if (eq system.contentsType "gold")}}selected{{/if}}>Gold</option>
+          <option value="arrows" {{#if (eq system.contentsType "arrows")}}selected{{/if}}>Arrows</option>
+          <option value="bolts" {{#if (eq system.contentsType "bolts")}}selected{{/if}}>Bolts</option>
+        </select></label>
+        {{#if system.contentsType}}
+        <label>Contents quantity <input type="number" min="0" step="1" name="system.contentsQuantity" value="{{system.contentsQuantity}}" /></label>
+        <label>Contents maximum <input type="number" min="0" step="1" name="system.contentsMax" value="{{system.contentsMax}}" /></label>
+        {{#if (gt system.contentsQuantity system.contentsMax)}}<p class="over-capacity">Over capacity</p>{{/if}}
+        {{/if}}
+      </section>
       <div class="form-group flexrow">
         <label>Cost (gc)</label>
         <div class="cost-with-greed flexrow">
@@ -143,8 +122,10 @@
         <label><input type="checkbox" name="system.isSpellbook" {{checked system.isSpellbook}}/> Spellbook</label>
       </div>
       {{#if system.isSpellbook}}
-      <p>Cast makes a Mind test. Resolve the spell's effects, chaos/backlash, and usage dice manually after expertise.</p>
-      {{#if hasCaster}}<button type="button" class="item-cast">Cast Spell</button>{{/if}}
+      <div class="spellbook-details-panel flexcol">
+        <p class="spellbook-cast-hint"><i class="fas fa-info-circle"></i> Cast makes a Mind test. Resolve the spell's effects, chaos/backlash, and usage dice manually after expertise.</p>
+        {{#if (and hasCaster (or (eq system.location "hand1") (eq system.location "hand2")))}}<button type="button" class="item-cast"><i class="fas fa-hat-wizard"></i> Cast Spell</button>{{/if}}
+      </div>
       {{/if}}
       <!-- Weapon Fieldset -->
       {{#if system.isWeapon}}

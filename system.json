@@ -28,7 +28,8 @@
   "styles": [
     "styles/crows.css",
     "styles/character-creator.css",
-    "styles/village.css"
+    "styles/village.css",
+    "styles/setup-guide.css"
   ],
   "packs": [],
   "languages": [],
@@ -43,10 +44,11 @@
       "equipment": {},
       "attack": {},
       "trait": {},
-      "villageEntry": {}
+      "villageEntry": {},
+      "boon": {}
     }
   },
   "socket": true,
-  "initiative": "2d10",
+  "initiative": "1d10",
   "license": "LICENSE"
 }

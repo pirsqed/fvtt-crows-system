@@ -1,31 +1,26 @@
+{{#if item.system.contentsType}}
+<div class="inventory-card-controls supply-controls {{#if (gt item.system.contentsQuantity item.system.contentsMax)}}over-capacity{{/if}}" data-item-id="{{item._id}}">
+  <label>{{#if (eq item.system.contentsType "gold")}}Gold{{else}}{{#if (eq item.system.contentsType "arrows")}}Arrows{{else}}Bolts{{/if}}{{/if}}</label>
+  <button type="button" class="supply-step btn-qty-stepper" data-delta="-1" aria-label="Use one">−</button>
+  <input type="number" class="supply-count" value="{{item.system.contentsQuantity}}" min="0" step="1" aria-label="Contents quantity" title="Maximum {{item.system.contentsMax}}" />
+  <button type="button" class="supply-step btn-qty-stepper" data-delta="1" aria-label="Add one">+</button>
+  {{#if (gt item.system.contentsQuantity item.system.contentsMax)}}<span>Over capacity</span>{{/if}}
+</div>
+{{else}}
 {{#if (or (gt item.system.maxStack 1) item.system.useQtyPlusMinus item.system.use_qty_plus_minus)}}
 <div class="inventory-card-controls flexrow" data-item-id="{{item._id}}">
-  {{#if (or item.system.useQtyPlusMinus item.system.use_qty_plus_minus)}}
-  <button type="button" class="item-qty-minus btn-qty-stepper" data-item-id="{{item._id}}" title="Decrease quantity (-1)">
-    <i class="fas fa-minus"></i>
-  </button>
-  {{/if}}
-  <div class="qty-progress-wrapper" title="Stack: {{item.system.quantity}}{{#if (gt item.system.maxStack 1)}} / {{item.system.maxStack}}{{/if}} (Click to edit quantity)">
+  {{#if (or item.system.useQtyPlusMinus item.system.use_qty_plus_minus)}}<button type="button" class="item-qty-minus btn-qty-stepper" data-item-id="{{item._id}}" title="Decrease quantity"><i class="fas fa-minus"></i></button>{{/if}}
+  <div class="qty-progress-wrapper" title="Max {{item.system.maxStack}}">
     <div class="qty-progress-bar">
-      {{#if (gt item.system.maxStack 1)}}
-      <div class="qty-progress-fill" style="width: {{item.stackPercent}}%;"></div>
-      {{/if}}
-      <input type="number" class="item-qty-input" data-item-id="{{item._id}}"
-        data-max-stack="{{item.system.maxStack}}" value="{{item.system.quantity}}"
-        min="0" {{#if (gt item.system.maxStack 1)}}max="{{item.system.maxStack}}"{{/if}} step="1" />
+      {{#if (gt item.system.maxStack 1)}}<div class="qty-progress-fill" style="width: {{item.stackPercent}}%;"></div>{{/if}}
+      <input type="number" class="item-qty-input" data-item-id="{{item._id}}" data-max-stack="{{item.system.maxStack}}" value="{{item.system.quantity}}" min="0" {{#if (gt item.system.maxStack 1)}}max="{{item.system.maxStack}}"{{/if}} step="1" />
     </div>
-    {{#if (gt item.system.maxStack 1)}}
-    <div class="qty-max-hint">Max {{item.system.maxStack}}</div>
-    {{/if}}
+    {{#if (gt item.system.maxStack 1)}}<div class="qty-max-hint">Max {{item.system.maxStack}}</div>{{/if}}
   </div>
-  {{#if (or item.system.useQtyPlusMinus item.system.use_qty_plus_minus)}}
-  <button type="button" class="item-qty-plus btn-qty-stepper" data-item-id="{{item._id}}" title="Increase quantity (+1)">
-    <i class="fas fa-plus"></i>
-  </button>
-  {{/if}}
+  {{#if (or item.system.useQtyPlusMinus item.system.use_qty_plus_minus)}}<button type="button" class="item-qty-plus btn-qty-stepper" data-item-id="{{item._id}}" title="Increase quantity"><i class="fas fa-plus"></i></button>{{/if}}
 </div>
 {{/if}}
-
-{{#if item.system.isSpellbook}}
-<button type="button" class="item-cast" data-item-id="{{item._id}}" title="Cast this spellbook with Mind">Cast</button>
+{{/if}}
+{{#if (and item.system.isSpellbook (or (eq item.system.location "hand1") (eq item.system.location "hand2")))}}
+<button type="button" class="item-cast" data-item-id="{{item._id}}" title="Cast this spellbook with Mind"><i class="fas fa-hat-wizard"></i> Cast</button>
 {{/if}}

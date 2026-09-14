@@ -6,37 +6,64 @@ const player = { id: "player", isGM: false };
 const gm = { id: "gm", isGM: true };
 globalThis.game = { user: player, users: { get: id => id === "gm" ? gm : player } };
 globalThis.foundry = { utils: { setProperty: (obj, path, value) => { obj.system.location = value; } } };
-const actor = (uuid, type, owned = false, locked = false) => ({
-  uuid, type, system: { containerType: "generic", locked, coins: 0 },
-  testUserPermission: (user, level) => user.isGM || owned || (type === "loot" && level === "OBSERVER")
+const actor = (uuid, type, owned = false) => ({
+  uuid, type, system: {}, items: [],
+  testUserPermission: (user, level) => user.isGM || owned || (type === "loot" && ["OBSERVER", "LIMITED"].includes(level))
 });
 
-test("pickup and stow permissions reject unowned recipients and locked containers", () => {
-  const sword = actor("sword", "loot");
-  const crow = actor("crow", "crow", true);
-  const npc = actor("npc", "monster");
-  const chest = actor("chest", "loot");
-  assert.equal(CrowsLoot.canTransfer(sword, crow, player), true);
-  assert.equal(CrowsLoot.canTransfer(sword, npc, player), false);
-  assert.equal(CrowsLoot.canTransfer(crow, chest, player), true);
-  chest.system.locked = true;
-  assert.equal(CrowsLoot.canTransfer(crow, chest, player), false);
-  assert.equal(CrowsLoot.canTransfer(chest, crow, player), false);
-  assert.equal(CrowsLoot.canTransfer(sword, npc, gm), true);
-  assert.equal(CrowsLoot.canTransfer(crow, crow, gm), false);
-});
+function sceneFor(loot, crow, { linked = true, x = 100 } = {}) {
+  const source = { actor: loot, actorLink: linked, x, y: 0, width: 1, height: 1, elevation: 0, hidden: false };
+  const receiver = { actor: crow, x: 0, y: 0, width: 1, height: 1, elevation: 0, hidden: false };
+  const scene = { tokens: [source, receiver], grid: { sizeX: 100, sizeY: 100,
+    measurePath: ([a, b]) => ({ distance: Math.hypot(a.x - b.x, a.y - b.y) / 100 }) } };
+  game.scenes = { active: scene, get: id => id === "viewed" ? scene : null };
+  game.settings = { get: () => 1 };
+  return { scene, source, receiver };
+}
 
-test("only single-item generic loot exposes a drag handle", () => {
+for (const linked of [true, false]) test(`${linked ? "linked" : "unlinked"} ground loot follows distance and recipient ownership without actor permissions`, () => {
   const loot = actor("loot", "loot");
+  loot.testUserPermission = () => false;
+  const crow = actor("crow", "crow", true);
+  const { source, receiver, scene } = sceneFor(loot, crow, { linked });
+  assert.equal(CrowsLoot.canTransfer(loot, crow, player), true);
+  source.x = 101;
+  assert.equal(CrowsLoot.canTransfer(loot, crow, player), false);
+  game.settings.get = () => 2;
+  assert.equal(CrowsLoot.canTransfer(loot, crow, player), true);
+  source.hidden = true;
+  assert.equal(CrowsLoot.canTransfer(loot, crow, player), false);
+  source.hidden = false;
+  source.elevation = 3;
+  assert.equal(CrowsLoot.canTransfer(loot, crow, player), false);
+  source.elevation = 0;
+  assert.equal(CrowsLoot.canTransfer(loot, actor("remote", "crow", true), player), false);
+  assert.equal(CrowsLoot.canTransfer(loot, actor("npc", "monster"), player), false);
+  scene.tokens = [source];
+  assert.equal(CrowsLoot.canPickUp(loot, player), false);
+  scene.tokens = [receiver];
+  assert.equal(CrowsLoot.canPickUp(loot, player), false);
+  assert.equal(CrowsLoot.canTransfer(loot, crow, gm), true);
+  assert.equal(CrowsLoot.canTransfer(crow, loot, player), false);
+});
+
+test("pickup uses the requesting player's viewed scene, not the GM canvas", () => {
+  const loot = actor("loot", "loot"), crow = actor("crow", "crow", true);
+  sceneFor(loot, crow);
+  globalThis.canvas = { scene: { tokens: [] } };
+  try { assert.equal(CrowsLoot.canTransfer(loot, crow, { ...player, viewedScene: "viewed" }), true); }
+  finally { delete globalThis.canvas; }
+});
+
+test("only nearby single-item loot exposes a drag handle", () => {
+  const loot = actor("loot", "loot");
+  const { source } = sceneFor(loot, actor("crow", "crow", true));
   const item = { type: "equipment" };
   loot.items = { size: 1, contents: [item] };
   assert.equal(CrowsLoot.looseItem({ actor: loot }), item);
-  loot.system.coins = 1;
+  source.x = 200;
   assert.equal(CrowsLoot.looseItem({ actor: loot }), null);
-  loot.system.coins = 0;
-  loot.system.containerType = "chest";
-  assert.equal(CrowsLoot.looseItem({ actor: loot }), null);
-  loot.system.containerType = "generic";
+  source.x = 100;
   loot.items.size = 2;
   assert.equal(CrowsLoot.looseItem({ actor: loot }), null);
 });

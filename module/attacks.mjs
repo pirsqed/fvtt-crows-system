@@ -1,3 +1,4 @@
+import { renderCircumstanceSelector } from "./roll-dialog.mjs";
 import { createRollState, rollFlags, renderRollState } from "./chat-state.mjs";
 import { rollPowerRoll } from "./power-roll.mjs";
 
@@ -43,36 +44,7 @@ export function showWeaponAttackDialog(actor, item) {
           <option value="mind">Mind (${chars.mind >= 0 ? '+' : ''}${chars.mind})</option>
         </select>
       </div>
-      <div class="form-group circumstance-group">
-        <label class="group-label"><i class="fas fa-balance-scale"></i> Circumstance</label>
-        <div class="radio-list">
-          <label class="radio-option opt-double-edge">
-            <input type="radio" name="circumstance" value="double-edge" />
-            <span class="opt-title">Double Edge</span>
-            <span class="opt-desc">+1 Outcome Tier</span>
-          </label>
-          <label class="radio-option opt-edge">
-            <input type="radio" name="circumstance" value="edge" />
-            <span class="opt-title">Edge</span>
-            <span class="opt-desc">+2 to roll</span>
-          </label>
-          <label class="radio-option opt-standard">
-            <input type="radio" name="circumstance" value="standard" checked />
-            <span class="opt-title">Standard Roll</span>
-            <span class="opt-desc">Normal (2d10)</span>
-          </label>
-          <label class="radio-option opt-bane">
-            <input type="radio" name="circumstance" value="bane" />
-            <span class="opt-title">Bane</span>
-            <span class="opt-desc">-2 to roll</span>
-          </label>
-          <label class="radio-option opt-double-bane">
-            <input type="radio" name="circumstance" value="double-bane" />
-            <span class="opt-title">Double Bane</span>
-            <span class="opt-desc">-1 Outcome Tier</span>
-          </label>
-        </div>
-      </div>
+      ${renderCircumstanceSelector()}
       <div class="form-group">
         <label for="attack-mod"><i class="fas fa-sliders-h"></i> Situational Modifier</label>
         <input type="number" id="attack-mod" value="0" />
@@ -120,13 +92,39 @@ export function showWeaponAttackDialog(actor, item) {
   }, { classes: ["crows", "dialog", "crows-dialog"] }).render(true);
 }
 
-/** Stat-block attacks keep their fixed bonus and effect text, without a weapon dialog. */
-export async function rollStatBlockAttack(actor, attack) {
+/** Stat-block attacks use their printed bonus with the same circumstance controls. */
+export function showStatBlockAttackDialog(actor, attack) {
+  if (!attack) return;
+  return new Dialog({
+    title: `${actor.name}: ${attack.name}`,
+    content: `<form class="crows-dialog-form">
+      <p>Attack bonus: ${escapeHTML(attack.system.bonus || "+0")}</p>
+      ${renderCircumstanceSelector()}
+      <div class="form-group">
+        <label for="attack-mod"><i class="fas fa-sliders-h"></i> Situational Modifier</label>
+        <input type="number" id="attack-mod" value="0" />
+      </div>
+    </form>`,
+    buttons: {
+      roll: { label: "Attack", callback: html => rollStatBlockAttack(actor, attack, {
+        circumstance: html.find('input[name="circumstance"]:checked').val() || "standard",
+        modifier: Number(html.find("#attack-mod").val()) || 0
+      }) },
+      cancel: { label: "Cancel" }
+    },
+    default: "roll"
+  }, { classes: ["crows", "dialog", "crows-dialog"] }).render(true);
+}
+
+export async function rollStatBlockAttack(actor, attack, { circumstance = "standard", modifier = 0 } = {}) {
   if (!attack) return;
   // Bonus string like "+2" or "-1"
   const bonusStr = attack.system.bonus || "+0";
 
-  const { roll, tier, isCrit, isDoom } = await rollPowerRoll({ formula: `2d10 ${bonusStr}` });
+  const adjustment = Number(modifier) + (circumstance === "edge" ? 2 : circumstance === "bane" ? -2 : 0);
+  if (!Number.isFinite(adjustment)) throw new Error("Power roll modifier must be a finite number.");
+  const formula = `2d10 ${bonusStr}${adjustment ? ` ${adjustment >= 0 ? "+" : "-"} ${Math.abs(adjustment)}` : ""}`;
+  const { roll, tier, isCrit, isDoom } = await rollPowerRoll({ formula, circumstance });
   const outcomes = Object.fromEntries([1, 2, 3].map(t => {
     const text = t === 3 ? attack.system.tier3Damage : t === 2 ? attack.system.tier2Damage : "Miss";
     return [t, { tierTitle: `Tier ${t}`, tierClass: t === 3 ? "crit" : t === 2 ? "success" : "failure",

@@ -79,7 +79,7 @@ test("write failures report partial progress and stop subsequent packs", async (
   assert.equal(docs.length, 1);
 });
 
-test("import sets higher stack limits for container items (Coin Purse, Quiver of Arrows, Case of Bolts)", () => {
+test("import initializes independent supply counts and maximums", () => {
   const items = [
     { name: "Coin Purse", type: "equipment", system: { maxStack: 1 } },
     { name: "Quiver of Arrows", type: "equipment", system: { maxStack: 1 } },
@@ -89,11 +89,21 @@ test("import sets higher stack limits for container items (Coin Purse, Quiver of
     { name: "Sword", type: "equipment", system: { maxStack: 1 } }
   ];
   repairImportEquipment(items);
-  assert.equal(items[0].system.maxStack, 500);
-  assert.equal(items[1].system.maxStack, 20);
-  assert.equal(items[2].system.maxStack, 20);
-  assert.equal(items[3].system.maxStack, 20);
-  assert.equal(items[4].system.maxStack, 20);
+  assert.equal(items[0].system.maxStack, 1);
+  assert.equal(items[0].system.contentsMax, 500);
+  assert.equal(items[0].system.contentsQuantity, 0);
+  assert.equal(items[1].system.maxStack, 1);
+  assert.equal(items[1].system.contentsMax, 20);
+  assert.equal(items[1].system.contentsQuantity, 20);
+  assert.equal(items[2].system.maxStack, 1);
+  assert.equal(items[2].system.contentsMax, 20);
+  assert.equal(items[2].system.contentsQuantity, 20);
+  assert.equal(items[3].system.maxStack, 1);
+  assert.equal(items[3].system.contentsMax, 20);
+  assert.equal(items[3].system.contentsQuantity, 20);
+  assert.equal(items[4].system.maxStack, 1);
+  assert.equal(items[4].system.contentsMax, 20);
+  assert.equal(items[4].system.contentsQuantity, 20);
   assert.equal(items[5].system.maxStack, 1);
 });
 

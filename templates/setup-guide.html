@@ -1,0 +1,83 @@
+<form class="crows-guide" autocomplete="off">
+  <header>
+    <p class="guide-eyebrow">Crows for Foundry · Unofficial</p>
+    <h1>Greetings, Crows and Refs!</h1>
+    <p>Welcome! Before we head into the dungeon, let's get your playtest content into Foundry. There are a couple of steps outside the game, but you don't need to know how to code. :)</p>
+  </header>
+
+  <div class="guide-callout">
+    <strong>The short version</strong>
+    <p>Install Python → unpack your PDFs → run the builder → import in Foundry.</p>
+    <p>This is a <strong>Ref / host setup job</strong>. Players don't need Python or their own import.</p>
+  </div>
+
+  <p>The item, trait, and bestiary compendiums aren't bundled with the system. The included tools read <em>your copy</em> of the MCDM playtest PDFs to build them. Some rule reminders and fixed tables are included, so keep the books handy too. These are playtest materials, so future packets may need updated tools.</p>
+
+  <h2>1. Get Python ready</h2>
+  <p>You'll need <strong>Python 3.10 or newer</strong> on the computer running the builder. Grab a current stable version from <a href="https://www.python.org/downloads/" target="_blank" rel="noopener noreferrer">python.org</a> and follow its installer. Python is free. You won't be writing any Python yourself!</p>
+  <p>On Windows, enable <strong>Add Python to PATH</strong> if your installer offers it. After installing, close and reopen the builder. On Linux, you'll also need Python's <code>venv</code> support; your host can help with that.</p>
+
+  <h2>2. Find your system folder and your PDFs</h2>
+  <p>Find Foundry's <strong>User Data folder</strong>, then open <code>Data/systems/fvtt-crows-system</code>. This is where the builder lives. If you're using a hosting service, this folder is on the server: see the hosting note below.</p>
+  <details>
+    <summary>Where is my User Data folder?</summary>
+    <p>On Foundry's Setup screen, open <strong>Application Configuration</strong> using the cog icon at the top right. Copy the <strong>User Data Path</strong>, open that folder in your file manager, then go into <code>Data</code>, <code>systems</code>, and <code>fvtt-crows-system</code>. You should see the two builder files there. A managed host may provide its own file manager instead.</p>
+  </details>
+  <p>Download your playtest packet and <strong>extract the ZIP first</strong>. Keep the Characters book, Ref book, Inventory Cards, Profession cards, and POI cards together, with one copy of each PDF. Keep the packet's subfolders and original filenames.</p>
+  <div class="guide-callout">
+    <strong>Easiest option: no long folder path to type!</strong>
+    <p>Open the included <code>pdfs</code> folder inside <code>fvtt-crows-system</code> and extract your playtest ZIP there. There's a little <code>ADD_PDFS_HERE.txt</code> readme inside to point you in the right direction. The builder searches inside it, including subfolders. When asked for the playtest folder, press <strong>Enter</strong>.</p>
+  </div>
+  <details>
+    <summary>Want to keep the PDFs somewhere else?</summary>
+    <p>That's fine! Give the builder the folder containing the extracted packet, not the ZIP or an individual PDF.</p>
+    <p><strong>Windows:</strong> open that folder in File Explorer, click the address bar (or press <kbd>Ctrl</kbd> + <kbd>L</kbd>), and copy the full path. Paste it when the builder asks for the playtest folder. For example: <code>C:\Users\YourName\Downloads\Crows Playtest</code>. Quotes from “Copy as path” are okay.</p>
+    <p><strong>Linux / macOS:</strong> use the folder's full path with <code>--packet</code>. Put quotes around it, especially if it has spaces. The examples below are placeholders: replace them with your actual folder.</p>
+  </details>
+
+  <h2>3. Run the builder</h2>
+  <p>Choose the computer you're building on. The first run downloads a few helper libraries, so it needs an internet connection. Let it finish; the progress messages will tell you what it's doing.</p>
+  <details open>
+    <summary>Windows</summary>
+    <p>In the system folder, double-click <strong>build_playtest_content.cmd</strong>. Paste your PDF folder when asked, or press Enter for the <code>pdfs</code> folder. The launcher handles the helper libraries for you.</p>
+  </details>
+  <details>
+    <summary>Linux / macOS</summary>
+    <p>Open a terminal in the system folder and run:</p>
+    <pre><code>sh build_playtest_content.sh --setup --interactive</code></pre>
+    <p>Paste your PDF folder at the prompt, or press Enter for <code>pdfs</code>. For a server or an explicit folder path, use:</p>
+    <pre><code>sh build_playtest_content.sh --setup --packet "/path/to/Crows Playtest"</code></pre>
+    <p>On later runs, you can leave out <code>--setup</code>.</p>
+  </details>
+  <details>
+    <summary>Using a hosting service or another computer?</summary>
+    <p>A folder on your desktop isn't a folder on your server. Run the builder where the PDFs actually are. If your host supports Python, use the server's system folder and a PDF folder on that server.</p>
+    <p>Otherwise, build locally using a copy of this system, then upload the generated <code>packs/*.json</code> files and <code>assets/monsters/</code> folder to the same locations in the hosted system. Keep their folder structure. You don't need to upload Python or <code>tools/.venv</code>. Your host's file manager or support team can help.</p>
+  </details>
+
+  <h2>4. Bring it into Foundry</h2>
+  <p>Once the build succeeds, join your world as the Ref (GM). Open <strong>Settings → Configure Settings → Crows (Unofficial) → Import Playtest Content</strong>, or use the button below. Click <strong>Re-check files</strong>, then <strong>Import everything found</strong>.</p>
+  <p>Your equipment, dungeon loot, traits, and bestiary will appear in the <strong>Compendium Packs</strong> tab. That's it! You can start making Crows. Re-importing preserves local edits and doesn't delete entries; check the report for anything it kept for review.</p>
+  {{#if isGM}}<button type="button" class="open-importer"><i class="fas fa-download"></i> Open Importer</button>{{else}}<p>Your Ref handles this step. You can get ready to play once they've imported the content.</p>{{/if}}
+
+  <details>
+    <summary>Something didn't work?</summary>
+    <ul>
+      <li><strong>Python wasn't found:</strong> finish installing Python, then reopen the launcher. On Windows, try <code>py --version</code> or <code>python --version</code> in a new terminal; on Linux/macOS, try <code>python3 --version</code>.</li>
+      <li><strong>Folder or PDF not found:</strong> check that you extracted the ZIP and chose the packet folder. Compare the folder printed by the builder with the one you meant to use.</li>
+      <li><strong>More than one matching PDF:</strong> keep old packets and duplicate downloads outside your chosen folder.</li>
+      <li><strong>Missing libraries or venv:</strong> use the first-run command with <code>--setup</code>; on Linux, ask your host to install Python's venv support.</li>
+      <li><strong>Foundry says “Not built”:</strong> check that the builder finished successfully and that the files are in the system folder used by your Foundry server. Then click Re-check files.</li>
+    </ul>
+    <p>Still stuck? Include the error message and what step you reached when <a href="https://github.com/pirsqed/fvtt-crows-system/issues" target="_blank" rel="noopener noreferrer">reporting an issue</a>. If extraction started, its log is in <code>tools/out/build.log</code>.</p>
+  </details>
+
+  <footer>
+    <h2>Ready for the rest?</h2>
+    <p>Foundry helps with rolls, slots, and resource tracking. You and the Ref still handle most trait effects, spell effects, ammunition spending, and downtime. A button does its named action; it doesn't resolve every rule around it. The <a href="https://github.com/pirsqed/fvtt-crows-system/blob/main/MANUAL-PLAY.md" target="_blank" rel="noopener noreferrer">play guide explains what's automatic and what's manual</a>.</p>
+    <p>The <a href="https://github.com/pirsqed/fvtt-crows-system#readme" target="_blank" rel="noopener noreferrer">full docs on GitHub</a> cover character creation, item management, permissions, villages, and more. Please give it a try and let me know how it goes. ^_^</p>
+    <p>Reopen this guide anytime from <strong>Settings → Configure Settings → Crows (Unofficial) → Start Here</strong>. Closing it stops the automatic welcome for your user in this world.</p>
+    <p><strong>Fortune, or death!</strong></p>
+    <button type="button" class="close-guide">Got it — close guide</button>
+  </footer>
+</form>

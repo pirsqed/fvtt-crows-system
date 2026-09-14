@@ -4,6 +4,7 @@ export function requiresHand(item) {
 }
 
 export function canEquip(item, location = item.system?.location) {
+  if (requiresHand(item) && item.parent?.type === "monster") return /^(?:backpack|slot)\d+$/.test(location ?? "") || /^hand[12]$/.test(location ?? "");
   return !requiresHand(item) || /^hand[12]$/.test(location ?? "");
 }
 

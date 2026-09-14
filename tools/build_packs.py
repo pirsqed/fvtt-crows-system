@@ -23,7 +23,7 @@ NAME_ALIASES = {  # card name -> name used in the existing pack / preferred name
     "Strong Poison": "Strong Poison Vial",
     "Miner's Pick": "Miner's Pick",
 }
-CONTAINER_STACK_SIZES = {
+SUPPLY_CAPACITIES = {
     "coin purse": 500,
     "quiver of arrows": 20,
     "quiver of 20 arrows": 20,
@@ -181,14 +181,14 @@ def to_item(card, img_lookup, relic=False):
 
     card_name_norm = (card.get("name") or "").strip().lower()
     disp_name_norm = name.strip().lower()
-    max_stack = (
-        CONTAINER_STACK_SIZES.get(disp_name_norm)
-        or CONTAINER_STACK_SIZES.get(card_name_norm)
-        or card.get("stack", 1)
-        or 1
-    )
+    capacity = SUPPLY_CAPACITIES.get(disp_name_norm) or SUPPLY_CAPACITIES.get(card_name_norm) or 0
+    kind = ("gold" if "purse" in disp_name_norm else "arrows" if "quiver" in disp_name_norm else "bolts") if capacity else ""
+    max_stack = 1 if capacity else card.get("stack", 1) or 1
 
     system = {
+        "contentsType": kind,
+        "contentsMax": capacity,
+        "contentsQuantity": capacity if kind in ("arrows", "bolts") else 0,
         "description": card_html(card, relic=relic),
         "shortDescription": card.get("shortDescription") or card.get("short_description") or "",
         "location": "backpack1",

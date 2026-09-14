@@ -84,6 +84,9 @@ export class CrowDataModel extends foundry.abstract.TypeDataModel {
 export class EquipmentDataModel extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
+      contentsType: new StringField({ initial: "", blank: true, choices: ["", "gold", "arrows", "bolts"] }),
+      contentsQuantity: new NumberField({ integer: true, min: 0, initial: 0 }),
+      contentsMax: new NumberField({ integer: true, min: 0, initial: 0 }),
       description: new HTMLField({ required: true, blank: true }),
       shortDescription: new StringField({ required: true, blank: true, initial: "" }),
       location: new StringField({ 
@@ -179,18 +182,6 @@ export class MonsterDataModel extends foundry.abstract.TypeDataModel {
 export class LootDataModel extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
-      containerType: new StringField({ 
-        required: true, 
-        options: ["generic", "chest", "corpse", "dropped_pack", "stash"], 
-        initial: "generic" 
-      }),
-      locked: new BooleanField({ required: true, initial: false }),
-      corpseSize: new StringField({ 
-        required: true, 
-        options: ["tiny", "small", "medium", "large", "huge", "holy_shit"], 
-        initial: "medium" 
-      }),
-      coins: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
       description: new HTMLField({ required: true, blank: true })
     };
   }
@@ -211,6 +202,8 @@ export class AttackDataModel extends foundry.abstract.TypeDataModel {
 export class TraitDataModel extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
+      extraBeltSlots: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
+      beltSlotNotes: new StringField({ required: true, blank: true, initial: "" }),
       description: new HTMLField({ required: true, blank: true }),
       tree: new StringField({ 
         required: true, 

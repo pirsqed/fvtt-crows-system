@@ -73,6 +73,12 @@
         </div>
       </div>
 
+      <div class="belt-settings">
+        <label>Extra belt slots <input type="number" name="system.extraBeltSlots" value="{{system.extraBeltSlots}}" min="0" step="1" data-dtype="Number" /></label>
+        <label>Slot restrictions <input type="text" name="system.beltSlotNotes" value="{{system.beltSlotNotes}}" placeholder="e.g. Alchemy items only" /></label>
+        <p class="zone-hint">Owning this trait adds these belt slots. The restriction labels each slot; check item eligibility manually.</p>
+      </div>
+
       <!-- Rule Description Editor -->
       <div class="form-group stacked" style="margin-top: 10px; flex: 1;">
         <label><i class="fas fa-align-left"></i> Trait Rules & Description</label>

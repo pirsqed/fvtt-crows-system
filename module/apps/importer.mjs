@@ -47,6 +47,11 @@ export class CrowsImporter extends FormApplication {
       const pack = IMPORT_PACKS.find(pack => pack.fn === event.currentTarget.dataset.fn);
       if (pack) run([pack]);
     });
+    html.find(".btn-setup-guide").click(async event => {
+      event.preventDefault();
+      const { CrowsSetupGuide } = await import("./setup-guide.mjs");
+      new CrowsSetupGuide().render(true);
+    });
     html.find(".btn-refresh").click(event => { event.preventDefault(); this.render(); });
   }
 

@@ -136,3 +136,23 @@ test("every locally generated background resolves all grants and occupies valid,
     assert.equal(plan.pets.length, b.pets.length);
   }
 });
+
+
+test('starting gold is put in exactly one purse, with background bonuses and full ammunition', () => {
+  const input = fixtures();
+  for (const name of ['Coin Purse', 'Quiver of Arrows', 'Case of Bolts']) {
+    input.equipment.push({ name, type: 'equipment', system: { slots: 1, maxStack: 1 } });
+    input.background.startingKit.push({ name, quantity: 1 });
+  }
+  const { crow, gold } = buildCrowPlan(input);
+  const purse = crow.items.filter(item => item.system.contentsType === 'gold');
+  assert.equal(purse.length, 1);
+  assert.equal(purse[0].system.contentsQuantity, gold);
+  assert.equal(gold, draft.gold + background.extraGold);
+  assert.equal(crow.items.filter(item => item.system.isGold).length, 0);
+  for (const type of ['arrows', 'bolts']) {
+    const item = crow.items.find(item => item.system.contentsType === type);
+    assert.equal(item.system.contentsQuantity, 20);
+    assert.equal(item.system.quantity, 1);
+  }
+});

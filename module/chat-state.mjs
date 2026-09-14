@@ -21,12 +21,18 @@ export function createRollState(actor, data) {
 export function rollFlags(state) { return { [CHAT_SCOPE]: { rollState: state } }; }
 export function getRollState(message) { return message.getFlag(CHAT_SCOPE, "rollState"); }
 
+export function renderUndoExpertise(state) {
+  if (!state?.expertise || state.actions?.expertise?.status !== "applied"
+    || Object.values(state.actions).some(action => ["pending", "needs review"].includes(action.status))) return "";
+  return '<button type="button" class="crows-state-action crows-action-expertise" data-action="undo-expertise" title="Restore the original tier and refund one expertise use">Undo Expertise (Ref/GM)</button>';
+}
+
 /** Render from persisted data; HTML is never read back to determine a roll's result. */
 export function renderRollState(state) {
   const outcome = state.special && !state.expertise ? state.special : state.outcomes[state.tier];
   const busy = Object.values(state.actions).some(action => action.status !== "cancelled");
   let actions = "";
-  if (state.expertiseAllowed && !state.isDoom && state.tier < 3 && !state.expertise && !busy) {
+  if (state.kind !== "miasma" && state.expertiseAllowed && !state.isDoom && state.tier < 3 && !state.expertise && !busy) {
     actions += '<button type="button" class="crows-state-action crows-action-expertise" data-action="expertise">Apply Expertise (+1 Tier)</button>';
   }
   if (outcome.numericDamage > 0) {
@@ -36,6 +42,7 @@ export function renderRollState(state) {
         ${applied ? escapeHTML(`${applied.status}${applied.damageTotal != null ? ` (${applied.damageTotal} damage)` : ""}`) : `Apply ${outcome.numericDamage} Damage to ${escapeHTML(target?.name ?? "Target")}`}</button>`;
     }
   }
+  actions += renderUndoExpertise(state);
   if (state.kind === "miasma" && !state.actions.miasma) {
     if (state.tier === 1) actions += '<button type="button" class="crows-state-action crows-action-miasma crows-action-gain" data-action="gain">Gain +1 Cruelty & Roll Miasma Effect</button>';
     if (state.tier === 3) actions += '<button type="button" class="crows-state-action crows-action-miasma crows-action-purge" data-action="clear">Purge All Cruelty</button>';
@@ -52,6 +59,8 @@ export function renderRollState(state) {
     ${spellReminder ? `<p class="spell-reminder">${escapeHTML(spellReminder)}</p>` : ""}
     ${state.meta ? `<div class="weapon-meta">${escapeHTML(state.meta)}</div>` : ""}
     ${state.expertise ? `<div class="expertise-applied-tag">${escapeHTML(state.expertise.label)} applied (+1 Tier)</div>` : ""}
+    ${state.expertiseUndone && Object.entries(state.actions).some(([key, action]) => key.startsWith("damage:") && action.status === "applied")
+      ? '<p>Expertise was undone. Previously applied damage is unchanged; the Ref/GM must check and correct it manually.</p>' : ""}
     ${Object.values(state.actions).some(action => action.status === "needs review" || action.status === "pending")
       ? '<p>A document update is pending or needs GM review. Do not repeat it manually without checking the actor.</p>' : ""}
     <div class="crows-chat-actions flexcol">${actions}</div></div></div>`;

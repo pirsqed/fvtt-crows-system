@@ -1,3 +1,5 @@
+import { beltCapacity } from "./inventory.mjs";
+import { supplyPreset } from "./supplies.mjs";
 /** Pure creation rules. Game content is loaded from the user's generated packs. */
 export const CHARACTERISTICS = ["agility", "mind", "strength"];
 export const CREATOR_SCOPE = "fvtt-crows-system";
@@ -85,7 +87,7 @@ export function arrangeEquipment(items) {
     item.system.location = "stash"; item.system.isEquipped = false;
     if (isSuit(item)) { reserve(item, "backpack", 10); continue; }
     if ((item.system.isWeapon || item.name === "Shield") && reserve(item, "hand", 2)) continue;
-    if (reserve(item, "belt", 4)) continue;
+    if (reserve(item, "belt", beltCapacity({ type: "crow", items }))) continue;
     reserve(item, "backpack", 10);
   }
   return equipment.filter(item => item.system.location === "stash").map(item => item.name);
@@ -101,7 +103,7 @@ export function buildCrowPlan({ background, draft, equipment, traits, monsters =
   const characteristics = assignCharacteristics(background, draft.primary, draft.spread, draft.secondary);
   const items = [];
   for (const entry of background.startingKit) {
-    const source = cleanDocument(uniqueEntry(equipment, entry.name, "equipment"));
+    const source = supplyPreset(cleanDocument(uniqueEntry(equipment, entry.name, "equipment")));
     const limit = Math.max(1, source.system.maxStack || 1);
     const note = background.equipment?.find(item => item.name === entry.name)?.note;
     // The extractor combines lore books. Keep each subject on its own item.
@@ -118,9 +120,12 @@ export function buildCrowPlan({ background, draft, equipment, traits, monsters =
     }
   }
   const gold = draft.gold + background.extraGold;
-  // Match the system's current loose-gold model; retain the supplied empty purse separately.
-  items.push({ name: "Gold Coins", type: "equipment", img: "icons/commodities/currency/coins-plain-pouch-gold.webp",
-    system: { isGold: true, quantity: gold, maxStack: 250, slots: 1, cost: 1, traits: "" } });
+  let purse = items.find(item => item.system.contentsType === "gold");
+  if (!purse) {
+    purse = supplyPreset({ name: "Coin Purse", type: "equipment", img: "icons/containers/bags/pouch-leather-brown.webp", system: { slots: 1, cost: 0 } });
+    items.push(purse);
+  }
+  purse.system.contentsQuantity = gold;
   const trait = cleanDocument(uniqueEntry(traits, background.trait.name, "trait", background.trait.tree));
   if (trait.system.tree === "Reputation" && !draft.traitChoice?.trim()) throw new Error("Name the village merchant for your starting Reputation trait.");
   items.push(trait);

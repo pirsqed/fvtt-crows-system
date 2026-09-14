@@ -1,28 +1,53 @@
-/**
- * Crows ground loot & item transfer engine.
- *
- *  - Ground loot lives in unlinked tokens of one hidden "Ground Loot" base actor (type "loot").
- *    Each token keeps its own items and coins in its ActorDelta, so deleting the token deletes
- *    the loot and nothing accumulates in the Actors directory.
- *  - Every move of an item between documents goes through CrowsLoot.transfer(): create on the
- *    destination, then delete from the source. When the acting user doesn't own both ends the
- *    request is sent over the system socket and executed by the active GM's client.
- */
-import { canStack, stackAmount, goldStack } from "./inventory.mjs";
+/** Single scene items and authoritative inventory transfers. */
+import { beltCapacity, canStack, stackAmount, goldStack } from "./inventory.mjs";
 const SOCKET = "system.fvtt-crows-system";
 const SYSTEM_ID = "fvtt-crows-system";
 export const LOOT_BASE_NAME = "Ground Loot";
 
 export class CrowsLoot {
+  static canInspectToken(token) {
+    return token?.actor?.type === "loot" && !token.hidden
+      && token.object?.visible === true && token.object?.isVisible === true;
+  }
+
+  /** Resolve the requesting user's scene even when the GM is viewing another scene. */
+  static pickupScene(user) {
+    return user.viewedScene ? game.scenes?.get(user.viewedScene)
+      : user.id === game.user?.id ? globalThis.canvas?.scene ?? game.scenes?.active : game.scenes?.active;
+  }
+
+  /** Pickup is automatic within range of an owned receiving character's token. */
+  static canPickUp(actor, user = game.user, recipient = null) {
+    if (actor?.type !== "loot" || !user) return false;
+    if (user.isGM) return true;
+    const scene = this.pickupScene(user);
+    if (!scene) return false;
+    const tokens = Array.from(scene.tokens ?? []);
+    const loot = tokens.filter(token => !token.hidden && token.actor?.uuid === actor.uuid);
+    const characters = tokens.filter(token => !token.hidden && ["crow", "monster"].includes(token.actor?.type)
+      && token.actor.testUserPermission(user, "OWNER") && (!recipient || token.actor.uuid === recipient.uuid));
+    const grid = scene.grid;
+    const limit = Number(game.settings.get(SYSTEM_ID, "lootPickupDistance"));
+    if (!grid?.measurePath || !Number.isFinite(limit) || limit < 0) return false;
+    const center = token => ({ x: token.x + token.width * grid.sizeX / 2,
+      y: token.y + token.height * grid.sizeY / 2 });
+    return loot.some(item => characters.some(character => {
+      const horizontal = grid.measurePath([center(item), center(character)]).distance;
+      const vertical = Math.abs((item.elevation ?? 0) - (character.elevation ?? 0));
+      return Math.hypot(horizontal, vertical) <= limit + 1e-8;
+    }));
+  }
+
   /* ------------------------------------------------------------------ */
   /*  Setup                                                              */
   /* ------------------------------------------------------------------ */
 
   static registerSettings() {
-    game.settings.register(SYSTEM_ID, "lootReach", {
-      name: "Loot interaction reach (squares)",
-      hint: "Players need a controlled token within this many squares of a loot token to take from it or stow into it. 0 disables the check. GMs are never restricted.",
-      scope: "world", config: true, type: Number, default: 1
+    game.settings.register(SYSTEM_ID, "lootPickupDistance", {
+      name: "Loot pickup distance",
+      hint: "Maximum distance in scene units between a ground item and the receiving character's token. Measured between token centers using the scene grid, including elevation. GMs can pick up at any distance.",
+      scope: "world", config: true, type: Number, default: game.system.grid?.distance ?? 1,
+      onChange: () => this.refreshSheets()
     });
     game.settings.register(SYSTEM_ID, "lootChat", {
       name: "Announce loot pickups in chat",
@@ -36,13 +61,45 @@ export class CrowsLoot {
     }
     game.socket.on(SOCKET, async (msg) => {
       if (msg?.channel === "chat-actions") return;
+      if (msg?.channel === "loot-result") {
+        if (msg.userId === game.user.id) {
+          const pending = this._requests?.get(msg.requestId);
+          if (pending) { clearTimeout(pending.timer); this._requests.delete(msg.requestId); pending.resolve(msg.ok); }
+          if (msg.error) ui.notifications.warn(msg.error);
+          this.refreshSheets();
+        }
+        return;
+      }
       if (!CrowsLoot.isActiveGM()) return;
       try {
-        await CrowsLoot._execute(msg.action, msg.payload, msg.userId);
+        const result = await CrowsLoot._execute(msg.action, msg.payload, msg.userId);
+        if (msg.requestId) game.socket.emit(SOCKET, { channel: "loot-result", userId: msg.userId, requestId: msg.requestId, ok: !!result,
+          error: result ? null : "No change was made. Check pickup access and inventory space with the Ref." });
       } catch (err) {
         console.error("Crows | loot request failed", msg, err);
+        if (msg.requestId) game.socket.emit(SOCKET, { channel: "loot-result", userId: msg.userId, requestId: msg.requestId, ok: false, error: "The item could not be moved. Ask the Ref to check it." });
       }
     });
+    for (const hook of ["createActor", "updateActor", "deleteActor", "createItem", "updateItem", "deleteItem"]) Hooks.on(hook, () => this.refreshSheets());
+    Hooks.on("updateToken", (token, changes) => {
+      if (["delta", "actorId", "actorLink", "hidden", "x", "y", "elevation", "width", "height"].some(key => key in changes)) this.refreshSheets();
+    });
+    Hooks.on("updateItem", (item, changes) => {
+      const parent = item.parent;
+      if (!this.isActiveGM() || parent?.type !== "loot" || parent.items.size !== 1) return;
+      if (!("name" in changes || "img" in changes)) return;
+      parent.update({ name: item.name, img: item.img }).catch(error => console.error("Crows | Scene item refresh failed", error));
+      parent.token?.update({ name: item.name, "texture.src": item.img }).catch(error => console.error("Crows | Scene image refresh failed", error));
+    });
+  }
+
+  static refreshSheets() {
+    for (const actor of game.actors) if (actor.type === "crow") actor.prepareDerivedData();
+    for (const app of Object.values(ui.windows)) {
+      if (!(app.actor?.type === "loot" || app.item?.type === "equipment" || app.actor?.type === "crow")) continue;
+      if (app.requestRefresh) app.requestRefresh();
+      else if (app.rendered) app.render(false, { focus: false });
+    }
   }
 
   static isActiveGM() {
@@ -60,38 +117,40 @@ export class CrowsLoot {
       ui.notifications.warn("A GM must be connected to move loot around.");
       return null;
     }
-    game.socket.emit(SOCKET, { action, payload, userId: game.user.id });
-    return null;
+    const requestId = foundry.utils.randomID();
+    this._requests ??= new Map();
+    return new Promise(resolve => {
+      const timer = setTimeout(() => {
+        this._requests.delete(requestId);
+        ui.notifications.warn("The Ref has not confirmed the transfer. Check the inventories before trying again.");
+        resolve(null);
+      }, 15000);
+      this._requests.set(requestId, { resolve, timer });
+      game.socket.emit(SOCKET, { action, payload, userId: game.user.id, requestId });
+    });
   }
 
   static async _execute(action, payload, userId) {
+    if (["copyItem", "dropToGround"].includes(action)) {
+      if (action === "dropToGround") action = "dropToGroundQueued";
+      const pending = (this._transferQueue ?? Promise.resolve()).then(() => this[`_${action}`](payload, userId));
+      this._transferQueue = pending.catch(() => {});
+      return pending;
+    }
     switch (action) {
       case "transfer": return CrowsLoot._doTransfer(payload, userId);
       case "stack": return CrowsLoot._doStack(payload, userId);
       case "dropToGround": return CrowsLoot._doDropToGround(payload, userId);
-      case "takeCoins": return CrowsLoot._doTakeCoins(payload, userId);
-      case "setLocked": return CrowsLoot._doSetLocked(payload, userId);
       default: console.warn("Crows | unknown loot action", action);
     }
   }
 
   /**
-   * Loot actors default to Observer ownership so players can open them from the map.
-   * Locking hides the contents; hiding the token hides the loot. Permission is not the gate.
+   * Prepared world actors stay private. Their scene instances provide limited inspection.
    */
   static onPreCreateActor(doc, data) {
-    if (data.type !== "loot" || data.ownership) return;
-    doc.updateSource({ ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER } });
-  }
-
-  /** One-time fix-up for loot actors created before Observer became the default (GM only). */
-  static async migrateLootOwnership() {
-    if (!game.user.isGM) return;
-    const OBSERVER = CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER;
-    const stale = game.actors.filter(a => a.type === "loot" && (a.ownership.default ?? 0) < OBSERVER);
-    if (!stale.length) return;
-    await Actor.updateDocuments(stale.map(a => ({ _id: a.id, "ownership.default": OBSERVER })));
-    console.log(`Crows | Loot ownership migrated to Observer for ${stale.length} actor(s):`, stale.map(a => a.name));
+    if (data.type !== "loot") return;
+    if (!data.ownership) doc.updateSource({ ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE } });
   }
 
   /* ------------------------------------------------------------------ */
@@ -106,7 +165,7 @@ export class CrowsLoot {
       name: LOOT_BASE_NAME,
       type: "loot",
       img: "icons/svg/item-bag.svg",
-      ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.OBSERVER },
+      ownership: { default: CONST.DOCUMENT_OWNERSHIP_LEVELS.NONE },
       flags: { [SYSTEM_ID]: { lootBase: true } },
       prototypeToken: {
         actorLink: false,
@@ -130,52 +189,23 @@ export class CrowsLoot {
     return { x, y };
   }
 
-  static defaultImage(containerType, firstItem) {
-    switch (containerType) {
-      case "chest": return "icons/containers/chest/chest-simple-oak-steel-brown.webp";
-      case "corpse": return "icons/commodities/bones/skull-hollow-brown-red.webp";
-      case "dropped_pack": return "icons/containers/bags/pack-leather-brown.webp";
-      case "stash": return "icons/containers/bags/sack-simple-leather-brown.webp";
-      default: return firstItem?.img || "icons/svg/item-bag.svg";
-    }
-  }
-
-  /**
-   * Create a loot token on a scene. `items` are raw item data objects.
-   * @returns {Promise<TokenDocument|null>}
-   */
-  static async createLootToken({ name, img, items = [], coins = 0, containerType = "generic", locked = false,
-                                 corpseSize = "medium", x, y, scene, size, displayName } = {}) {
+  /** Create one interactable scene item. */
+  static async createLootToken({ name, img, items = [], description = "", x, y, scene, size = 0.8, displayName } = {}) {
     scene = scene ?? canvas.scene;
     const base = await CrowsLoot.ensureBaseActor();
-    if (!scene || !base) return null;
-    items = items.map(i => {
-      const d = foundry.utils.deepClone(i);
-      delete d._id;
-      foundry.utils.setProperty(d, "system.location", "ground");
-      return d;
-    });
-    const first = items[0];
-    name = name || first?.name || "Loot";
-    img = img || CrowsLoot.defaultImage(containerType, first);
-    if (size === undefined) size = containerType === "generic" ? 0.8 : 1;
-    const tokenData = {
-      actorId: base.id,
-      actorLink: false,
-      name, x, y,
-      width: size, height: size,
-      texture: { src: img },
-      displayName: displayName ?? (containerType === "generic" ? CONST.TOKEN_DISPLAY_MODES.HOVER : CONST.TOKEN_DISPLAY_MODES.ALWAYS),
+    if (!scene || !base || items.length !== 1) return null;
+    const item = foundry.utils.deepClone(items[0]); delete item._id;
+    item.system.location = "ground";
+    name ||= item.name; img ||= item.img || "icons/svg/item-bag.svg";
+    const [token] = await scene.createEmbeddedDocuments("Token", [{ actorId: base.id, actorLink: false,
+      name, x, y, width: size, height: size, texture: { src: img },
+      displayName: displayName ?? CONST.TOKEN_DISPLAY_MODES.HOVER,
       disposition: CONST.TOKEN_DISPOSITIONS.NEUTRAL,
-      flags: { [SYSTEM_ID]: { isLoot: true, containerType } },
-      delta: {
-        name, img,
-        system: { containerType, coins, locked, corpseSize },
-        items
-      }
-    };
-    const [created] = await scene.createEmbeddedDocuments("Token", [tokenData]);
-    return created ?? null;
+      flags: { [SYSTEM_ID]: { isLoot: true } },
+      delta: { _id: null, name, img, system: { description },
+        items: [item], effects: [], flags: {} }
+    }]);
+    return token ?? null;
   }
 
   /** One token per item, spiralling out from (x, y). */
@@ -193,16 +223,6 @@ export class CrowsLoot {
     }
     return created;
   }
-
-  /** A container token: chest, corpse, dropped pack, or stash. */
-  static async createContainerToken({ name = "Treasure Chest", containerType = "chest", img, items = [], coins = 0,
-                                      locked = false, x, y, scene } = {}) {
-    return CrowsLoot.createLootToken({ name, containerType, img, items, coins, locked, x, y, scene });
-  }
-
-  /* ------------------------------------------------------------------ */
-  /*  Slot placement                                                     */
-  /* ------------------------------------------------------------------ */
 
   static MAGIC_SLOTS = ["head", "neck", "waist", "gloves", "ring", "boots"];
 
@@ -233,10 +253,11 @@ export class CrowsLoot {
   /** Can an item of `count` slots sit at `location` on `actor`? */
   static fits(actor, location, count = 1, excludeId = null) {
     if (!location || location === "ground" || location === "stash") return actor.type !== "crow";
+    if (actor.type === "monster" && /^hand[12]$/.test(location)) return false;
     const occ = CrowsLoot.occupancy(actor, excludeId);
     if (CrowsLoot.MAGIC_SLOTS.includes(location)) return !occ[location];
     const b = location.match(/^belt(\d+)$/);
-    if (b && Number(b[1]) + count - 1 > 4) return false;
+    if (b && (Number(b[1]) < 1 || Number(b[1]) + count - 1 > beltCapacity(actor))) return false;
     if (location === "hand2" && count > 1) return false;
     const m = location.match(/^backpack(\d+)$/);
     if (m && Number(m[1]) + count - 1 > CrowsLoot.maxBackpack(actor)) return false;
@@ -246,7 +267,7 @@ export class CrowsLoot {
   /** First location where an item of `count` slots fits, else "ground". */
   static findFreeSlot(actor, count = 1, excludeId = null) {
     const bp = Array.from({ length: CrowsLoot.maxBackpack(actor) }, (_, i) => `backpack${i + 1}`);
-    const order = actor.type === "crow" ? ["belt1", "belt2", "belt3", "belt4", "hand1", "hand2", ...bp] : ["hand1", "hand2", ...bp];
+    const order = actor.type === "crow" ? [...Array.from({ length: beltCapacity(actor) }, (_, i) => `belt${i + 1}`), "hand1", "hand2", ...bp] : bp;
     for (const loc of order) if (CrowsLoot.fits(actor, loc, count, excludeId)) return loc;
     return actor.type === "crow" ? null : "ground";
   }
@@ -254,10 +275,11 @@ export class CrowsLoot {
   /** Can an item of `count` slots be anchored at `location` at all (ignoring what's there now)? */
   static validAnchor(actor, location, count) {
     if (!location) return false;
+    if (actor.type === "monster" && /^hand[12]$/.test(location)) return false;
     if (location === "ground" || location === "stash") return actor.type !== "crow";
     if (CrowsLoot.MAGIC_SLOTS.includes(location)) return count === 1;
     const b = location.match(/^belt(\d+)$/);
-    if (b && Number(b[1]) + count - 1 > 4) return false;
+    if (b && (Number(b[1]) < 1 || Number(b[1]) + count - 1 > beltCapacity(actor))) return false;
     if (location === "hand2" && count > 1) return false;
     const m = location.match(/^backpack(\d+)$/);
     if (m && Number(m[1]) + count - 1 > CrowsLoot.maxBackpack(actor)) return false;
@@ -284,7 +306,7 @@ export class CrowsLoot {
     const claimed = new Set(newSpan);
     const oldLocation = item.system.location;
     const bp = Array.from({ length: CrowsLoot.maxBackpack(actor) }, (_, i) => `backpack${i + 1}`);
-    const order = actor.type === "crow" ? ["belt1", "belt2", "belt3", "belt4", "hand1", "hand2", ...bp] : ["hand1", "hand2", ...bp];
+    const order = actor.type === "crow" ? [...Array.from({ length: beltCapacity(actor) }, (_, i) => `belt${i + 1}`), "hand1", "hand2", ...bp] : bp;
 
     const freeAt = (loc, c) => CrowsLoot.validAnchor(actor, loc, c)
       && CrowsLoot.spanFor(loc, c).every(s => !claimed.has(s) && (!occ[s] || displacedIds.has(occ[s].id)));
@@ -305,38 +327,13 @@ export class CrowsLoot {
   }
 
   /* ------------------------------------------------------------------ */
-  /*  Reach                                                              */
+  /*  Acting character                                                   */
   /* ------------------------------------------------------------------ */
-
-  /** Squares between two token documents' bounds (Chebyshev; 0 = touching or overlapping). */
-  static squaresBetween(a, b) {
-    const g = canvas.grid?.size || 100;
-    const gapX = Math.max(0, a.x - (b.x + b.width * g), b.x - (a.x + a.width * g));
-    const gapY = Math.max(0, a.y - (b.y + b.height * g), b.y - (a.y + a.height * g));
-    return Math.round(Math.max(gapX, gapY) / g);
-  }
 
   /** The actor the user is acting with: a controlled owned token's actor, else the assigned character. */
   static actingActor() {
     const controlled = (canvas.tokens?.controlled ?? []).map(t => t.actor).filter(a => a?.isOwner);
     return controlled[0] ?? game.user.character ?? null;
-  }
-
-  static withinReach(actor, lootActor) {
-    if (game.user.isGM) return true;
-    const reach = Number(game.settings.get(SYSTEM_ID, "lootReach")) || 0;
-    if (reach <= 0) return true;
-    const lootToken = lootActor?.token;
-    if (!lootToken || lootToken.parent?.id !== canvas.scene?.id) return true;
-    const tokens = actor?.getActiveTokens?.(false, true) ?? [];
-    if (!tokens.length) return true;
-    return tokens.some(t => CrowsLoot.squaresBetween(t, lootToken) < reach);
-  }
-
-  static _reachWarn(actor, lootActor) {
-    if (!actor || CrowsLoot.withinReach(actor, lootActor)) return true;
-    ui.notifications.warn(`${actor.name} is too far from ${lootActor.name} to reach it.`);
-    return false;
   }
 
   /* ------------------------------------------------------------------ */
@@ -354,15 +351,9 @@ export class CrowsLoot {
     const source = item.parent;
     if (!source || source.uuid === targetActor.uuid) return null;
     if (!CrowsLoot.canTransfer(source, targetActor, game.user)) {
-      ui.notifications.warn("You can move your own items or take unlocked loot into an actor you own.");
+      ui.notifications.warn("Move the receiving character within the loot pickup distance and make sure you own that character.");
       return null;
     }
-    if (source.type === "loot" && source.system.locked && !game.user.isGM) {
-      ui.notifications.warn(`${source.name} is locked.`);
-      return null;
-    }
-    if (source.type === "loot" && !CrowsLoot._reachWarn(targetActor, source)) return null;
-    if (targetActor.type === "loot" && !CrowsLoot._reachWarn(source, targetActor)) return null;
     const payload = { itemUuid: item.uuid, targetUuid: targetActor.uuid, location };
     if (game.users.activeGM) return CrowsLoot._request("transfer", payload);
     if (targetActor.isOwner && source.isOwner) return CrowsLoot._doTransfer(payload, game.user.id);
@@ -371,13 +362,11 @@ export class CrowsLoot {
 
   static canTransfer(source, target, user) {
     if (!source || !target || !user || source.uuid === target.uuid) return false;
-    if (!["crow", "monster", "loot"].includes(target.type)) return false;
+    if (!["crow", "monster", "loot", "village"].includes(target.type)) return false;
     if (user.isGM) return true;
     const owns = actor => actor.testUserPermission(user, "OWNER");
-    const open = actor => actor.type === "loot" && !actor.system.locked
-      && actor.testUserPermission(user, "OBSERVER");
-    return (owns(source) || open(source)) && (target.type === "loot" ? open(target) : owns(target))
-      && !(source.type === "loot" && source.system.locked);
+    return (source.type === "loot" ? this.canPickUp(source, user, target) : owns(source))
+      && (target.type === "loot" ? false : owns(target));
   }
 
   static _doTransfer(payload, userId) {
@@ -394,8 +383,6 @@ export class CrowsLoot {
     if (!source || !target) return null;
     if (source.uuid !== target.uuid) {
       if (!this.canTransfer(source, target, game.user)) return null;
-      if (source.type === "loot" && !this._reachWarn(target, source)) return null;
-      if (target.type === "loot" && !this._reachWarn(source, target)) return null;
     } else if (!source.isOwner) return null;
     const payload = { itemUuid: item.uuid, targetItemUuid: targetItem.uuid };
     // Use the GM queue when available, including owned stacks, to serialize competing merges.
@@ -481,7 +468,9 @@ export class CrowsLoot {
     const target = await fromUuid(targetUuid);
     if (!item || !target) return null;
     const source = item.parent;
-    if (!CrowsLoot.canTransfer(source, target, game.users.get(userId))) return null;
+    const user = game.users.get(userId);
+    if (!CrowsLoot.canTransfer(source, target, user)) return null;
+    if (target.type === "loot" && target.items.size > 0) return null;
     const data = item.toObject();
     delete data._id;
     const count = Math.max(1, Number(data.system?.slots) || 1);
@@ -489,8 +478,9 @@ export class CrowsLoot {
     if (target.type !== "loot") loc = (location && CrowsLoot.fits(target, location, count)) ? location : CrowsLoot.findFreeSlot(target, count);
     if (!loc) { ui.notifications.warn(`${target.name} has no room for ${item.name}.`); return null; }
     foundry.utils.setProperty(data, "system.location", loc);
-    const [created] = await target.createEmbeddedDocuments("Item", [data]);
-    await item.delete();
+    const [created] = await target.createEmbeddedDocuments("Item", [data], { crowsTransfer: true });
+    try { await item.delete(); }
+    catch (error) { await created.delete(); throw error; }
     await CrowsLoot._announce(userId, target, source, item.name);
     await CrowsLoot.cleanupIfEmpty(source);
     return created;
@@ -508,14 +498,18 @@ export class CrowsLoot {
     return CrowsLoot._request("dropToGround", { itemUuid: item.uuid, x, y, sceneId: scene.id });
   }
 
-  static async _doDropToGround({ itemUuid, x, y, sceneId }, userId) {
+  static async _dropToGroundQueued({ itemUuid, x, y, sceneId }, userId) {
     const item = await fromUuid(itemUuid);
     const scene = game.scenes.get(sceneId);
     if (!item || !scene) return null;
     const source = item.parent;
+    const user = game.users.get(userId);
+    if (!user || (!user.isGM && (source.type === "loot" || !source.testUserPermission(user, "OWNER")))) return null;
     const token = await CrowsLoot.createLootToken({ items: [item.toObject()], x, y, scene });
     if (!token) return null;
-    await item.delete();
+    try {
+      await item.delete();
+    } catch (error) { await token.delete(); throw error; }
     if (game.settings.get(SYSTEM_ID, "lootChat")) {
       await ChatMessage.create({
         speaker: ChatMessage.getSpeaker({ actor: source }),
@@ -526,69 +520,33 @@ export class CrowsLoot {
     return token;
   }
 
-  static async takeCoins(lootActor, targetActor) {
-    if (!(Number(lootActor.system.coins) > 0)) return null;
-    if (lootActor.system.locked && !game.user.isGM) {
-      ui.notifications.warn(`${lootActor.name} is locked.`);
-      return null;
-    }
-    if (!CrowsLoot._reachWarn(targetActor, lootActor)) return null;
-    const payload = { lootUuid: lootActor.uuid, targetUuid: targetActor.uuid };
-    if (game.users.activeGM) return CrowsLoot._request("takeCoins", payload);
-    if (lootActor.isOwner && targetActor.isOwner) return CrowsLoot._doTakeCoins(payload, game.user.id);
-    return CrowsLoot._request("takeCoins", payload);
+  static _doDropToGround(payload, userId) { return this._execute("dropToGround", payload, userId); }
+
+  static async _copyItem({ itemUuid, targetUuid, location }, userId) {
+    const user = game.users.get(userId), item = await fromUuid(itemUuid), target = await fromUuid(targetUuid);
+    if (!user || !item || item.parent || !target || !["crow", "monster", "loot"].includes(target.type)) return null;
+    if (!user.isGM && (target.type === "loot" || !target.testUserPermission(user, "OWNER"))) return null;
+    if (!user.isGM && !item.testUserPermission(user, "LIMITED")) return null;
+    if (target.type === "loot" && target.items.size > 0) return null;
+    const slots = item.system.slots || 1;
+    const loc = target.type === "loot" ? "ground" : location && this.fits(target, location, slots) ? location : this.findFreeSlot(target, slots);
+    if (!loc) return ui.notifications.warn("No free inventory slot.");
+    const raw = foundry.utils.deepClone(item.toObject());
+    raw.system.location = loc;
+    const [created] = await target.createEmbeddedDocuments("Item", [raw], { crowsTransfer: true });
+    return created;
   }
 
-  static _doTakeCoins(payload, userId) {
-    const pending = (this._transferQueue ?? Promise.resolve()).then(() => this._takeCoinsNow(payload, userId));
-    this._transferQueue = pending.catch(() => {});
-    return pending;
-  }
-
-  static async _takeCoinsNow({ lootUuid, targetUuid }, userId) {
-    const loot = await fromUuid(lootUuid);
-    const target = await fromUuid(targetUuid);
-    const amount = Number(loot?.system.coins) || 0;
-    if (!loot || !target || amount <= 0) return null;
-    if (!this.canTransfer(loot, target, game.users.get(userId))) return null;
-    if (target.type === "crow") {
-      const data = this.planGold(target, amount);
-      if (!data) { ui.notifications.warn(`${target.name} needs space for ${amount} gc.`); return null; }
-      const created = await target.createEmbeddedDocuments("Item", data);
-      try { await loot.update({ "system.coins": 0 }); }
-      catch (error) { await target.deleteEmbeddedDocuments("Item", created.map(item => item.id)); throw error; }
-    } else {
-      await target.update({ "system.coins": (Number(target.system.coins) || 0) + amount });
-      await loot.update({ "system.coins": 0 });
-    }
-    await CrowsLoot._announce(userId, target, loot, `${amount} gc`);
-    await CrowsLoot.cleanupIfEmpty(loot);
-    return amount;
-  }
-
-  static async setLocked(lootActor, locked) {
-    const payload = { lootUuid: lootActor.uuid, locked: !!locked };
-    if (lootActor.isOwner) return CrowsLoot._doSetLocked(payload, game.user.id);
-    return CrowsLoot._request("setLocked", payload);
-  }
-
-  static async _doSetLocked({ lootUuid, locked }) {
-    const loot = await fromUuid(lootUuid);
-    if (loot) await loot.update({ "system.locked": !!locked });
-  }
-
-  /** Delete an emptied ground-loot token. Chests, corpses, and stashes stay so the GM can reuse them. */
   static async cleanupIfEmpty(actor) {
     if (!actor || actor.type !== "loot" || !actor.isToken) return;
-    if (actor.items.size > 0 || (Number(actor.system.coins) || 0) > 0) return;
-    if (!["generic", "dropped_pack"].includes(actor.system.containerType)) return;
+    if (actor.items.size > 0) return;
     await actor.token?.delete();
   }
 
   static async _announce(userId, target, source, what) {
     if (!game.settings.get(SYSTEM_ID, "lootChat") || !source) return;
     let content;
-    const loose = a => a.type === "loot" && a.system.containerType === "generic";
+    const loose = a => a.type === "loot";
     if (target.type === "loot") {
       content = loose(target)
         ? `<b>${source.name}</b> sets <b>${what}</b> down with <b>${target.name}</b>.`
@@ -610,12 +568,11 @@ export class CrowsLoot {
   /*  Canvas drop hook                                                   */
   /* ------------------------------------------------------------------ */
 
-  /** Only a single, unlocked equipment item gets direct map dragging. */
+  /** A single scene item can be dragged when an owned character is within pickup range. */
   static looseItem(token) {
     const actor = token.actor;
-    if (actor?.type !== "loot" || actor.system.containerType !== "generic"
-      || actor.system.locked || actor.items.size !== 1 || Number(actor.system.coins) > 0
-      || !actor.testUserPermission(game.user, "OBSERVER")) return null;
+    if (actor?.type !== "loot" || actor.items.size !== 1
+      || (!game.user.isGM && (token.document?.hidden || token.hidden)) || !this.canPickUp(actor)) return null;
     const item = actor.items.contents[0];
     return item.type === "equipment" ? item : null;
   }
@@ -637,7 +594,12 @@ export class CrowsLoot {
       return true;
     }
     if (!item) return true;
-    const target = CrowsLoot.tokenAt(canvasRef, data.x, data.y)?.actor;
+    let target = CrowsLoot.tokenAt(canvasRef, data.x, data.y)?.actor;
+    if (target?.type === "loot") {
+      const other = target.items.contents[0];
+      if (item.parent && other && canStack(item, other)) await this.stack(item, other);
+      return false;
+    }
     if (target && item.parent) {
       await CrowsLoot.transfer(item, target);
       return false;
@@ -647,12 +609,7 @@ export class CrowsLoot {
         ui.notifications.warn("Only the GM can place new items onto map tokens.");
         return false;
       }
-      const copy = item.toObject();
-      delete copy._id;
-      foundry.utils.setProperty(copy, "system.location", target.type === "loot" ? "ground"
-        : CrowsLoot.findFreeSlot(target, Math.max(1, Number(copy.system?.slots) || 1)));
-      if (!copy.system.location) { ui.notifications.warn(`${target.name} has no free inventory slot.`); return false; }
-      await target.createEmbeddedDocuments("Item", [copy]);
+      await this._request("copyItem", { itemUuid: item.uuid, targetUuid: target.uuid });
       return false;
     }
     // A map-item drag onto empty space is cancelled; Shift-drag moves its token for the GM.
@@ -666,7 +623,8 @@ export class CrowsLoot {
       ui.notifications.warn("Only the GM can place new loot on the map.");
       return false;
     }
-    await CrowsLoot.createLootToken({ items: [item.toObject()], x, y, scene: canvasRef.scene });
+    const raw = foundry.utils.deepClone(item.toObject());
+    const token = await CrowsLoot.createLootToken({ items: [raw], x, y, scene: canvasRef.scene });
     return false;
   }
 }

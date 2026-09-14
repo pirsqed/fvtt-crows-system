@@ -25,6 +25,12 @@
     <label class="village-field">Reward<input name="system.reward" value="{{system.reward}}"></label>
     <label class="village-field">Due<input name="system.due" value="{{system.due}}" placeholder="Cycle, day, or condition"></label>
     {{/if}}
+    {{#if grave}}
+    <p class="village-muted">See the Character Book, page 51. Enter your own boon and tracking notes below.</p>
+    <label class="village-field">Boon<input name="system.cryptBoon" value="{{system.cryptBoon}}" placeholder="Your boon name"></label>
+    <label class="village-field">Holder<input name="system.boonHolderName" value="{{system.boonHolderName}}" placeholder="Crow's name"></label>
+    <div class="village-grid"><label>Last granted cycle (0 = unrecorded)<input type="number" name="system.boonCycle" value="{{system.boonCycle}}" min="0" data-dtype="Number"></label><label>Uses remaining<input type="number" name="system.boonUses" value="{{system.boonUses}}" min="0" data-dtype="Number"></label></div>
+    {{/if}}
     <label class="village-field">Notes<textarea name="system.description" rows="7">{{system.description}}</textarea></label>
   </div>
   {{#if editable}}<footer><button type="submit"><i class="fas fa-save"></i> Save record</button></footer>{{/if}}

@@ -20,7 +20,7 @@ export class CrowsVillageEntrySheet extends ItemSheet {
     if (system.actorId && !actors.some(a => a.id === system.actorId)) actorOptions.push({ id: system.actorId, name: "Linked actor unavailable", selected: true });
     return { ...context, item: this.item, system, editable: this.isEditable,
       kindLabel: VILLAGE_LABELS[system.kind], institution: system.kind === "institution", npc: system.kind === "npc",
-      quest: system.kind === "quest", crow: system.kind === "crow", npcOptions, actorOptions,
+      quest: system.kind === "quest", crow: system.kind === "crow", grave: system.kind === "grave", npcOptions, actorOptions,
       statuses: Object.entries(VILLAGE_STATUSES[system.kind] ?? {}).map(([key, name]) => ({ key, name, selected: key === system.status })) };
   }
 

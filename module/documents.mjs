@@ -1,7 +1,28 @@
+import { supplyUpdate } from "./supplies.mjs";
 import { activeDefense, canEquip, woundCapacity, woundMap, woundUpdate, woundStats } from "./equipment-rules.mjs";
-import { goldTotal } from "./inventory.mjs";
+import { beltCapacity, canChangeTraitBelt, traitBeltCount, goldTotal } from "./inventory.mjs";
 
 export class CrowsActor extends Actor {
+  /** Scene loot has a public exterior without sharing its prepared world actor. */
+  getUserLevel(user) {
+    const level = super.getUserLevel(user);
+    if (this.type === "loot" && this.isToken && this.token && !this.token.hidden) {
+      const access = CONST.DOCUMENT_OWNERSHIP_LEVELS.LIMITED;
+      return Math.max(level, access);
+    }
+    return level;
+  }
+
+  async _preUpdate(changes, options, user) {
+    const result = await super._preUpdate(changes, options, user);
+    if (this.type === "loot" && !user.isGM) return false;
+    // Follow ordinary actor renames until the Ref chooses a distinct prototype name.
+    if (this.type === "loot" && !this.isToken && changes.name && this.prototypeToken?.name === this.name
+      && !("prototypeToken.name" in changes) && !("name" in (changes.prototypeToken ?? {}))) {
+      changes["prototypeToken.name"] = changes.name;
+    }
+    return result;
+  }
   prepareDerivedData() {
     super.prepareDerivedData();
 
@@ -1002,11 +1023,42 @@ export class CrowsActor extends Actor {
 }
 
 export class CrowsItem extends Item {
+  async _preDelete(options, user) {
+    const result = await super._preDelete(options, user);
+    if (result === false) return false;
+    if (this.type === "trait" && !canChangeTraitBelt(this, 0)) {
+      ui.notifications.warn("Move items out of this trait's belt slots and later belt slots before removing it.");
+      return false;
+    }
+    return result;
+  }
+
+  async _preCreate(data, options, user) {
+    const result = await super._preCreate(data, options, user);
+    if (result === false || !this.system.contentsType) return result;
+    this.updateSource({ "system.quantity": 1, "system.maxStack": 1, "system.useQtyPlusMinus": false, "system.isGold": false });
+    return result;
+  }
+
   async _preUpdate(changes, options, user) {
     const result = await super._preUpdate(changes, options, user);
-    if (result === false || this.type !== "equipment") return result;
+    if (result === false) return false;
+    const extra = changes["system.extraBeltSlots"] ?? changes.system?.extraBeltSlots;
+    if (this.type === "trait" && extra !== undefined
+      && !canChangeTraitBelt(this, traitBeltCount({ type: "trait", system: { extraBeltSlots: extra } }))) {
+      ui.notifications.warn("Move items out of this trait's belt slots and later belt slots before changing its slot count.");
+      return false;
+    }
+    if (this.type !== "equipment") return result;
     const update = foundry.utils.expandObject(changes).system ?? {};
-    const nextItem = { name: changes.name ?? this.name, system: { ...this.system, ...update } };
+    try {
+      const normalized = supplyUpdate(this.system, update);
+      for (const [key, value] of Object.entries(normalized)) {
+        changes[`system.${key}`] = value;
+        if (changes.system) changes.system[key] = value;
+      }
+    } catch (error) { ui.notifications.warn(error.message); return false; }
+    const nextItem = { parent: this.parent, name: changes.name ?? this.name, system: { ...this.system, ...update } };
     if (!canEquip(nextItem)) {
       changes["system.isEquipped"] = false;
       if (changes.system) changes.system.isEquipped = false;
@@ -1015,7 +1067,7 @@ export class CrowsItem extends Item {
       changes["system.useQtyPlusMinus"] = Boolean(update.use_qty_plus_minus);
       if (changes.system) changes.system.useQtyPlusMinus = Boolean(update.use_qty_plus_minus);
     }
-    const isGold = update.isGold ?? this.system.isGold;
+    const isGold = !(update.contentsType ?? this.system.contentsType) && (update.isGold ?? this.system.isGold);
     const quantity = update.quantity ?? this.system.quantity;
     const maxStack = isGold ? 250 : update.maxStack ?? this.system.maxStack;
     if (("quantity" in update || "maxStack" in update || "isGold" in update) && maxStack > 1 && quantity > maxStack) {
@@ -1046,7 +1098,7 @@ export class CrowsItem extends Item {
       if (match) {
         const prefix = match[1];
         const startNum = parseInt(match[2], 10);
-        const maxSlots = prefix === "belt" ? 4 : Math.max(10, Number(this.actor?.system?.slots) || 10);
+        const maxSlots = prefix === "belt" ? beltCapacity(this.actor) : Math.max(10, Number(this.actor?.system?.slots) || 10);
         const slots = [];
         for (let i = 0; i < slotCount; i++) {
           const num = startNum + i;

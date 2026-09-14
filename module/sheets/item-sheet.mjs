@@ -1,6 +1,8 @@
+import { beltCapacity } from "../inventory.mjs";
 import { showSpellcastDialog } from "../spellcasting.mjs";
+import { withPersistentScroll } from "./persistent-scroll.mjs";
 
-export class CrowsItemSheet extends ItemSheet {
+export class CrowsItemSheet extends withPersistentScroll(ItemSheet) {
   get template() {
     const type = this.item.type === 'equipment' ? 'item' : this.item.type;
     return `systems/fvtt-crows-system/templates/${type}-sheet.html`;
@@ -21,8 +23,9 @@ export class CrowsItemSheet extends ItemSheet {
     context.system = itemData.system;
     context.owner = this.item.isOwner;
     context.hasCaster = !!this.item.parent;
-    context.isCrowItem = this.item.parent?.type === "crow";
+    context.locationReport = this._locationReport();
     context.editable = this.isEditable;
+    context.isGM = game.user.isGM;
     if (this.item.type === 'attack') {
       context.enrichedNotes = await TextEditor.enrichHTML(this.item.system.notes || "", {async: true});
     } else {
@@ -38,9 +41,36 @@ export class CrowsItemSheet extends ItemSheet {
     return context;
   }
 
+  _locationReport() {
+    const actor = this.item.parent;
+    if (!actor || this.item.type !== "equipment") return "";
+    if (!["crow", "monster"].includes(actor.type)) return "";
+    const location = this.item.system.location;
+    const size = Math.max(1, parseInt(this.item.system.slots, 10) || 1);
+    let label = "";
+    if (location === "hand1") label = size >= 2 ? "Both hands" : "Hand 1";
+    else if (location === "hand2") label = "Hand 2";
+    else {
+      const match = /^(belt|backpack|slot)([1-9]\d*)$/.exec(location ?? "");
+      if (match) {
+        const [, area, number] = match;
+        const start = Number(number);
+        const limit = actor.type === "monster" ? (area === "belt" ? 0 : Number(actor.system.slots) || 0)
+          : area === "belt" ? beltCapacity(actor) : area === "backpack" ? 10 : 0;
+        if (start > limit) return "";
+        const end = Math.min(limit, start + size - 1);
+        const prefix = actor.type === "monster" ? "Inventory" : area === "belt" ? "Belt" : "Backpack";
+        label = start === end ? `${prefix} slot ${start}` : `${prefix} slots ${start}–${end}`;
+      } else if (actor.type === "crow") {
+        label = { head: "Head", neck: "Neck", waist: "Waist", gloves: "Arms / Hands",
+          ring: "Finger / Ring", boots: "Feet / Boots" }[location] ?? "";
+      }
+    }
+    return label ? `${actor.name}: ${label}` : "";
+  }
+
   activateListeners(html) {
     super.activateListeners(html);
-
     html.find('.item-cast').click(event => {
       event.preventDefault();
       showSpellcastDialog(this.item.parent, this.item);
@@ -51,4 +81,5 @@ export class CrowsItemSheet extends ItemSheet {
       await this.item.update({ "system.greedBonus": val });
     });
   }
+
 }

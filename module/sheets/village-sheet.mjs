@@ -1,5 +1,7 @@
 import { VILLAGE_ENTRY_TYPE, VILLAGE_LABELS, VILLAGE_STATUSES, escapeVillageText, newVillageEntry,
   startingInstitutions, villageEntries, salePercentage, addCrowToVillage, rollVillageEvent, crowVillageEntry } from "../village.mjs";
+import { claimBoon } from "../boons.mjs";
+import { CrowsLoot } from "../loot.mjs";
 
 const enrich = text => TextEditor.enrichHTML(escapeVillageText(text).replace(/\r?\n/g, "<br>"), { async: true });
 
@@ -9,7 +11,7 @@ export class CrowsVillageSheet extends ActorSheet {
       classes: ["crows-village"], template: "systems/fvtt-crows-system/templates/village-sheet.html",
       width: 960, height: 780, resizable: true, closeOnSubmit: false, submitOnChange: true,
       tabs: [{ navSelector: ".village-tabs", contentSelector: ".village-body", initial: "overview" }],
-      dragDrop: [{ dragSelector: null, dropSelector: ".village-form" }]
+      dragDrop: [{ dragSelector: ".village-inventory-item", dropSelector: ".village-form" }]
     });
   }
 
@@ -17,6 +19,9 @@ export class CrowsVillageSheet extends ActorSheet {
     const context = await super.getData();
     const system = this.actor.toObject(false).system;
     const groups = villageEntries(this.actor.items);
+    const inventory = Array.from(this.actor.items).filter(item => item.type === "equipment")
+      .map(item => ({ ...item.toObject(false), id: item.id }))
+      .sort((a, b) => a.name.localeCompare(b.name));
     const view = async item => {
       const data = item.toObject(false), s = data.system;
       const linked = s.actorId ? game.actors.get(s.actorId) : null;
@@ -36,12 +41,13 @@ export class CrowsVillageSheet extends ActorSheet {
       displayName: c.system.npcName, isConnection: true }));
     const people = [...npcs, ...connections].sort((a, b) => a.displayName.localeCompare(b.displayName));
     const quests = await Promise.all(groups.quest.map(view));
+    const graves = await Promise.all(groups.grave.map(view));
     const personNames = new Map(people.map(npc => [npc.id, npc.displayName]));
     for (const institution of institutions) institution.stewardName = personNames.get(institution.system.npcId)
       ?? (institution.system.npcId ? "Linked NPC unavailable" : institution.system.steward);
     for (const quest of quests) quest.issuerName = personNames.get(quest.system.npcId)
       ?? (quest.system.npcId ? "Linked NPC unavailable" : "");
-    return { ...context, actor: this.actor, system, editable: this.isEditable, institutions, crows, people, quests,
+    return { ...context, actor: this.actor, system, editable: this.isEditable, institutions, crows, people, quests, graves, inventory,
       salePercent: salePercentage(system.prosperity), prosperityLabel: system.prosperity > 0 ? `+${system.prosperity}` : String(system.prosperity),
       activeQuests: quests.filter(q => ["open", "active"].includes(q.system.status)).length,
       descriptionHTML: await enrich(system.description), notesHTML: await enrich(system.notes), eventNotesHTML: await enrich(system.eventNotes),
@@ -49,7 +55,13 @@ export class CrowsVillageSheet extends ActorSheet {
   }
 
   _canDragDrop() { return this.isEditable; }
-  _canDragStart() { return false; }
+  _canDragStart() { return this.isEditable && this.actor.isOwner; }
+
+  _onDragStart(event) {
+    if (!this._canDragStart()) return;
+    const item = this.actor.items.get(event.currentTarget.dataset.itemId);
+    if (item?.type === "equipment") event.dataTransfer.setData("text/plain", JSON.stringify(item.toDragData()));
+  }
 
   _disableFields(form) {
     super._disableFields(form);
@@ -72,12 +84,38 @@ export class CrowsVillageSheet extends ActorSheet {
       return ui.notifications.warn("The linked actor is unavailable.");
     }
     if (action === "view" && item?.type === VILLAGE_ENTRY_TYPE) return item.sheet.render(true);
+    if (action === "view-loot" && item?.type === "equipment") return item.sheet.render(true);
+    if (action === "claim-boon") {
+      if (this._busy) return;
+      this._busy = true;
+      try {
+        const crows = game.actors.filter(actor => actor.type === "crow" && actor.isOwner && !actor.isToken);
+        if (!crows.length) return ui.notifications.info("You need an owned Crow to claim a boon.");
+        await Dialog.prompt({ title: "Claim boon", label: "Claim boon",
+          content: `<form><label>Crow <select name="crowId">${crows.map(crow => `<option value="${escapeVillageText(crow.id)}">${escapeVillageText(crow.name)}</option>`).join("")}</select></label><p>Copy this custom boon to the Crow's Lore &amp; Notes tab. Grave tracking is updated separately.</p></form>`,
+          callback: async html => {
+            const crow = game.actors.get(html.find("[name=crowId]").val());
+            const boon = await claimBoon(this.actor, entryId, crow);
+            if (!boon) return;
+            ui.notifications.info(`Boon available on ${crow.name}'s Lore & Notes tab.`);
+          } });
+      } finally { this._busy = false; }
+      return;
+    }
     if (!this.isEditable || !this.actor.isOwner) throw new Error("You do not have permission to edit this village.");
     if (this._busy) return;
     this._busy = true;
     try {
       await this.submit({ preventClose: true });
-      if (action === "add") {
+      if (action === "add-loot") {
+        const [created] = await this.actor.createEmbeddedDocuments("Item", [{ name: "New loot", type: "equipment",
+          system: { quantity: 1, location: "stash" } }]);
+        created?.sheet.render(true);
+      } else if (action === "delete-loot" && item?.type === "equipment") {
+        if (!await Dialog.confirm({ title: "Remove stored loot",
+          content: `<p>Remove <strong>${escapeVillageText(item.name)}</strong> from the village inventory?</p>` })) return;
+        await this.actor.deleteEmbeddedDocuments("Item", [item.id]);
+      } else if (action === "add") {
         if (kind === "crow") return await this._chooseCrow();
         const [created] = await this.actor.createEmbeddedDocuments("Item", [newVillageEntry(kind)]);
         created?.sheet.render(true);
@@ -124,11 +162,22 @@ export class CrowsVillageSheet extends ActorSheet {
 
   async _onDrop(event) {
     event.preventDefault();
-    if (!this.isEditable || this._busy) return;
+    if (!this.isEditable || !this.actor.isOwner || this._busy) return;
     this._busy = true;
     try {
       const data = TextEditor.getDragEventData(event);
-      if (data.type !== "Actor") return ui.notifications.warn("Drop a Crow actor to add it to this village.");
+      if (data.type === "Item") {
+        const item = await Item.implementation.fromDropData(data);
+        if (item?.type !== "equipment") return ui.notifications.warn("Only equipment and loot can be stored in the village inventory.");
+        if (item.parent?.uuid === this.actor.uuid) return;
+        await this.submit({ preventClose: true });
+        if (item.parent) return await CrowsLoot.transfer(item, this.actor, { location: "stash" });
+        const copy = item.toObject();
+        delete copy._id;
+        copy.system.location = "stash";
+        return await this.actor.createEmbeddedDocuments("Item", [copy]);
+      }
+      if (data.type !== "Actor") return ui.notifications.warn("Drop equipment to store loot, or a Crow actor to add a village member.");
       const crow = await Actor.fromDropData(data);
       if (!crow || crow.isToken || !game.actors.get(crow.id)) throw new Error("Use a Crow from the Actors directory.");
       await this.submit({ preventClose: true });

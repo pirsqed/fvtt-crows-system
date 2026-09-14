@@ -104,17 +104,6 @@ test("adding the default gold field does not misclassify old imports as local ed
   assert.notEqual(fingerprint(old), fingerprint(upgraded));
 });
 
-test("competing coin pickups create physical gold only once", async () => {
-  const source = actor("chest", "loot"), target = actor("recipient");
-  source.system.coins = 501;
-  const payload = { lootUuid: source.uuid, targetUuid: target.uuid };
-  await Promise.all([CrowsLoot._doTakeCoins(payload, "gm"), CrowsLoot._doTakeCoins(payload, "gm")]);
-  assert.equal(goldTotal(target.items), 501);
-  assert.equal(target.items.length, 3);
-  assert.equal(target.system.coins, 0);
-  assert.equal(source.system.coins, 0);
-});
-
 test("interrupted balance conversion can retry without duplicating gold", async () => {
   const a = actor("legacy");
   a.system.coins = 300;
@@ -185,3 +174,95 @@ test("equipment items support shortDescription without crashing or length limit"
   assert.equal(torch.system.shortDescription, "Sheds bright light in a 4-square radius for 1 hour.");
 });
 
+
+
+test('depleted supply counts and custom maximums survive transfer and drop-to-scene data', async () => {
+  const source = actor('supply-source'), target = actor('supply-target');
+  const quiver = item(source, { name: 'Fine Quiver', type: 'equipment', system: { quantity: 1, maxStack: 1, slots: 1, contentsType: 'arrows', contentsQuantity: 7, contentsMax: 40 } });
+  const announce = CrowsLoot._announce;
+  CrowsLoot._announce = async () => {};
+  try {
+    const moved = await CrowsLoot._doTransfer({ itemUuid: quiver.uuid, targetUuid: target.uuid }, 'gm');
+    assert.equal(moved.system.contentsQuantity, 7);
+    assert.equal(moved.system.contentsMax, 40);
+    assert.equal(source.items.length, 0);
+    const create = CrowsLoot.createLootToken;
+    let placed;
+    game.scenes = new Map([['scene', { id: 'scene' }]]);
+    CrowsLoot.createLootToken = async ({ items }) => { placed = structuredClone(items[0]); return { delete: async () => {} }; };
+    game.settings = { get: () => false };
+    try { await CrowsLoot._dropToGroundQueued({ itemUuid: moved.uuid, sceneId: 'scene', x: 1, y: 1 }, 'gm'); }
+    finally { CrowsLoot.createLootToken = create; }
+    assert.equal(placed.system.contentsQuantity, 7);
+    assert.equal(placed.system.contentsMax, 40);
+    assert.equal(target.items.length, 0);
+  } finally { CrowsLoot._announce = announce; }
+});
+
+
+test("extra belt slots support placement, automatic storage, and capacity boundaries", async () => {
+  const a = actor("expanded-belt");
+  item(a, { name: "Belt trait", type: "trait", system: { extraBeltSlots: 2, beltSlotNotes: "Tools only" } });
+  for (let n = 1; n <= 4; n++) item(a, goldStack(1, `belt${n}`));
+  assert.equal(CrowsLoot.findFreeSlot(a, 2), "belt5");
+  assert.equal(CrowsLoot.fits(a, "belt5", 2), true);
+  assert.equal(CrowsLoot.validAnchor(a, "belt6", 2), false);
+  assert.equal(CrowsLoot.fits(a, "belt7", 1), false);
+  const gear = item(a, { name: "Large tool", type: "equipment", system: { slots: 2, location: "backpack1" } });
+  await CrowsLoot.placeItem(a, gear, "belt5");
+  assert.equal(gear.system.location, "belt5");
+  assert.equal(CrowsLoot.occupancy(a).belt6, gear);
+  assert.equal(CrowsLoot.findFreeSlot(a), "hand1");
+});
+
+test("belt capacity defaults and occupied extent support safe shrinking", async () => {
+  const { beltCapacity, occupiedBeltEnd } = await import("../module/inventory.mjs");
+  assert.equal(beltCapacity(actor("default-belt")), 4);
+  assert.equal(beltCapacity({ type: "crow", system: { extraBeltSlots: -1 } }), 4);
+  assert.equal(beltCapacity({ type: "monster", system: { extraBeltSlots: 2 } }), 0);
+  assert.equal(occupiedBeltEnd([
+    { type: "equipment", system: { location: "belt5", slots: 2 } },
+    { type: "equipment", system: { location: "backpack10", slots: 1 } }
+  ]), 6);
+});
+
+
+test("trait updates and deletion protect occupied and subsequent belt grants", async () => {
+  globalThis.Actor = class {};
+  globalThis.Item = class { async _preUpdate() {} async _preDelete() {} };
+  const { CrowsItem } = await import("../module/documents.mjs");
+  const a = actor("trait-belt");
+  const trait = new CrowsItem();
+  Object.assign(trait, { id: "trait", name: "Alchemy Belt", type: "trait", parent: a,
+    system: { extraBeltSlots: 1, beltSlotNotes: "Alchemy only" } });
+  a.items.push(trait);
+  item(a, { name: "Weapon belt", type: "trait", system: { extraBeltSlots: 1, beltSlotNotes: "Bashing only" } });
+  const gear = item(a, { name: "Tool", type: "equipment", system: { location: "belt6", slots: 1 } });
+  assert.equal(await trait._preUpdate({ "system.extraBeltSlots": 2 }, {}, gm), false);
+  assert.equal(await trait._preUpdate({ system: { extraBeltSlots: 0 } }, {}, gm), false);
+  assert.equal(await trait._preDelete({}, gm), false);
+  assert.notEqual(await trait._preUpdate({ system: { extraBeltSlots: 1, beltSlotNotes: "Potions only" } }, {}, gm), false);
+  gear.system.location = "backpack1";
+  assert.notEqual(await trait._preUpdate({ "system.extraBeltSlots": 0 }, {}, gm), false);
+  assert.notEqual(await trait._preDelete({}, gm), false);
+  const occupied = new CrowsItem();
+  Object.assign(occupied, { type: "equipment", actor: a, system: { location: "belt5", slots: 2 } });
+  assert.deepEqual(occupied.getOccupiedSlots(), ["belt5", "belt6"]);
+});
+
+test("owned traits add labelled slots and ordinary traits leave capacity unchanged", async () => {
+  const { beltSlotGrants, beltCapacity } = await import("../module/inventory.mjs");
+  const a = actor("grants");
+  item(a, { name: "Ordinary trait", type: "trait", system: {} });
+  item(a, { name: "Alchemy Belt", type: "trait", system: { extraBeltSlots: 1, beltSlotNotes: "Alchemy items only" } });
+  item(a, { name: "Weapon Belt", type: "trait", system: { extraBeltSlots: 2, beltSlotNotes: "Slashing weapons only" } });
+  assert.equal(beltCapacity(a), 7);
+  assert.deepEqual(beltSlotGrants(a).slice(4), [
+    { source: "Alchemy Belt", restriction: "Alchemy items only" },
+    { source: "Weapon Belt", restriction: "Slashing weapons only" },
+    { source: "Weapon Belt", restriction: "Slashing weapons only" }
+  ]);
+  a.items.splice(1, 1);
+  assert.equal(beltCapacity(a), 6);
+  assert.equal(beltSlotGrants(a)[4].source, "Weapon Belt");
+});

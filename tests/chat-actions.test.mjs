@@ -6,11 +6,15 @@ import { CHAT_SCOPE, damageSnapshot, renderRollState, resolveActor } from "../mo
 function fixture() {
   const player = { id: "player", isGM: false };
   const other = { id: "other", isGM: false };
+  const gm = { id: "gm", isGM: true };
   const actor = { uuid: "Scene.old.Token.crow.Actor.base", type: "crow", items: { contents: [] },
     system: { stamina: { value: 10 }, expertises: { athletics: { value: 1, max: 1 } } },
     testUserPermission: user => user.id === "player",
     toObject() { return { system: structuredClone(this.system) }; },
     async spendExpertise() { this.system.expertises.athletics.value--; return { success: true, remaining: 0 }; },
+    async update(data) {
+      for (const [path, value] of Object.entries(data)) this.system.expertises[path.split(".")[2]].value = value;
+    },
     async applyAllocatedDamage(alloc) { this.system.stamina.value -= alloc.damageTotal; return { damageTotal: alloc.damageTotal }; }
   };
   const state = { version: 1, actorUuid: actor.uuid, expertiseAllowed: true, kind: "weapon", tier: 1,
@@ -23,7 +27,7 @@ function fixture() {
   const messages = new Map([[message.id, message]]);
   globalThis.fromUuid = async uuid => docs.get(uuid);
   globalThis.foundry = { utils: { deepClone: structuredClone } };
-  globalThis.game = { messages, users: { get: id => id === player.id ? player : other } };
+  globalThis.game = { messages, user: player, users: { get: id => ({ player, other, gm })[id] } };
   return { actor, message, docs, messages };
 }
 
@@ -111,4 +115,88 @@ test("upgrading Miasma replaces consequences and available actions", () => {
   assert.doesNotMatch(renderRollState(state), /data-action="gain"|data-action="clear"|data-action="expertise"/);
   state.tier = 3;
   assert.match(renderRollState(state), /data-action="clear"/);
+});
+
+test("only the GM can undo expertise, refunding once and allowing another choice", async () => {
+  const { actor, message } = fixture();
+  const apply = { messageId: message.id, action: "expertise", key: "athletics" };
+  await CrowsChatActions.execute(apply, "player");
+  assert.match(message.content, /data-action="undo-expertise"/);
+  const undo = { messageId: message.id, action: "undo-expertise", revision: 1 };
+  await assert.rejects(CrowsChatActions.execute(undo, "player"), /Only the Ref\/GM/);
+  const results = await Promise.allSettled([
+    CrowsChatActions.execute(undo, "gm"), CrowsChatActions.execute(undo, "gm")
+  ]);
+  assert.equal(results.filter(r => r.status === "fulfilled").length, 1);
+  assert.equal(actor.system.expertises.athletics.value, 1);
+  assert.equal(message.state.tier, 1);
+  assert.equal(message.state.revision, 2);
+  assert.equal(message.state.expertise, null);
+  assert.match(message.content, /data-action="expertise"/);
+  assert.doesNotMatch(message.content, /data-action="undo-expertise"|Apply 2 Damage/);
+  await CrowsChatActions.execute(apply, "player");
+  await assert.rejects(CrowsChatActions.execute(undo, "gm"), /roll changed/);
+  await CrowsChatActions.execute({ ...undo, revision: 3 }, "gm");
+  assert.equal(actor.system.expertises.athletics.value, 1);
+  assert.equal(message.state.tier, 1);
+});
+
+test("undo restores special outcomes and never refunds beyond the expertise maximum", async () => {
+  const { actor, message } = fixture();
+  message.state.special = { tierTitle: "Special original outcome", numericDamage: 1 };
+  await CrowsChatActions.execute({ messageId: message.id, action: "expertise", key: "athletics" }, "player");
+  actor.system.expertises.athletics.value = 1;
+  await CrowsChatActions.execute({ messageId: message.id, action: "undo-expertise", revision: 1 }, "gm");
+  assert.equal(actor.system.expertises.athletics.value, 1);
+  assert.match(message.content, /Special original outcome/);
+});
+
+test("undo preserves applied damage and rejects damage dialogs opened before the undo", async () => {
+  const { actor, message } = fixture();
+  await CrowsChatActions.execute({ messageId: message.id, action: "expertise", key: "athletics" }, "player");
+  const damage = { messageId: message.id, action: "damage", targetUuid: "Scene.old.Token.target",
+    snapshot: damageSnapshot(actor), revision: 1, allocation: { damageTotal: 2 } };
+  await CrowsChatActions.execute(damage, "player");
+  await CrowsChatActions.execute({ messageId: message.id, action: "undo-expertise", revision: 1 }, "gm");
+  assert.equal(actor.system.stamina.value, 8);
+  assert.equal(message.state.actions["damage:Scene.old.Token.target"].status, "applied");
+  assert.match(message.content, /Previously applied damage is unchanged/);
+  await assert.rejects(CrowsChatActions.execute(damage, "player"), /roll changed/);
+});
+
+test("a failed refund is marked for review and cannot be retried", async () => {
+  const { actor, message } = fixture();
+  await CrowsChatActions.execute({ messageId: message.id, action: "expertise", key: "athletics" }, "player");
+  let calls = 0;
+  actor.update = async () => { calls++; throw new Error("refund failed"); };
+  const undo = { messageId: message.id, action: "undo-expertise", revision: 1 };
+  await assert.rejects(CrowsChatActions.execute(undo, "gm"), /refund failed/);
+  await assert.rejects(CrowsChatActions.execute(undo, "gm"), /reviewed/);
+  assert.equal(calls, 1);
+  assert.equal(message.state.actions["undo-expertise"].status, "needs review");
+  assert.equal(message.state.tier, 2);
+  assert.doesNotMatch(message.content, /data-action="undo-expertise"/);
+});
+
+test("player chat rendering removes the GM undo control", () => {
+  const { message } = fixture();
+  const removed = [];
+  const html = { find: selector => ({ remove: () => removed.push(selector), click() {} }) };
+  CrowsChatActions.bind(message, html);
+  assert.deepEqual(removed, ['[data-action="undo-expertise"]']);
+  game.user = game.users.get("gm");
+  removed.length = 0;
+  CrowsChatActions.bind(message, html);
+  assert.deepEqual(removed, []);
+});
+
+test("existing saved rolls receive the undo control when viewed by the GM", async () => {
+  const { message } = fixture();
+  await CrowsChatActions.execute({ messageId: message.id, action: "expertise", key: "athletics" }, "player");
+  game.user = game.users.get("gm");
+  const appended = [];
+  const html = { find: () => ({ length: 0, append: content => appended.push(content), click() {} }) };
+  CrowsChatActions.bind(message, html);
+  assert.equal(appended.length, 1);
+  assert.match(appended[0], /Undo Expertise \(Ref\/GM\)/);
 });

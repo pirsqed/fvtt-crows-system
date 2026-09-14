@@ -1,5 +1,6 @@
+import { renderCircumstanceSelector } from "./roll-dialog.mjs";
 import { rollPowerRoll } from "./power-roll.mjs";
-import { createRollState, rollFlags, renderRollState, escapeHTML } from "./chat-state.mjs";
+import { createRollState, rollFlags, renderRollState } from "./chat-state.mjs";
 
 export async function castSpell(actor, item, { circumstance = "standard", modifier = 0 } = {}) {
   if (!actor?.isOwner) throw new Error("You must own the caster.");
@@ -30,16 +31,13 @@ export function showSpellcastDialog(actor, item) {
   let busy = false;
   return new Dialog({ title: `Cast: ${item.name}`,
     content: `<form class="crows-dialog-form"><p>Mind test. Have the spellbook in hand, or use an applicable trait.</p>
-      <div class="form-group"><label>Circumstance</label><select name="circumstance">
-      ${[["standard", "Standard"], ["edge", "Edge (+2)"], ["double-edge", "Double edge (+1 tier)"],
-        ["bane", "Bane (-2)"], ["double-bane", "Double bane (-1 tier)"]].map(([value, label]) =>
-        `<option value="${value}">${escapeHTML(label)}</option>`).join("")}</select></div>
+      ${renderCircumstanceSelector()}
       <div class="form-group"><label>Situational modifier</label><input name="modifier" type="number" value="0" /></div>
       <p>Apply expertise before resolving effects, chaos, and usage dice. These remain manual.</p></form>`,
     buttons: { cast: { label: "Cast", callback: async html => {
       if (busy) return;
       busy = true;
-      try { await castSpell(actor, item, { circumstance: html.find('[name="circumstance"]').val(),
+      try { await castSpell(actor, item, { circumstance: html.find('input[name="circumstance"]:checked').val() || "standard",
         modifier: Number(html.find('[name="modifier"]').val()) || 0 }); }
       catch (error) { ui.notifications.warn(error.message); }
     } }, cancel: { label: "Cancel" } }, default: "cast"

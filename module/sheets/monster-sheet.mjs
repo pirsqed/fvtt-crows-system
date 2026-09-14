@@ -1,11 +1,14 @@
+import { bindSupplyControls } from "../supplies.mjs";
+import { renderCircumstanceSelector } from "../roll-dialog.mjs";
 import { canEquip, woundCapacity, woundMap, woundUpdate } from "../equipment-rules.mjs";
 import { showSpellcastDialog } from "../spellcasting.mjs";
 import { canStack, goldStack, restoreUsageDice } from "../inventory.mjs";
-import { showWeaponAttackDialog, rollStatBlockAttack } from "../attacks.mjs";
+import { showWeaponAttackDialog, showStatBlockAttackDialog } from "../attacks.mjs";
 import { rollPowerRoll } from "../power-roll.mjs";
 import { CrowsLoot } from "../loot.mjs";
+import { withPersistentScroll } from "./persistent-scroll.mjs";
 
-export class CrowsMonsterSheet extends ActorSheet {
+export class CrowsMonsterSheet extends withPersistentScroll(ActorSheet) {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ["crows", "sheet", "actor", "monster"],
@@ -43,29 +46,6 @@ export class CrowsMonsterSheet extends ActorSheet {
     
     const equipmentItems = items.filter(i => i.type === 'equipment');
     context.equipmentCount = equipmentItems.length;
-
-    // 1. Hands (Wielded / Active)
-    const hand1Item = equipmentItems.find(i => i.system.location === "hand1");
-    const hand2Item = equipmentItems.find(i => i.system.location === "hand2");
-    const isHand1TwoHanded = hand1Item && ((hand1Item.system.slots || 1) >= 2);
-
-    if (isHand1TwoHanded) {
-      context.handSlots = [
-        {
-          id: "hand1",
-          label: "Equipped in Both Hands (2-Handed)",
-          item: hand1Item,
-          isTwoHanded: true,
-          colSpan: 2,
-          slots: hand1Item.system.slots || 2
-        }
-      ];
-    } else {
-      context.handSlots = [
-        { id: "hand1", label: "Hand 1", item: hand1Item, isTwoHanded: false, colSpan: 1 },
-        { id: "hand2", label: "Hand 2", item: hand2Item, isTwoHanded: false, colSpan: 1 }
-      ];
-    }
 
     // 2. Dynamic Slots Grid (1 to system.slots)
     const maxSlots = Math.max(0, parseInt(this.actor.system.slots, 10) || 0);
@@ -139,7 +119,7 @@ export class CrowsMonsterSheet extends ActorSheet {
     // 3. Ground & Unslotted / Storage Items
     context.inventoryList = {
       ground: equipmentItems.filter(i => i.system.location === 'ground'),
-      stash: equipmentItems.filter(i => i.system.location === 'stash' || (!i.system.location?.startsWith('backpack') && !i.system.location?.startsWith('slot') && !i.system.location?.startsWith('hand')))
+      stash: equipmentItems.filter(i => i.system.location === 'stash' || (!i.system.location?.startsWith('backpack') && !i.system.location?.startsWith('slot') && i.system.location !== 'ground'))
     };
 
     // 4. Derived stats
@@ -153,6 +133,7 @@ export class CrowsMonsterSheet extends ActorSheet {
 
   activateListeners(html) {
     super.activateListeners(html);
+    bindSupplyControls(html, this.actor);
 
     // Roll characteristic test (Agility, Mind, Strength)
     html.find('.rollable-characteristic').click(this._onRollCharacteristic.bind(this));
@@ -368,7 +349,7 @@ export class CrowsMonsterSheet extends ActorSheet {
     if (!item) return;
 
     if (!this.actor.isOwner) return;
-    if (!canEquip(item)) { ui.notifications.warn("Move the shield into a hand slot before equipping it."); return; }
+    if (!canEquip(item)) { ui.notifications.warn("Move the shield into a carried slot before equipping it."); return; }
     const newEquipped = !(item.system.isEquipped !== false);
     await item.update({ "system.isEquipped": newEquipped });
     ui.notifications.info(`${item.name} is now ${newEquipped ? 'Worn / Equipped' : 'Stowed'}.`);
@@ -407,36 +388,7 @@ export class CrowsMonsterSheet extends ActorSheet {
 
     const content = `
       <form class="crows-dialog-form">
-        <div class="form-group circumstance-group">
-          <label class="group-label"><i class="fas fa-balance-scale"></i> Circumstance</label>
-          <div class="radio-list">
-            <label class="radio-option opt-double-edge">
-              <input type="radio" name="circumstance" value="double-edge" />
-              <span class="opt-title">Double Edge</span>
-              <span class="opt-desc">+1 Outcome Tier</span>
-            </label>
-            <label class="radio-option opt-edge">
-              <input type="radio" name="circumstance" value="edge" />
-              <span class="opt-title">Edge</span>
-              <span class="opt-desc">+2 to roll</span>
-            </label>
-            <label class="radio-option opt-standard">
-              <input type="radio" name="circumstance" value="standard" checked />
-              <span class="opt-title">Standard Roll</span>
-              <span class="opt-desc">Normal (2d10)</span>
-            </label>
-            <label class="radio-option opt-bane">
-              <input type="radio" name="circumstance" value="bane" />
-              <span class="opt-title">Bane</span>
-              <span class="opt-desc">-2 to roll</span>
-            </label>
-            <label class="radio-option opt-double-bane">
-              <input type="radio" name="circumstance" value="double-bane" />
-              <span class="opt-title">Double Bane</span>
-              <span class="opt-desc">-1 Outcome Tier</span>
-            </label>
-          </div>
-        </div>
+        ${renderCircumstanceSelector()}
         <div class="form-group">
           <label for="char-flat-mod"><i class="fas fa-sliders-h"></i> Situational Modifier</label>
           <input type="number" id="char-flat-mod" value="0" />
@@ -609,7 +561,7 @@ export class CrowsMonsterSheet extends ActorSheet {
   async _onRollAttack(event) {
     event.preventDefault();
     const itemId = $(event.currentTarget).parents(".item").data("itemId");
-    return rollStatBlockAttack(this.actor, this.actor.items.get(itemId));
+    return showStatBlockAttackDialog(this.actor, this.actor.items.get(itemId));
   }
 
   _onDragStart(event) {

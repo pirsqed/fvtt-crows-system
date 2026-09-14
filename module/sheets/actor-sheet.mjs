@@ -1,10 +1,13 @@
+import { bindSupplyControls } from "../supplies.mjs";
+import { renderCircumstanceSelector } from "../roll-dialog.mjs";
 import { canEquip } from "../equipment-rules.mjs";
 import { showSpellcastDialog } from "../spellcasting.mjs";
-import { canStack, goldStack, restoreUsageDice } from "../inventory.mjs";
+import { beltSlotGrants, beltCapacity, canStack, goldStack, restoreUsageDice } from "../inventory.mjs";
 import { createRollState, rollFlags, renderRollState } from "../chat-state.mjs";
 import { showWeaponAttackDialog } from "../attacks.mjs";
 import { rollPowerRoll } from "../power-roll.mjs";
 import { CrowsLoot } from "../loot.mjs";
+import { withPersistentScroll } from "./persistent-scroll.mjs";
 
 export const EXPERTISES_CONFIG = {
   general: [
@@ -90,7 +93,7 @@ export const MIASMA_EFFECTS_TABLE = [
   }
 ];
 
-export class CrowsActorSheet extends ActorSheet {
+export class CrowsActorSheet extends withPersistentScroll(ActorSheet) {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ["crows", "sheet", "actor"],
@@ -119,6 +122,10 @@ export class CrowsActorSheet extends ActorSheet {
         greedBonusGc: document?.greedBonusGc, effectiveCost: document?.effectiveCost, stackPercent: stackPercent };
     });
     context.items = items;
+    context.boons = await Promise.all(items.filter(item => item.type === "boon").map(async item => ({
+      ...item, id: item._id,
+      descriptionHTML: await TextEditor.enrichHTML(item.system.description || "", { async: true })
+    })));
     const woundedSlots = this.actor.system.woundedSlots || {};
 
     // 1. Hands (Wielded / Active)
@@ -144,7 +151,9 @@ export class CrowsActorSheet extends ActorSheet {
       ];
     }
 
-    // 2. Belt Slots (4 Quick Access Slots with Merged Spans for Multi-Slot Items)
+    // 2. Belt slots, with multi-slot cards split at four-column row boundaries.
+    context.beltCapacity = beltCapacity(this.actor);
+    const beltGrants = beltSlotGrants(this.actor);
     const anchorItemsByBelt = {};
     for (const item of items) {
       const loc = item.system.location;
@@ -158,29 +167,29 @@ export class CrowsActorSheet extends ActorSheet {
 
     context.beltSlots = [];
     let b = 1;
-    while (b <= 4) {
+    while (b <= context.beltCapacity) {
       const slotId = `belt${b}`;
       const item = anchorItemsByBelt[b];
       if (item) {
         const slotsCount = Math.max(1, parseInt(item.system.slots, 10) || 1);
-        const endNum = Math.min(4, b + slotsCount - 1);
-        const spanCount = endNum - b + 1;
+        const endNum = Math.min(context.beltCapacity, b + slotsCount - 1);
 
-        context.beltSlots.push({
-          id: slotId,
-          slotNum: b,
-          label: "Belt",
-          item: item,
-          colSpan: spanCount,
-          isMergedSpan: spanCount > 1,
-          spanStart: b,
-          spanEnd: endNum,
-          spanTotal: slotsCount
-        });
+        for (let segment = b; segment <= endNum;) {
+          const segmentEnd = Math.min(endNum, Math.ceil(segment / 4) * 4);
+          const width = segmentEnd - segment + 1;
+          context.beltSlots.push({
+            id: `belt${segment}`, slotNum: segment, label: "Belt", item,
+            grants: beltGrants.slice(segment - 1, segmentEnd),
+            colSpan: width, isMergedSpan: width > 1,
+            spanStart: segment, spanEnd: segmentEnd, spanTotal: slotsCount
+          });
+          segment = segmentEnd + 1;
+        }
         b = endNum + 1;
       } else {
         context.beltSlots.push({
           id: slotId,
+          grants: [beltGrants[b - 1]],
           slotNum: b,
           label: "Belt",
           item: null,
@@ -390,6 +399,7 @@ export class CrowsActorSheet extends ActorSheet {
 
   activateListeners(html) {
     super.activateListeners(html);
+    bindSupplyControls(html, this.actor);
 
     // Roll handlers
     html.find('.rollable-characteristic').click(this._onRollCharacteristic.bind(this));
@@ -689,44 +699,6 @@ export class CrowsActorSheet extends ActorSheet {
               });
             }
           },
-          droppedPack: {
-            icon: '<i class="fas fa-box-open"></i>',
-            label: "Drop as Single Sack Token",
-            callback: async () => {
-              const rawItems = backpackItems.map(i => i.toObject());
-              await CrowsLoot.createContainerToken({
-                name: `Dropped Backpack (${this.actor.name})`,
-                containerType: "dropped_pack",
-                items: rawItems,
-                x: token.x,
-                y: token.y,
-                scene: canvas.scene
-              });
-              await this.actor.deleteEmbeddedDocuments("Item", backpackItems.map(i => i.id));
-
-              ChatMessage.create({
-                speaker: ChatMessage.getSpeaker({ actor: this.actor }),
-                content: `
-                  <div class="crows-roll-card">
-                    <div class="card-header danger">
-                      <i class="fas fa-box-open"></i> Dropped Pack Token Created
-                    </div>
-                    <div class="card-body">
-                      <strong>${this.actor.name}</strong> slipped off their backpack, leaving a dropped pack at their feet.
-                    </div>
-                  </div>
-                `
-              });
-            }
-          },
-          sheetGround: {
-            icon: '<i class="fas fa-list"></i>',
-            label: "Dump to Sheet Ground Tray",
-            callback: async () => {
-              const updates = backpackItems.map(i => ({ _id: i.id, "system.location": "ground" }));
-              await this.actor.updateEmbeddedDocuments("Item", updates);
-            }
-          }
         },
         default: "scatter"
       }, { classes: ["crows", "dialog", "crows-dialog"] }).render(true);
@@ -860,36 +832,7 @@ export class CrowsActorSheet extends ActorSheet {
 
     const content = `
       <form class="crows-dialog-form">
-        <div class="form-group circumstance-group">
-          <label class="group-label"><i class="fas fa-balance-scale"></i> Circumstance</label>
-          <div class="radio-list">
-            <label class="radio-option opt-double-edge">
-              <input type="radio" name="circumstance" value="double-edge" />
-              <span class="opt-title">Double Edge</span>
-              <span class="opt-desc">+1 Outcome Tier</span>
-            </label>
-            <label class="radio-option opt-edge">
-              <input type="radio" name="circumstance" value="edge" />
-              <span class="opt-title">Edge</span>
-              <span class="opt-desc">+2 to roll</span>
-            </label>
-            <label class="radio-option opt-standard">
-              <input type="radio" name="circumstance" value="standard" checked />
-              <span class="opt-title">Standard Roll</span>
-              <span class="opt-desc">Normal (2d10)</span>
-            </label>
-            <label class="radio-option opt-bane">
-              <input type="radio" name="circumstance" value="bane" />
-              <span class="opt-title">Bane</span>
-              <span class="opt-desc">-2 to roll</span>
-            </label>
-            <label class="radio-option opt-double-bane">
-              <input type="radio" name="circumstance" value="double-bane" />
-              <span class="opt-title">Double Bane</span>
-              <span class="opt-desc">-1 Outcome Tier</span>
-            </label>
-          </div>
-        </div>
+        ${renderCircumstanceSelector()}
         <div class="form-group">
           <label for="char-flat-mod"><i class="fas fa-sliders-h"></i> Flat Modifier</label>
           <input type="number" id="char-flat-mod" value="0" />
@@ -1137,32 +1080,7 @@ export class CrowsActorSheet extends ActorSheet {
             <span><strong>Cruelty Penalty:</strong> -${cruelty}</span>
           </div>
         </div>
-        <div class="form-group circumstance-group">
-          <label>Circumstance:</label>
-          <div class="radio-options circumstance-options">
-            <label class="radio-option opt-double-edge">
-              <input type="radio" name="circumstance" value="double-edge" />
-              <div class="opt-text">
-                <span class="opt-title"><i class="fas fa-angle-double-up"></i> Double Edge</span>
-                <span class="opt-desc">+1 Tier bump</span>
-              </div>
-            </label>
-            <label class="radio-option opt-normal">
-              <input type="radio" name="circumstance" value="normal" checked />
-              <div class="opt-text">
-                <span class="opt-title">Normal Roll</span>
-                <span class="opt-desc">Standard 2d10</span>
-              </div>
-            </label>
-            <label class="radio-option opt-double-bane">
-              <input type="radio" name="circumstance" value="double-bane" />
-              <div class="opt-text">
-                <span class="opt-title"><i class="fas fa-angle-double-down"></i> Double Bane</span>
-                <span class="opt-desc">-1 Tier penalty</span>
-              </div>
-            </label>
-          </div>
-        </div>
+        ${renderCircumstanceSelector()}
         <div class="form-group" style="margin-top: 10px;">
           <label>Situational Modifier:</label>
           <input type="number" name="modifier" value="0" placeholder="e.g. +1 or -1" />
@@ -1178,7 +1096,7 @@ export class CrowsActorSheet extends ActorSheet {
           icon: '<i class="fas fa-dice-d20"></i>',
           label: "Resist Miasma",
           callback: async (html) => {
-            const circumstance = html.find('input[name="circumstance"]:checked').val() || "normal";
+            const circumstance = html.find('input[name="circumstance"]:checked').val() || "standard";
             const modifier = parseInt(html.find('input[name="modifier"]').val(), 10) || 0;
             const netMod = mindBonus - cruelty + modifier;
 
@@ -1347,7 +1265,7 @@ export class CrowsActorSheet extends ActorSheet {
     if (item.type === "equipment") {
       const count = Math.max(1, Number(itemData.system?.slots) || 1);
       const loc = (targetSlot && CrowsLoot.fits(this.actor, targetSlot, count)) ? targetSlot : CrowsLoot.findFreeSlot(this.actor, count);
-      if (!loc) { ui.notifications.warn("No free inventory slot. Drop an item on the map or into a container first."); return false; }
+      if (!loc) { ui.notifications.warn("No free inventory slot. Drop an item on the map first."); return false; }
       foundry.utils.setProperty(itemData, "system.location", loc);
     }
     return this._onDropItemCreate(itemData);

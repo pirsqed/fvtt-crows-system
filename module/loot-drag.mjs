@@ -57,7 +57,7 @@ export class CrowsLootDrag {
           event.dataTransfer.setDragImage(ghost, 24, 24);
           setTimeout(() => ghost.remove(), 0);
         });
-        // Drops on another loose item merge its contents, just like other containers.
+        // Matching loose stacks can be merged through the ordinary item transfer path.
         handle.addEventListener("dragover", event => event.preventDefault());
         handle.addEventListener("drop", event => {
           event.preventDefault();
@@ -68,7 +68,7 @@ export class CrowsLootDrag {
           CrowsLoot.onDropCanvasData(canvas, { ...data, x: token.center.x, y: token.center.y })
             .catch(err => { console.error("Crows | Item drop failed", err); ui.notifications.error("Could not move the item."); });
         });
-        handle.addEventListener("dblclick", () => token.actor.sheet.render(true));
+        handle.addEventListener("dblclick", () => token.actor.sheet.render(true, { token: token.document }));
         this.root.append(handle);
         this.handles.set(token.id, handle);
       }

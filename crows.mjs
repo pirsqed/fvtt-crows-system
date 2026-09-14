@@ -7,12 +7,15 @@ import { CrowsMonsterSheet } from "./module/sheets/monster-sheet.mjs";
 import { CrowsLootSheet } from "./module/sheets/loot-sheet.mjs";
 import { CrowsItemSheet } from "./module/sheets/item-sheet.mjs";
 import { VillageDataModel, VillageEntryDataModel } from "./module/village-data-models.mjs";
+import { BoonDataModel } from "./module/boon-data-model.mjs";
 import { CrowsVillageSheet } from "./module/sheets/village-sheet.mjs";
 import { CrowsVillageEntrySheet } from "./module/sheets/village-entry-sheet.mjs";
 import { CrowsLoot } from "./module/loot.mjs";
 import { CrowsLootDrag } from "./module/loot-drag.mjs";
+import { CrowsToken } from "./module/token.mjs";
 import { CrowsDungeonTimer } from "./module/apps/dungeon-timer.mjs";
 import { CrowsImporter } from "./module/apps/importer.mjs";
+import { CrowsSetupGuide } from "./module/apps/setup-guide.mjs";
 import { repairWorldIcons } from "./module/icon-repairs.mjs";
 import { CrowsCharacterCreator, addCharacterCreatorButton, addCharacterCreatorToDocumentDirectory,
   refreshCharacterCreatorButtons } from "./module/apps/character-creator.mjs";
@@ -21,6 +24,7 @@ Hooks.on("renderActorDirectory", addCharacterCreatorButton);
 Hooks.on("renderDocumentDirectory", addCharacterCreatorToDocumentDirectory);
 Hooks.on("renderSidebar", refreshCharacterCreatorButtons);
 Hooks.once("ready", refreshCharacterCreatorButtons);
+Hooks.once("ready", () => CrowsSetupGuide.showOnFirstVisit());
 Hooks.on("updateUser", user => {
   if (user.id === game.user.id) refreshCharacterCreatorButtons();
 });
@@ -34,6 +38,7 @@ Hooks.once("init", async () => {
   // Configure custom Document implementations
   CONFIG.Actor.documentClass = CrowsActor;
   CONFIG.Item.documentClass = CrowsItem;
+  CONFIG.Token.objectClass = CrowsToken;
 
   // Configure System Data Models
   CONFIG.Actor.dataModels = {
@@ -46,7 +51,8 @@ Hooks.once("init", async () => {
     equipment: EquipmentDataModel,
     attack: AttackDataModel,
     trait: TraitDataModel,
-    villageEntry: VillageEntryDataModel
+    villageEntry: VillageEntryDataModel,
+    boon: BoonDataModel
   };
 
   // Register Sheets
@@ -57,7 +63,7 @@ Hooks.once("init", async () => {
   Actors.registerSheet("crows", CrowsVillageSheet, { types: ["village"], makeDefault: true });
 
   Items.unregisterSheet("core", ItemSheet);
-  Items.registerSheet("crows", CrowsItemSheet, { types: ["equipment", "attack", "trait"], makeDefault: true });
+  Items.registerSheet("crows", CrowsItemSheet, { types: ["equipment", "attack", "trait", "boon"], makeDefault: true });
   Items.registerSheet("crows", CrowsVillageEntrySheet, { types: ["villageEntry"], makeDefault: true });
 
   // Register Synchronized World Setting for Dungeon Turn Timer
@@ -82,8 +88,14 @@ Hooks.once("init", async () => {
     }
   });
 
-  // Ground loot settings (reach, chat announcements)
+  // Ground loot chat settings
   CrowsLoot.registerSettings();
+
+  game.settings.registerMenu("fvtt-crows-system", "setupGuide", {
+    name: "Start Here", label: "Open Setup Guide",
+    hint: "A friendly walkthrough: Python, your PDF folder, and importing the playtest content.",
+    icon: "fas fa-book-open", type: CrowsSetupGuide, restricted: false
+  });
 
   // GM menu: import the locally generated playtest content
   game.settings.registerMenu("fvtt-crows-system", "importer", {
@@ -174,7 +186,27 @@ Hooks.on("dropCanvasData", (canvas, data) => {
 Hooks.on("canvasReady", () => CrowsLootDrag.start());
 Hooks.on("canvasTearDown", () => CrowsLootDrag.stop());
 
-// New loot containers are visible to players by default (the lock, not permissions, guards contents)
+// Crow token defaults apply only at creation, preserving explicit settings on copies/imports.
+Hooks.on("preCreateActor", (doc, data) => {
+  if (doc.type !== "crow") return;
+  const creationData = foundry.utils.expandObject(data);
+  const defaults = {
+    "prototypeToken.actorLink": true,
+    "prototypeToken.sight.enabled": true,
+    "prototypeToken.disposition": CONST.TOKEN_DISPOSITIONS.FRIENDLY,
+    "prototypeToken.bar1.attribute": "stamina",
+    "prototypeToken.displayBars": CONST.TOKEN_DISPLAY_MODES.OWNER,
+    "prototypeToken.displayName": CONST.TOKEN_DISPLAY_MODES.HOVER,
+    "prototypeToken.lockRotation": true
+  };
+  const updates = {};
+  for (const [path, value] of Object.entries(defaults)) {
+    if (foundry.utils.getProperty(creationData, path) === undefined) updates[path] = value;
+  }
+  if (Object.keys(updates).length) doc.updateSource(updates);
+});
+
+// Set initial loot visibility and Ref-controlled contents access.
 Hooks.on("preCreateActor", (doc, data) => CrowsLoot.onPreCreateActor(doc, data));
 
 // Interactive Chat Handler: Apply Expertise Post-Roll
@@ -300,7 +332,6 @@ Hooks.once("ready", () => {
   // Loot transfers requested by players are executed by the active GM's client
   CrowsLoot.activateSocket();
   CrowsChatActions.activate([...EXPERTISES_CONFIG.general, ...EXPERTISES_CONFIG.spellcasting, ...EXPERTISES_CONFIG.weapon]);
-  CrowsLoot.migrateLootOwnership();
   repairWorldIcons().catch(error => console.error("Crows | Icon repair failed", error));
   CrowsLoot.migrateGold().catch(error => {
     console.error("Crows | Gold conversion failed", error);
@@ -344,7 +375,6 @@ Hooks.once("ready", () => {
      */
     loot: CrowsLoot,
     scatterLoot: CrowsLoot.scatterItemsOnCanvas,
-    createContainerToken: CrowsLoot.createContainerToken,
     createLootToken: CrowsLoot.createLootToken,
 
     /**

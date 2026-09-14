@@ -1,9 +1,10 @@
+import { supplyPreset } from "./supplies.mjs";
 import { repairImportIcons } from "./icon-repairs.mjs";
 const SCOPE = "fvtt-crows-system";
 export const IMPORT_PACKS = [
   { file: "equipment.json", name: "crows-equipment", label: "Equipment & Spellbooks", fn: "importEquipment", type: "Item" },
   { file: "dungeon-loot.json", name: "crows-dungeon-loot", label: "Dungeon Loot & Relics", fn: "importDungeonLoot", type: "Item" },
-  { file: "traits.json", name: "crows-traits", label: "Trait Trees", fn: "importTraits", type: "Item" },
+  { file: "traits.json", name: "crows-traits", label: "Traits", fn: "importTraits", type: "Item" },
   { file: "monsters.json", name: "crows-bestiary", label: "Bestiary", fn: "importMonsters", type: "Actor" }
 ];
 
@@ -39,15 +40,6 @@ export function validateImport(data, pack) {
   return data;
 }
 
-export const CONTAINER_STACK_SIZES = {
-  "coin purse": 500,
-  "quiver of arrows": 20,
-  "quiver of 20 arrows": 20,
-  "case of bolts": 20,
-  "case of crossbow bolts": 20,
-  "case of 20 crossbow bolts": 20
-};
-
 export function repairImportEquipment(data) {
   if (!data || typeof data !== "object") return data;
   if (Array.isArray(data)) {
@@ -55,10 +47,7 @@ export function repairImportEquipment(data) {
     return data;
   }
   if (data.type === "equipment" && data.name && data.system) {
-    const limit = CONTAINER_STACK_SIZES[data.name.trim().toLowerCase()];
-    if (limit) {
-      data.system.maxStack = limit;
-    }
+    supplyPreset(data);
   }
   if (Array.isArray(data.items)) {
     data.items.forEach(repairImportEquipment);
@@ -77,7 +66,7 @@ export async function readImport(pack) {
 export class CrowsContentImport {
   static busy = false;
 
-  static async run(packs = IMPORT_PACKS, { onProgress = () => {} } = {}) {
+  static async run(packs = IMPORT_PACKS, { onProgress = () => { } } = {}) {
     if (!game.user.isGM) throw new Error("Only the GM can import content.");
     if (game.users.activeGM?.id !== game.user.id) throw new Error("Run the importer as the active GM.");
     if (this.busy) throw new Error("An import is already running.");
@@ -97,7 +86,7 @@ export class CrowsContentImport {
     } finally { this.busy = false; }
   }
 
-  static async importPack(config, data, result, onProgress = () => {}) {
+  static async importPack(config, data, result, onProgress = () => { }) {
     let pack = game.packs.get(`world.${config.name}`);
     if (pack && pack.documentName !== config.type) throw new Error("Existing compendium has the wrong document type.");
     if (pack?.locked) throw new Error("Compendium is locked. Unlock it before importing.");

@@ -1,0 +1,17 @@
+<form class="{{cssClass}} flexcol crows-item-sheet" autocomplete="off">
+  <header class="sheet-header flexrow">
+    <img class="profile-img" src="{{item.img}}" data-edit="img" title="{{item.name}}" />
+    <div class="header-fields flexcol"><h1 class="charname"><input name="name" type="text" value="{{item.name}}" placeholder="Boon name" /></h1><span>Boon</span></div>
+  </header>
+  <nav class="sheet-tabs tabs flexrow" data-group="primary"><a class="item active" data-tab="details">Boon notes</a></nav>
+  <section class="sheet-body">
+    <div class="tab details flexcol active" data-group="primary" data-tab="details">
+      {{#if system.sourceName}}<p>From: {{system.sourceName}}</p>{{/if}}
+      <div class="form-group"><label>Uses remaining</label><input type="number" name="system.uses" value="{{system.uses}}" min="0" step="1" data-dtype="Number" /></div>
+      <p>See the Character Book, page 51. Enter your own notes and update uses manually.</p>
+      <div class="form-group stacked" style="flex: 1;">
+        {{editor enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}
+      </div>
+    </div>
+  </section>
+</form>

@@ -1,13 +1,14 @@
 /** Village records are embedded Items, so editing one record cannot replace another. */
 export const VILLAGE_ENTRY_TYPE = "villageEntry";
-export const VILLAGE_KINDS = ["institution", "npc", "quest", "crow"];
+export const VILLAGE_KINDS = ["institution", "npc", "quest", "crow", "grave"];
 export const VILLAGE_STATUSES = {
   institution: { active: "Active", planned: "Planned", damaged: "Damaged", closed: "Closed" },
   npc: { resident: "Resident", visiting: "Visiting", missing: "Missing", departed: "Departed", deceased: "Deceased" },
   quest: { open: "Open", active: "In progress", completed: "Completed", failed: "Failed", abandoned: "Abandoned" },
-  crow: { resident: "Resident", away: "Away", retired: "Retired", deceased: "Deceased" }
+  crow: { resident: "Resident", away: "Away", retired: "Retired", deceased: "Deceased" },
+  grave: { interred: "Interred" }
 };
-export const VILLAGE_LABELS = { institution: "Institution", npc: "NPC", quest: "Quest", crow: "Crow & NPC connection" };
+export const VILLAGE_LABELS = { institution: "Institution", npc: "NPC", quest: "Quest", crow: "Crow & NPC connection", grave: "Grave" };
 export const escapeVillageText = value => String(value ?? "").replace(/[&<>"']/g,
   char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 
@@ -25,7 +26,7 @@ export function salePercentage(prosperity) {
 export function newVillageEntry(kind, name) {
   if (!VILLAGE_KINDS.includes(kind)) throw new Error("Unknown village record type.");
   return { name: name ?? `New ${VILLAGE_LABELS[kind]}`, type: VILLAGE_ENTRY_TYPE,
-    img: { institution: "icons/svg/house.svg", npc: "icons/svg/mystery-man.svg", quest: "icons/svg/book.svg", crow: "icons/svg/cowled.svg" }[kind],
+    img: { institution: "icons/svg/house.svg", npc: "icons/svg/mystery-man.svg", quest: "icons/svg/book.svg", crow: "icons/svg/cowled.svg", grave: "icons/svg/tombstone.svg" }[kind],
     system: { kind, status: Object.keys(VILLAGE_STATUSES[kind])[0] } };
 }
 

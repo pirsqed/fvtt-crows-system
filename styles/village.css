@@ -11,7 +11,7 @@
 .crows-village button { width: auto; background: #2b382f; border: 1px solid #63705d; color: #f0eee6; padding: 3px 12px; border-radius: 4px; white-space: normal; }
 .crows-village button:hover { background: #3b4b3d; box-shadow: none; }
 .crows-village button:disabled { opacity: .5; }
-.crows-village .village-header { display: flex; gap: 18px; align-items: center; }
+.crows-village .village-header { display: flex; flex: 0 0 auto; gap: 18px; align-items: center; }
 .crows-village .village-header img { width: 88px; height: 88px; object-fit: cover; border: 1px solid var(--village-border); }
 .crows-village .village-header > div { flex: 1; }
 .crows-village .village-name { font-size: 27px; height: 42px; margin: 4px 0 9px; }
