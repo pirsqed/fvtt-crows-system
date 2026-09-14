@@ -14,6 +14,29 @@ import common
 
 
 class BuildTests(unittest.TestCase):
+    def test_first_run_prompts_before_checking_missing_default_folder(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            packet = root / "My extracted packet"
+            packet.mkdir()
+            with patch.object(build_all, "SYSTEM", root), patch.dict(build_all.os.environ, {}, clear=True), \
+                 patch("builtins.input", return_value=f'"{packet}"') as prompt, \
+                 patch.object(build_all, "check_packet") as check, \
+                 patch.object(build_all, "setup_environment", return_value=0) as setup, \
+                 contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(build_all.main(["--interactive", "--setup"]), 0)
+                prompt.assert_called_once()
+                check.assert_called_once_with(packet.resolve())
+                self.assertEqual(setup.call_args.args[1], packet.resolve())
+                self.assertFalse((root / "pdfs").exists())
+
+    def test_missing_default_without_prompt_reports_actionable_error(self):
+        with tempfile.TemporaryDirectory() as folder:
+            with patch.object(build_all, "SYSTEM", Path(folder)), patch.dict(build_all.os.environ, {}, clear=True), \
+                 contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()) as errors:
+                self.assertEqual(build_all.main(["--check"]), 1)
+                self.assertIn("Packet folder does not exist", errors.getvalue())
+
     def test_spellbook_and_shield_flags_are_exported(self):
         from build_packs import to_item
         book = to_item({"name": "Flame", "spell": {"rank": 1, "discipline": "Elemental"}}, {})
@@ -24,7 +47,7 @@ class BuildTests(unittest.TestCase):
         self.assertFalse(sword["system"]["isShield"])
         self.assertFalse(sword["system"]["isSpellbook"])
 
-    def test_container_items_have_higher_stack_limits(self):
+    def test_supply_maximum_is_separate_from_stack_limit(self):
         from build_packs import to_item
         purse = to_item({"name": "Coin Purse"}, {})
         quiver = to_item({"name": "Quiver of 20 Arrows"}, {})
@@ -34,12 +57,20 @@ class BuildTests(unittest.TestCase):
         bolts_direct = to_item({"name": "Case of Crossbow Bolts"}, {})
         sword = to_item({"name": "Sword", "stack": 1}, {})
 
-        self.assertEqual(purse["system"]["maxStack"], 500)
-        self.assertEqual(quiver["system"]["maxStack"], 20)
-        self.assertEqual(quiver_direct["system"]["maxStack"], 20)
-        self.assertEqual(bolts_alias["system"]["maxStack"], 20)
-        self.assertEqual(bolts_case["system"]["maxStack"], 20)
-        self.assertEqual(bolts_direct["system"]["maxStack"], 20)
+        self.assertEqual(purse["system"]["maxStack"], 1)
+        self.assertEqual(purse["system"]["contentsMax"], 500)
+        self.assertEqual(purse["system"]["contentsQuantity"], 0)
+        self.assertEqual(quiver["system"]["contentsQuantity"], 20)
+        self.assertEqual(quiver["system"]["maxStack"], 1)
+        self.assertEqual(quiver["system"]["contentsMax"], 20)
+        self.assertEqual(quiver_direct["system"]["maxStack"], 1)
+        self.assertEqual(quiver_direct["system"]["contentsMax"], 20)
+        self.assertEqual(bolts_alias["system"]["maxStack"], 1)
+        self.assertEqual(bolts_alias["system"]["contentsMax"], 20)
+        self.assertEqual(bolts_case["system"]["maxStack"], 1)
+        self.assertEqual(bolts_case["system"]["contentsMax"], 20)
+        self.assertEqual(bolts_direct["system"]["maxStack"], 1)
+        self.assertEqual(bolts_direct["system"]["contentsMax"], 20)
         self.assertEqual(sword["system"]["maxStack"], 1)
 
     def test_default_packet_is_system_pdfs_independent_of_working_directory(self):
@@ -49,6 +80,63 @@ class BuildTests(unittest.TestCase):
             with patch.object(common, "SYSTEM", root), patch.object(sys, "argv", ["exporter.py"]), \
                  patch.dict(common.os.environ, {}, clear=True):
                 self.assertEqual(packet_dir(), (root / "pdfs").resolve())
+
+    def test_packet_dir_discovers_subfolder_when_no_pdfs_in_root(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            pdfs_dir = root / "pdfs"
+            pdfs_dir.mkdir()
+            # Readme only in root of pdfs/
+            (pdfs_dir / "ADD_PDFS_HERE.txt").write_text("readme")
+            # Subfolder created by extracting a zip
+            sub = pdfs_dir / "Crows Playtest 2"
+            sub.mkdir()
+            (sub / "01 Characters.pdf").touch()
+            (sub / "02 Ref Book.pdf").touch()
+
+            with patch.object(common, "SYSTEM", root), patch.object(sys, "argv", ["exporter.py"]), \
+                 patch.dict(common.os.environ, {}, clear=True):
+                self.assertEqual(packet_dir(), sub.resolve())
+
+    def test_packet_dir_prefers_root_when_pdfs_exist_directly(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            pdfs_dir = root / "pdfs"
+            pdfs_dir.mkdir()
+            (pdfs_dir / "01 Characters.pdf").touch()
+            # Even if an old subfolder exists
+            sub = pdfs_dir / "Old Playtest"
+            sub.mkdir()
+            (sub / "01 Characters.pdf").touch()
+
+            with patch.object(common, "SYSTEM", root), patch.object(sys, "argv", ["exporter.py"]), \
+                 patch.dict(common.os.environ, {}, clear=True):
+                self.assertEqual(packet_dir(), pdfs_dir.resolve())
+
+    def test_packet_dir_discovers_nested_subfolder(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            nested = root / "pdfs" / "Crows Playtest" / "Packet"
+            nested.mkdir(parents=True)
+            (nested / "01 Characters.pdf").touch()
+
+            with patch.object(common, "SYSTEM", root), patch.object(sys, "argv", ["exporter.py"]), \
+                 patch.dict(common.os.environ, {}, clear=True):
+                self.assertEqual(packet_dir(), nested.resolve())
+
+    def test_pdf_discovery_ignores_macosx_and_hidden_files(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / "Books").mkdir()
+            pdf = root / "Books" / "Characters.pdf"
+            pdf.touch()
+            # Fake macOS dot-underscore and __MACOSX files
+            macosx = root / "__MACOSX" / "Books"
+            macosx.mkdir(parents=True)
+            (macosx / "._Characters.pdf").touch()
+            (root / "Books" / "._Characters.pdf").touch()
+
+            self.assertEqual(find_pdf(root, ["characters"]), pdf)
 
     def test_pdf_discovery_handles_subfolders_and_uppercase_extensions(self):
         with tempfile.TemporaryDirectory() as folder:

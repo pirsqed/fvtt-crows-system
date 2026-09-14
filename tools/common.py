@@ -8,11 +8,55 @@ PACKS = SYSTEM / "packs"                                  # generated compendium
 ASSETS = Path(os.environ.get("CROWS_BUILD_ASSETS", SYSTEM / "assets"))
 
 
+def resolve_packet_dir(packet: Path) -> Path:
+    """If packet has no PDFs directly in it, check subfolders for an extracted packet."""
+    packet = packet.expanduser().resolve()
+    if not packet.is_dir():
+        return packet
+
+    # 1. Look directly in packet
+    if any(f.is_file() and f.suffix.lower() == ".pdf" and not f.name.startswith("._") for f in packet.iterdir()):
+        return packet
+
+    # 2. Check subfolders (breadth-first, ignoring hidden dirs and __MACOSX)
+    candidates = []
+    queue = [packet]
+    while queue:
+        current = queue.pop(0)
+        try:
+            subdirs = [
+                d for d in sorted(current.iterdir())
+                if d.is_dir() and not d.name.startswith(".") and d.name != "__MACOSX"
+            ]
+        except OSError:
+            continue
+        for d in subdirs:
+            try:
+                pdfs = [f for f in d.iterdir() if f.is_file() and f.suffix.lower() == ".pdf" and not f.name.startswith("._")]
+            except OSError:
+                continue
+            if pdfs:
+                candidates.append((d, pdfs))
+            else:
+                queue.append(d)
+
+    if not candidates:
+        return packet
+
+    # Prefer a folder containing the characters book if multiple subfolders exist
+    for d, pdfs in candidates:
+        if any("characters" in f.name.lower() for f in pdfs):
+            return d
+
+    return candidates[0][0]
+
+
 def packet_dir():
     """Folder holding the MCDM playtest packet (books, Inventory Cards, Monster Illustrations).
 
     Resolution order: --packet <dir> argument, CROWS_PACKET environment variable,
-    then pdfs/ inside the system folder.
+    then pdfs/ inside the system folder. If the resolved folder has no PDFs directly
+    in it, checks subfolders.
     """
     if "--packet" in sys.argv:
         index = sys.argv.index("--packet") + 1
@@ -27,14 +71,17 @@ def packet_dir():
     if not p.is_dir():
         sys.exit(f"Playtest packet folder not found: {p}\n"
                  f"Pass --packet <folder> or set CROWS_PACKET to the folder containing the playtest PDFs.")
-    return p
+    return resolve_packet_dir(p)
 
 
 def find_pdf(packet, include=(), exclude=()):
     """Find the PDF in the packet whose filename contains every `include` fragment and no `exclude` fragment."""
+    packet = resolve_packet_dir(packet)
     matches = []
     for f in sorted(packet.rglob("*")):
-        if not f.is_file() or f.suffix.lower() != ".pdf":
+        if not f.is_file() or f.suffix.lower() != ".pdf" or f.name.startswith("._"):
+            continue
+        if any(part.startswith(".") or part == "__MACOSX" for part in f.parts):
             continue
         name = f.name.lower()
         if all(n.lower() in name for n in include) and not any(n.lower() in name for n in exclude):

@@ -1,0 +1,30 @@
+Your Crows playtest PDFs go here! :)
+
+Extract the ZIP from your MCDM playtest download into this folder. An extra
+folder created by the ZIP is fine: the builder searches inside subfolders.
+Keep the packet's original filenames and folders, including Inventory Cards.
+You'll need the Characters book, Ref book, Inventory cards, Profession cards,
+and POI cards. Keep just one copy of each PDF; put older packets elsewhere.
+
+Then go up one folder to fvtt-crows-system:
+
+Windows: double-click build_playtest_content.cmd, then press Enter when it
+asks for the playtest folder. This pdfs folder is the default.
+
+Linux / macOS: open a terminal in fvtt-crows-system and run:
+  sh build_playtest_content.sh --setup --interactive
+Press Enter when it asks for the playtest folder.
+
+You'll need Python 3.10 or newer. The first run downloads the helper libraries.
+Once the build succeeds, open Import Playtest Content in Foundry's settings,
+click Re-check files, then Import everything found.
+
+Want a walkthrough? In your world, open Settings > Configure Settings >
+Crows (Unofficial) > Start Here. Full docs:
+https://github.com/pirsqed/fvtt-crows-system#readme
+
+Only this note ships with the system. Your PDFs and extracted packet stay
+local and are excluded from Git and release ZIPs. Keep your original download
+somewhere safe so you can rebuild after a system update.
+
+Fortune, or death!

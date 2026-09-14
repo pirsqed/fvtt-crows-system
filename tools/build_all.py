@@ -9,7 +9,7 @@ import subprocess
 import sys
 import tempfile
 import venv
-from common import SYSTEM, find_pdf
+from common import SYSTEM, find_pdf, resolve_packet_dir
 
 TOOLS = Path(__file__).resolve().parent
 STEPS = ["extract_cards.py", "extract_backgrounds.py", "build_packs.py", "extract_traits.py", "extract_monsters.py"]
@@ -126,12 +126,17 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if sys.version_info < (3, 10):
         parser.exit(1, "Python 3.10 or newer is required.\n")
-    default = args.packet or Path(os.environ.get("CROWS_PACKET", SYSTEM / "pdfs"))
+    if args.packet:
+        default = args.packet
+    elif os.environ.get("CROWS_PACKET"):
+        default = Path(os.environ["CROWS_PACKET"])
+    else:
+        default = SYSTEM / "pdfs"
     if args.interactive:
         entered = input(f"\nExtracted playtest folder [{default}]: ").strip().strip('"')
         if entered:
             default = Path(entered)
-    packet = default.expanduser().resolve()
+    packet = resolve_packet_dir(default.expanduser().resolve())
     try:
         print(f"Checking playtest packet: {packet}")
         check_packet(packet)

@@ -14,15 +14,15 @@ Minor cosmetic issues and documented manual rules can ship. Lost/duplicated poss
 
 ## Test record
 
-- Tester / dates:
-- Candidate commit or ZIP identifier:
-- Local changes included:
-- Foundry **14**, exact build:
-- Server OS / GM browser / player browser:
-- Playtest 2 packet edition:
-- Test world:
+- Tester / dates: 2026-09-09
+- Candidate commit or ZIP identifier: 5de7cd7
+- Local changes included: None
+- Foundry **14**, exact build: 367
+- Server OS / GM browser / player browser: Windows / Chrome / Chrome
+- Playtest 2 packet edition: 2nd release
+- Test world: CAW
 - Automated test command, candidate, date, and results:
-- Content integration test run with freshly generated packs? Yes / No:
+- Content integration test run with freshly generated packs? Yes / No: Yes
 
 Use a separate fresh test world without modules. Connect a GM and a separate player session. Give the player ownership of a Crow and pet. Keep the console available. Set up a scene with a container and two **unlinked copies of the same NPC**, plus a second scene for target checks. Use a copy of an older test world only for the upgrade checks.
 
@@ -30,70 +30,85 @@ Use a separate fresh test world without modules. Connect a GM and a separate pla
 
 ### A. Build and import
 
-- [ ] A1. Follow the README to build from the Playtest 2 packet. The default `pdfs/` path works, output counts/log are useful, and all required packs (including backgrounds and connections) are generated.
-- [ ] A2. Import as GM. Equipment/spellbooks, loot, traits, and bestiary entries appear; sample descriptions, stats, and images match the packet. The importer is readable in the theme being tested.
-- [ ] A3. Import again: no duplicates. Edit one imported entry and re-import: the edit is preserved and reported. A locked destination produces a clear error.
+- [x] A1. Follow the README to build from the Playtest 2 packet. The default `pdfs/` path works, output counts/log are useful, and all required packs (including backgrounds and connections) are generated.
+- [x] A2. Import as GM. Equipment/spellbooks, loot, traits, and bestiary entries appear; sample descriptions, stats, and images match the packet. The importer is readable in the theme being tested.
+- [x] A3. Import again: no duplicates. Edit one imported entry and re-import: the edit is preserved and reported. A locked destination produces a clear error.
 
 Candidate / results / issue IDs:
 
 ### B. Create a Crow and a village
 
-- [ ] B1. Create a Crow through the wizard: background and gold rolls post to chat; characteristics, starting Stamina, expertise pools, trait, item quantities, and gold match the reviewed choices. Check one kit containing a pet and one containing spellcasting gear.
-- [ ] B2. Go back and change choices before saving, then finish. The resulting Crow reflects the final review. Cancel a separate creation: no Crow or pets are created.
-- [ ] B3. A player with Create Actors permission can finish and owns the resulting Crow and pet. Without that permission, creation is clearly blocked. Opening the linked pet works.
-- [ ] B4. Create two villages. Add starting institutions, an independent NPC, a quest, treasury/prosperity values, and notes to one. They remain separate from the other village; linked actor sheets open.
-- [ ] B5. Choose a home village during creation or add the Crow afterward. Membership and the NPC connection are recorded as permitted. Re-adding does not duplicate/overwrite edited records. A player without village ownership cannot edit it.
-- [ ] B6. Edit institution levels and pending availability, advance the recorded cycle, and apply a due change manually. Roll a village event and record its result. Saved records and prosperity-based sale values display correctly.
+- [x] B1. Create a Crow through the wizard: background and gold rolls post to chat; characteristics, starting Stamina, expertise pools, trait, item quantities, and gold match the reviewed choices. Check one kit containing a pet and one containing spellcasting gear.
+- [x] B2. Go back and change choices before saving, then finish. The resulting Crow reflects the final review. Cancel a separate creation: no Crow or pets are created.
+- [x] B3. A player with Create Actors permission can finish and owns the resulting Crow and pet. Without that permission, creation is clearly blocked. Opening the linked pet works.
+- [x] B4. Create two villages. Add starting institutions, an independent NPC, a quest, Prosperity progress/prosperity values, and notes to one. They remain separate from the other village; linked actor sheets open.
+- [x] B5. Choose a home village during creation or add the Crow afterward. Membership and the NPC connection are recorded as permitted. Re-adding does not duplicate/overwrite edited records. A player without village ownership cannot edit it.
+- [x] B6. Edit institution levels and pending availability, advance the recorded cycle, and apply a due change manually. Roll a village event and record its result. Saved records and prosperity-based sale values display correctly.
 
 Candidate / results / issue IDs:
 
 ### C. Prepare equipment and resources
 
-- [ ] C1. Edit characteristics, Stamina, multiline background, biography, and base speed. With base speed 8, an occupied wounded backpack slot shows adjusted speed 7; clearing/moving the wound restores it. Base speed 0 stays 0.
-- [ ] C2. Move equipment among hands, belt, backpack, and magic slots. Check a two-handed item, a multi-slot item crossing a row, and displacement onto occupied slots. Every item remains accessible; use map loot/containers for external storage.
-- [ ] C3. Quantity controls work on stackable items at quantity 1. Merge 8 onto 7 with maximum 10: source 5, destination 10. Full stacks and different greed/usage-die properties do not merge.
+- [x] C1. Edit characteristics, Stamina, multiline background, biography, and base speed. With base speed 8, an occupied wounded backpack slot shows adjusted speed 7; clearing/moving the wound restores it. Base speed 0 stays 0.
+- [x] C2. Move equipment among hands, belt, backpack, and magic slots. Check a two-handed item, a multi-slot item crossing a row, and displacement onto occupied slots. Every item remains accessible; use map loot/containers for external storage.
+- [ ] C3. Quantity controls work on stackable items at quantity 1.
 - [ ] C4. Create and move Gold Coins items. The Crow's gc display equals carried gold, and gold occupies slots. A stack cannot exceed 250 gc; moving gold out changes the displayed total.
-- [ ] C5. Equip a shield in a hand, then move it to backpack/belt or external storage. It supplies no AD there and cannot be enabled in damage allocation. Return it to a hand and equip it again. Check a renamed shield with Shield enabled; ordinary armor still works.
-- [ ] C6. Enter TXP 18 and spent XP 6: available XP is 12 and TXP stays 18. Spent XP 19 produces the warning; correct it before continuing.
-- [ ] C7. Roll usage dice on Crow and companion gear. Depletion persists at zero and warns when rolled; canceling restoration changes nothing, confirming restores maximum UD. Greed tags and adjusted values remain readable at each tier.
+- [x] C5. Equip a shield in a hand, then move it to backpack/belt or external storage. It supplies no AD there and cannot be enabled in damage allocation. Return it to a hand and equip it again. Check a renamed shield with Shield enabled; ordinary armor still works.
+- [x] C6. Enter TXP 18 and spent XP 6: available XP is 12 and TXP stays 18. Spent XP 19 produces the warning; correct it before continuing.
+- [x] C7. Roll usage dice on Crow and companion gear. Depletion persists at zero and warns when rolled; canceling restoration changes nothing, confirming restores maximum UD. Greed tags and adjusted values remain readable at each tier.
 
 Candidate / results / issue IDs:
+C3 - Stack merging is not currently supported. Documentation corrected; future support is tracked in [TODO.md](TODO.md).
+C4 - Gold handling is an issue. Gold is most often held in coin purses, not loose in inventory. We're not currently counting any gold in the coin purse as gold towards the total at the top. Both qty in coin purse and in loose stacks should count.
+C5 - Equipping a shield to a hand slot should toggle it to 'worn', rather than leaving it as stowed.
+C6 - It correctly warns you about XP not exceeding TXP, but it erroneously tells you to 'check your ledger' which we have not implemented. We should simplify the warning message.
 
 ### D. Fight, cast, and take wounds
 
-- [ ] D1. Roll a Crow characteristic, equipment attack with a chosen characteristic/modifier/circumstance, and NPC stat-block attack. Results/effects and weapon qualities are readable, without literal HTML markup. Apply expertise: one use is spent and the tier/effect updates.
-- [ ] D2. Attack one of the two unlinked NPC tokens. Cancel allocation once, then apply with temporary AD, equipment AD, and Stamina. Only the intended token changes. Adjust damage manually for a quality and confirm the amount is applied and recorded.
-- [ ] D3. Enable Spellbook on owned equipment. Cast from its item sheet and inventory; Mind/modifier and tier effects are correct. Apply expertise before resolving consequences: the reminder follows the new tier. Casting does not automatically consume UD; the separate UD roll works.
-- [ ] D4. Deal overflow damage to a Crow, a Human, and an Animal. First available slots receive wounds up to their respective capacity. Relocating wounds changes occupied-slot speed penalties; all slots wounded means death. An ordinary monster without wound support is defeated at zero Stamina.
-- [ ] D5. Check a companion with more than 10 configured slots: wounds beyond slot 10 can be marked and cleared. Wound controls and inventory highlighting agree.
+- [x] D1. Roll a Crow characteristic, equipment attack with a chosen characteristic/modifier/circumstance, and NPC stat-block attack. Results/effects and weapon qualities are readable, without literal HTML markup. Apply expertise: one use is spent and the tier/effect updates.
+- [x] D2. Attack one of the two unlinked NPC tokens. Cancel allocation once, then apply with temporary AD, equipment AD, and Stamina. Only the intended token changes. Adjust damage manually for a quality and confirm the amount is applied and recorded.
+- [x] D3. Enable Spellbook on owned equipment. Cast from its item sheet and inventory; Mind/modifier and tier effects are correct. Apply expertise before resolving consequences: the reminder follows the new tier. Casting does not automatically consume UD; the separate UD roll works.
+- [x] D4. Deal overflow damage to a Crow, a Human, and an Animal. First available slots receive wounds up to their respective capacity. Relocating wounds changes occupied-slot speed penalties; all slots wounded means death. An ordinary monster without wound support is defeated at zero Stamina.
+- [x] D5. Check a companion with more than 10 configured slots: wounds beyond slot 10 can be marked and cleared. Wound controls and inventory highlighting agree.
 
 Candidate / results / issue IDs:
+
+D3 - We're not using the same radio buttons for banes as we are for attacks.
+D3 - Rolling a tier 1 result when casting a spell should call for a chaos roll - 1d6, with backlash happening on 1 or 2. Backlash automatically happens on a crit fail.
+D5 - NPC wounds do not work in the same way as PC wounds do. This is probably okay, but worth noting on as a to-do for later releases. The wound list is actually quite nice as a short hand! And we might want to adapt that for PCs, in addition to their normal backpack wounds.
+
 
 ### E. Loot and explore
 
-- [ ] E1. Drop an owned item onto the map, then pick it up via its icon onto a sheet and onto an owned token. There is exactly one copy throughout. Cancel a pickup over empty map space: the original remains.
-- [ ] E2. Transfer equipment through NPC/container tokens. Taking the final loose item removes its token; an empty chest remains. GM Shift-drag repositions loose loot and double-click opens it.
-- [ ] E3. Start/pause the hourglass as GM. The player sees the same timing. Background/reload a running client: it catches up. Changing EN does not reset time; Reset pauses at the configured duration.
-- [ ] E4. Expiry stops at zero. End Turn posts one encounter check and advances to a fresh paused turn. Miasma resistance shows the appropriate consequence; expertise updates available actions; cruelty gain/purge persists.
+- [x] E1. Drop an owned item onto the map, then pick it up via its icon onto a sheet and onto an owned token. There is exactly one copy throughout. Cancel a pickup over empty map space: the original remains.
+- [x] E2. Transfer equipment through NPC/container tokens. Taking the final loose item removes its token; an empty chest remains. GM Shift-drag repositions loose loot and double-click opens it.
+- [FAIL] E3. Click the 'Dump Backpack' button. This should move all items in the backpack to the map around the PC token.
+- [x] E4. Start/pause the hourglass as GM. The player sees the same timing. Background/reload a running client: it catches up. Changing EN does not reset time; Reset pauses at the configured duration.
+- [x] E5. Expiry stops at zero. End Turn posts one encounter check and advances to a fresh paused turn.
+- [ ] E6. Miasma resistance shows the appropriate consequence; expertise updates available actions; cruelty gain/purge persists.
 
 Candidate / results / issue IDs:
+E3 - Does not work for players, works fine as the GM. Apparently this button relies on the 'create token' permission. Error: foundry.mjs:145485 User Player2 lacks permission to create Token [DKk9TUf9GrzHDFo7] in parent Scene [8okol4T9niT290p5]
+
+E6 - Miasma roll only has double bane and double edge, and standard rolls. No single bane or double edge.
+
 
 ## Pass 2 — Targeted failure and permission checks
 
 These protect shared state and possessions. They are intentionally separate from normal play.
 
-- [ ] F1. Fill an inventory, then attempt a pickup and a rearrangement that cannot fit displaced gear. Both fail without lost, duplicated, or hidden items. An incompatible/full stack does not consume its source.
-- [ ] F2. Two players compete for one loose item: only one receives it. Repeat with container coins (501 gc becomes 250 + 250 + 1). Insufficient capacity leaves the container balance intact.
-- [ ] F3. Locked containers and out-of-reach interactions reject transfers. An unowned destination cannot be changed without permission. With no GM connected, transfers that require one fail clearly without moving anything.
+- [x] F1. Fill an inventory, then attempt a pickup and a rearrangement that cannot fit displaced gear. Both fail without lost, duplicated, or hidden items.
+- [x] F2. Two players compete for one loose item: only one receives it. Repeat with container coins (501 gc becomes 250 + 250 + 1). Insufficient capacity leaves the container balance intact.
+- [x] F3. Locked containers and out-of-reach interactions reject transfers. An unowned destination cannot be changed without permission. With no GM connected, transfers that require one fail clearly without moving anything.
 - [ ] F4. Try applying the same hit twice, including manually adjusted damage. Only one application occurs. Competing expertise clicks spend one use. Reloaded chat retains the applied result.
 - [ ] F5. Change defenses while damage allocation is open, then separately upgrade the roll while allocation is open. Each stale allocation is rejected; reopening uses the current data.
 - [ ] F6. Change scenes before applying a saved targeted attack: the original token receives it. Delete that token: the action fails without changing its sibling or base actor. A player cannot damage an unowned actor; GM can.
 - [ ] F7. Double-click End Turn: one check and one advance. Repeat a cruelty action: it applies once. If two GMs will be supported, verify only the active GM persists shared timer changes.
 - [ ] F8. Missing generated creator data gives an actionable error, with no partial Crow created. Failed PDF preflight leaves existing generated content intact. Record the files deliberately withheld in the test copy.
 
-- [ ] F9. Follow the README permissions setup using a Player role with Create Actors enabled and Create Items/Create Tokens disabled. Create a Crow with a pet, manage its equipment, and drop/pick up loot with a GM connected and only Observer access to the loot. Disable Create Actors: creator preview remains available through Settings, but finishing is blocked. Verify direct transfers to an unowned Crow fail, while shared-loot handoff works.
-
 Candidate / results / issue IDs:
+
+F3 - We need to remove the roll buttons on locked containers. This isn't something to be automated, as there are more than two ways into a container, and to present options is to limit them.
 
 ### Existing tester world — run on a copy
 
@@ -138,3 +153,7 @@ Attach console errors or screenshots where useful. A fixed issue remains **await
 - Public installation check (R7), after publishing:
 
 Ready means passes 1–3 are accounted for, no blockers remain, and any untested optional/platform checks or accepted minor issues are recorded. R7 follows publication. Freeze new features during this pass; reopen only affected checks for subsequent fixes.
+
+- [ ] Trait belt slots: configure a trait with 2 extra slots and a restriction, add it to a Crow, and verify six slots labelled with its source and restriction. Reopen both sheets. Add a second grant and check cumulative slots. Move a two-slot item across slots 4-5 and into 5-6. Editing or deleting a grant while affected slots are occupied must be refused; empty them and retry. Ordinary traits leave the four base slots unchanged.
+
+- [ ] Start Here: a GM who has not dismissed the guide sees it on world entry. Closing it prevents the next automatic opening for that user/world. Reopen via Configure Settings and from the importer. Players can read it but have no import button. Verify links, scrolling, and Windows/Linux steps. Test a fresh Windows build with no default pdfs folder: the prompt must allow a custom extracted packet path.

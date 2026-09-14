@@ -1,205 +1,214 @@
 # Crows (Unofficial) for Foundry VTT
 
-An unofficial Foundry Virtual Tabletop system for **Crows**, the survival-horror dungeon-crawling RPG by MCDM Productions, built against the public playtest.
+Greetings, Crows and Refs! This is an unofficial Foundry system for **Crows**, MCDM's survival-horror dungeon crawler. It was built to make running the playtest easier, especially all that item management. :)
 
-**This system ships with no game content.** No item cards, traits, spells, monsters, or art are included. Everything comes from the playtest packet you download from MCDM yourself. A set of Python tools in `tools/` reads those PDFs and generates the compendium data locally, and the system imports it into your world.
+**Foundry 14 is required.** You'll need your own MCDM playtest packet to build the item, trait, and bestiary compendiums. Those compendiums and the PDF artwork aren't bundled with the system. Sheet labels, some rule reminders, and a few fixed tables are included; this isn't a replacement for the books.
 
 Crows is © MCDM Productions LLC. This project is not affiliated with or endorsed by MCDM.
 
-## What the system does
+## Start here
 
-- Crow (player character) sheets with the slot-based inventory (hands, belt, numbered backpack, magic item slots), wounds that occupy backpack slots, speed penalties, expertise use pools, Miasma and cruelty tracking.
-- A four-step character creator with background and gold rolls, characteristic choices, starting kits and traits, NPC connections, and linked starting pets.
-- The 2d10 tiered test with edges, banes, double edges and banes, crits and dooms, and post-roll expertise upgrades from chat.
-- Weapon attacks with tier damage, targeted damage application, and an armor defense allocation dialog.
-- Usage dice rolling on equipment and spellbooks.
-- Monster sheets with attack items and features, plus a loot container actor type and canvas ground loot.
-- A synchronized real-time Dungeon Turn hourglass with encounter checks and greed bonus tracking.
+Install through Foundry's **Game Systems → Install System** using this manifest URL:
+
+```text
+https://raw.githubusercontent.com/pirsqed/fvtt-crows-system/main/system.json
+```
+
+Create a world using **Crows (Unofficial)** and join as the GM. The **Start Here** guide opens on your first visit. Reopen it anytime through **Settings → Configure Settings → Crows (Unofficial) → Start Here**. It walks through Python, the PDF folder, and importing. Players can read it too; only the Ref or host needs to build and import content.
+
+- [Importing the playtest content](#importing-the-playtest-content)
+- [Player permissions and loot setup](#gm-setup-player-permissions)
+- [Creating a Crow](#creating-a-crow)
+- [Playing the playtest: automated and manual steps](MANUAL-PLAY.md)
+- [Purses, ammunition, and usage dice](SUPPLIES.md)
+- [Villages and shared inventory](#villages)
+
+## What Foundry handles
+
+The system helps with rolls, item movement, and resource tracking. It doesn't enforce every rule. **Most changes happen when you click the relevant button**, rather than automatically as time passes.
+
+| Feature            | What the system does                                                                                                    | What you handle at the table                                                                                                                                                                                                                               |
+| --------------------| -------------------------------------------------------------------------------------------------------------------------| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Character creation | Builds a new Crow, starting kit, expertise pools, purse, and any starting pets.                                         | Ref-approved choices, checking the loadout, later advancement, and conditional trait benefits.                                                                                                                                                             |
+| Inventory          | Places items in slots, checks space, moves equipment between owned inventories, and supports map pickups.               | When moving an item is allowed, retrieval decisions, and item-specific restrictions. Most item qualities (like Cumbersome) are not yet automated. You'll need to swap that item from 1 to 2 slots depending on where it's at :)                            |
+| Traits             | Stores descriptions                                                                                                     | Purchases, prerequisites, XP spending, and other trait effects. There is an option to add a belt slot, but this will have to be manually done for now.                                                                                                     |
+| Rolls and attacks  | Rolls 2d10, resolves the chosen circumstance, shows tiers/crit/doom, and offers damage or expertise options in chat.    | Choosing circumstances and relevant expertise; weapon qualities, reach, targets, conditions, and special effects.                                                                                                                                          |
+| Damage and wounds  | Applies the allocation you confirm to AD, Stamina, and supported wound slots; calculates wound-related speed penalties. | Reviewing the allocation, special damage rules, healing, and moving wounds. Since wounds just fill from the first slot, you'll need to go back and put them where you want them after damage is dealt! (This is on the short list of things to add/fix :)) |
+| Spellcasting       | Rolls Mind, shows the configured tier text, and updates reminders after expertise.                                      | Spell effects, chaos/backlash rolls, usage checks, duration, and trait exceptions.                                                                                                                                                                         |
+| Dungeon Turns      | Runs a shared timer; End Turn rolls an encounter check and advances the counter.                                        | Encounters, UD rolls, condition removal, and setting item greed bonuses.                                                                                                                                                                                   |
+| Villages           | Keeps records and shared loot, displays sale percentage, rolls events, and copies custom crypt boons.                   | Costs, services, time, event results, boon eligibility, and boon effects.                                                                                                                                                                                  |
+
+See [Playing the playtest](MANUAL-PLAY.md) for the details. If a rule isn't explicitly handled, resolve it with your Ref and update the sheet yourself.
 
 ## Importing the playtest content
 
-You need Python 3.10 or newer and the playtest packet from MCDM (the books, the Inventory Cards folder, and optionally the Monster Illustrations folder), extracted somewhere on disk. Keep one copy of each PDF in that folder; subfolders are fine. The default is `pdfs/` inside the system folder (create it if needed). `--packet` and `CROWS_PACKET` override this location. Press Enter at the launcher prompt to use the default. This folder is ignored by Git and excluded from releases.
+There are two parts: **build files from your PDFs outside Foundry**, then **import those files inside your world**. I know this is a little complicated, and I am planning on better tools in the future. This is also the most fragile part of the system, as changes to the PDFs are quite likely to break my importing scripts! So, check for updates on Github if there are new PDFs.
 
-**Windows:** double-click **Build Playtest Content.cmd** in the system folder. Paste the extracted packet folder when prompted. On the first run it creates a local Python environment and installs the required libraries; this needs internet access. It then runs every exporter for you. The window stays open so you can read the result.
+### 1. Install Python and unpack the packet
 
-**Linux / remote server (SSH):** use the shell launcher. Python 3.10 or newer with `venv` support must be installed. First run:
+Install **Python 3.10 or newer** on the computer where you'll run the builder. The [Python download page](https://www.python.org/downloads/) has the installers. Linux also needs Python's `venv` support. The first build downloads helper libraries, so you'll need an internet connection for setup.
+
+Find Foundry's **User Data folder**, then open `Data/systems/fvtt-crows-system`. On Foundry's Setup screen, **Application Configuration** shows the User Data Path. A hosting service may provide its own file manager.
+
+Extract the playtest ZIP into the included **pdfs** folder. Its **ADD_PDFS_HERE.txt** note has the short instructions. Keep the original filenames and subfolders, including Inventory Cards. The builder needs the Characters book, Ref book, Inventory cards, Profession cards, and POI cards. Keep one copy of each PDF; store older packets elsewhere.
+
+Want to keep the packet somewhere else? On Windows, open its folder in File Explorer, press **Ctrl+L**, and copy the full path. Paste that into the builder's prompt. Choose the extracted folder, not the ZIP or an individual PDF. Quotes from **Copy as path** are okay.
+
+### 2. Run the builder
+
+**Windows:** double-click **build_playtest_content.cmd** in the system folder. Press Enter to use `pdfs`, or paste another packet folder. The launcher installs the helper libraries on its first run and leaves the window open so you can read the result.
+
+**Linux / macOS:** open a terminal in the system folder and run:
 
 ```sh
-sh build-playtest-content.sh --setup --packet "/srv/crows/playtest packet"
+sh build_playtest_content.sh --setup --interactive
 ```
 
-Later builds reuse the local environment without reinstalling dependencies:
+Press Enter for `pdfs`, or enter your packet folder. On later runs, you can omit `--setup`.
+
+For a server or an explicit path:
 
 ```sh
-sh build-playtest-content.sh --packet "/srv/crows/playtest packet"
+sh build_playtest_content.sh --setup --packet "/srv/crows/playtest packet"
 ```
 
-The launcher accepts the same options as the Python builder, including `--check` and `--help`. It works from another directory when invoked with its full path, preserves relative packet paths relative to your current directory, and passes failures back as a nonzero exit status. With no arguments it prompts only when attached to a terminal; unattended runs can use `--packet` or `CROWS_PACKET`. Setup downloads dependencies; regular builds need no network access.
+Replace that example with your actual path. A folder on your desktop isn't a folder on your server! If your host can't run Python, build using a local copy of this system, then upload **packs/*.json** and **assets/monsters/** to the matching locations in the hosted system. Don't upload `tools/.venv`.
 
-Run it as the account that owns the Foundry system files, with write access to this system folder. The packet path is on the remote server, not your desktop. If the server cannot run Python, build on your own machine and upload the generated `packs/*.json` and `assets/monsters/` files to the same locations in the server's system folder. Then use the Foundry import menu. Do not copy `tools/.venv` between machines.
+The build prints progress and saves extraction output to `tools/out/build.log`. If it stops, read the error before moving on. Missing PDFs usually mean the ZIP wasn't extracted, the folder is wrong, or a required part of the packet is missing.
 
-**Windows, macOS, or Linux command line:** run the following from the system folder (use `python3` if that is your Python command):
+### 3. Import in Foundry
 
-```bash
+Join as the active GM and open **Settings → Configure Settings → Crows (Unofficial) → Import Playtest Content**. Click **Re-check files**, then **Import everything found**.
+
+You'll get four world compendiums:
+
+- **Crows Equipment & Spellbooks**
+- **Crows Dungeon Loot & Relics**
+- **Crows Traits**
+- **Crows Bestiary**
+
+Backgrounds and NPC connections are also generated, for the character creator. They aren't separate compendiums.
+
+### Rebuilding and updating
+
+Re-importing adds missing entries and updates unedited entries tracked by this importer. It preserves local edits and older, untracked entries for review. It doesn't delete entries or replace actors and items you've already copied into your world. Existing bestiary actors are also preserved for review.
+
+Unlock the destination compendiums before importing. Missing generated files are skipped; invalid files stop validation before importing begins. If a later write fails, earlier changes can remain. Read the report before retrying.
+
+Keep your original packet and back up your Foundry data before updating. The installed system folder can be replaced by an update, so you may need to rebuild the generated files. Only `pdfs/ADD_PDFS_HERE.txt` ships with the system; your extracted packet is ignored by Git and excluded from release ZIPs.
+
+<details>
+<summary>Extra build options and developer tools</summary>
+
+The shell launcher accepts `--check` to check the packet and dependencies without exporting, `--interactive` to ask for the path, and `--help` for the full list. Use `--setup` when dependencies need installing. `--packet` overrides `CROWS_PACKET`; otherwise the default is the system's `pdfs` folder.
+
+You can also call the builder directly from the system folder:
+
+```sh
 python tools/build_all.py --setup --packet "C:/path/to/Crows Playtest"
 ```
 
-`--setup` installs dependencies in `tools/.venv`, leaving your global Python packages alone. On Windows you can reuse the double-click launcher for later builds. To rebuild without dependency setup from a terminal, use `tools/.venv/Scripts/python.exe` on Windows or `tools/.venv/bin/python` on macOS/Linux in place of `python`, and omit `--setup`.
+Use `python3` if that's your Python command. Setup creates `tools/.venv`; later direct runs can use `tools/.venv/Scripts/python.exe` on Windows or `tools/.venv/bin/python` on Linux/macOS.
 
-Add `--check` to check PDF discovery and dependencies without exporting content. `--interactive` prompts for the packet folder, and `--help` lists the options. Individual exporters remain available for development.
+The builder runs the card, background, pack, trait, and monster exporters. Failed extraction leaves installed generated content alone. Installation replaces files individually; fix an installation error and rerun if it stops partway through. These extractors depend on the current playtest layout, so a future packet may need updated tools.
 
-The builder runs all five steps in order, shows progress and entry counts, and saves a log to `tools/out/build.log`. It checks all required PDFs before starting and validates the generated JSON before installing it into `packs/` and `assets/`. Failed extraction leaves the installed content alone. Installation replaces files individually; if an installation fails because of permissions or disk space, fix the error and rerun the build.
+Script macros can use `game.crows.importPlaytestItems()`, or the individual `importEquipment()`, `importDungeonLoot()`, `importTraits()`, and `importMonsters()` helpers on `game.crows`.
 
-Then, in Foundry as the active GM, open **Settings → System Settings → Import Playtest Content**. Alternatively, run this from a script macro or the console:
+Maintainers can check bundled icon paths with `python tools/check_icons.py "C:/Program Files/Foundry Virtual Tabletop/resources/app/public"` and build the release with `python tools/build_release.py`. The release builder includes the PDF setup note but excludes PDF files, ZIP archives, generated packs, and extracted monster art.
 
-```js
-game.crows.importPlaytestItems()
-```
-
-That creates four world compendiums: **Crows Equipment & Spellbooks**, **Crows Dungeon Loot & Relics**, **Crows Trait Trees**, and **Crows Bestiary**. Re-running the import adds missing entries and updates unedited items previously tracked by this importer, preserving their document IDs. It never empties a compendium or deletes entries removed from a generated file.
-
-Entries from the older importer, locally edited entries, and changed bestiary actors are preserved and listed for review. Actor inventories are not automatically replaced. Duplicate an entry before making a manual replacement if you want to retain your changes. Importing does not alter actors or items already copied into your world.
-
-The Settings importer validates all selected files before writing, skips files that have not been built, and reports additions, updates, unchanged entries, and preserved entries. Malformed files stop the import before any writes. A write failure stops further packs and reports completed work; the operation is not a transaction, so completed changes remain. Run imports as the active GM and unlock destination compendiums first.
-
-Individual imports are also available: `importEquipment()`, `importDungeonLoot()`, `importTraits()`, and `importMonsters()` on `game.crows`.
-
-### What the tools extract
-
-| Tool | Source | Produces |
-|---|---|---|
-| `extract_cards.py` + `build_packs.py` | Inventory Cards PDFs | equipment, dungeon loot, and a report comparing kits with the Characters book |
-| `extract_traits.py` | Characters book | all trait trees, with prerequisites derived from the diagram connectors |
-| `extract_backgrounds.py` | Characters book | starting characteristics, Stamina, trait, expertises, kits per background, and NPC connection benefits |
-| `extract_monsters.py` | Ref book | every stat block as an actor with attacks and features, plus downscaled monster art |
-
-The tools use the PDFs' own structure (table borders, fonts, filled boxes) rather than guessing from raw text, so they are specific to the current playtest layout. Expect to adjust them when a new packet changes the layout.
-
-`tools/data/icons.json` maps item and trait names to Foundry's bundled icons and is the one piece of hand-curated data; it contains no game text.
-
-Maintainers can verify those paths and runtime core icons against a Foundry installation with `python tools/check_icons.py "C:/Program Files/Foundry Virtual Tabletop/resources/app/public"` (use the corresponding installation path on Linux).
+</details>
 
 ## GM setup: player permissions
 
-For Foundry 14, open **User Management** from Settings and use **Configure User Permissions**. Grant permissions to the role your players actually use (for example, Player); the role name alone does not guarantee a particular permission. Document ownership is separate: use an Actor's **Configure Ownership** menu to grant a player **Owner** access to their Crow and any companions they control.
+Give each player **Owner** access to their Crow and any companions they control. Use the actor's **Configure Ownership** menu. Foundry role permissions are separate: open **User Management → Configure User Permissions** to change them.
 
-### Required access by action
-
-| Action | Player access / setup required |
+| To do this | Access needed |
 | --- | --- |
-| Finish **Create a Crow**, including starting pets | **Create Actors** for the player's role. Generated content must already be built. The creator grants its user ownership of the resulting Crow and pets. |
-| Preview the creator without Create Actors | Open it through **Settings → System Settings → Character Creator**. Finishing is blocked; the GM can create the Crow and assign ownership of both Crow and pets afterward. |
-| Edit a character, manage its inventory, or cast from its equipment | **Owner** access to that actor. **Create Items** is not required for equipment embedded in an owned actor. |
-| Drop owned equipment onto empty map space | Own the source actor, have a scene open, and keep a **GM connected**. The GM's client creates the ground-loot token; the player does **not** need Create Tokens, Create Actors, or Create Items for this action. |
-| Pick up ground loot or take container items/coins | **Observer** access to the unlocked loot actor and **Owner** access to the receiving Crow/NPC. Normally requires a connected GM because players do not own the loot actor. Inventory space and the loot reach setting also apply. |
-| Put equipment into a container | Own the source actor; have **Observer** access to the unlocked destination loot actor. Keep a GM connected for shared containers; reach and capacity rules still apply. |
-| Transfer directly to another Crow or NPC | The acting player must own both non-loot actors. A connected GM does not waive that restriction. Ask the GM to transfer it, or use unlocked shared loot so the recipient can pick it up. |
-| Place new loot from a world Item or compendium directly onto the map or a map token | **GM only** through the Crows map-drop workflow. This differs from dropping equipment already carried by an owned actor. |
-| Edit a village or automatically add a new Crow's connection to it | **Owner** access to the village. A visible village can be selected as home without ownership; the home choice is saved and the Ref can add the membership/connection afterward. |
-| Apply expertise or damage from chat | Own the actor being changed and keep a GM connected. Players cannot apply damage to an unowned enemy; the GM applies it. |
-| Import generated content or control the shared Dungeon Turn timer | The **active GM** handles imports and shared timer changes. Import destinations must be unlocked. |
+| Finish **Create a Crow**, including pets | **Create Actors** permission. Without it, players can preview through Settings and ask the GM to create the Crow. |
+| Edit an owned Crow, its equipment, or its supply counts | **Owner** on that actor. No separate Create Items permission is needed for embedded equipment. |
+| Drop carried equipment onto the map | Own the source actor, have a scene open, and keep a GM logged in. Players don't need Create Tokens for this action. |
+| Pick up map loot | Own the receiving character and have its token within **Loot pickup distance** in the same scene. Keep a GM logged in. |
+| Transfer directly between characters | Own both actors, or ask the GM. Otherwise, drop the item on the map for the other player to pick up. |
+| Deposit or withdraw village equipment | Own the village and the other actor involved. Village ownership also allows editing its records. |
+| Apply damage from chat | Own the target, or be the GM. Players don't get control of an enemy just by targeting it. |
+| Apply expertise from chat | Own the rolling Crow and keep a GM logged in. Agree on the expertise with the Ref. |
+| Read a village and claim a custom crypt boon | Be able to view the village and own the receiving Crow. Editing the grave itself requires village ownership. |
+| Import content or control the shared timer | The active GM. |
 
-**Create Tokens** is only needed if you want players to place their own character tokens through Foundry's normal actor-to-scene workflow; the GM can place those instead. It is not needed to drag a Crows loose-item icon into inventory. **Create Items** governs standalone world Items, not normal equipment management on an owned actor. Players do not need a GM role for character creation or ordinary looting.
-
-The creator reads generated packs directly, so it does not require access to the imported compendiums. If players should browse or drag entries from those compendiums themselves, give them appropriate viewing access to those packs as well.
+**Create Tokens** is only needed if players should place their own character tokens through Foundry's normal tools. **Create Items** controls standalone world Items. Give players viewing access to compendiums if they should browse or drag from them; the character creator reads the generated files directly.
 
 ### Loot setup and troubleshooting
 
-- New loot actors default to **Observer** access for players; GM startup also repairs older loot actors whose default access is lower. Use the container's **Locked** state to restrict normal taking/stowing, and hide its token when it should not appear on the map. Players do not need Owner access to shared loot.
-- For **Take**, **Take All**, and **Take Coins**, select the owned character token that should receive the loot. With no owned token selected, the system falls back to the user's assigned character. Assign that character and grant ownership separately. Dragging onto a sheet or token specifies the destination directly.
-- **Loot interaction reach (squares)** defaults to 1; 0 disables the distance check. For normal map play, place the character and loot on the same scene and move the character next to the loot. Reach checks use active character tokens and do not enforce distance when there is no applicable token to measure. GMs bypass reach checks.
-- Keep a GM logged into the world while players drop or move shared loot. Merely running the Foundry server is not enough. Transfers/stack merges between actors the player owns can work without a GM; ground drops still require one.
-- If the system warns that its loot socket is disabled, restart the **Foundry server**, then reconnect the GM and players. Browser refresh alone does not reload the system manifest.
-- If a pickup fails, check the receiving actor's ownership, loot Observer access, container lock, selected/assigned character, reach, and available slots before granting broader permissions.
+Set **Loot pickup distance** in the Crows settings. It uses scene units, measures between token centers, and includes elevation. Its initial value comes from the system's grid distance; adjust it to suit your scenes. GMs bypass distance checks.
 
-## Creating a crow
+For a pickup button, select the owned character token that should receive the item. With no owned token selected, the system tries the user's assigned character. Dragging onto a token or sheet specifies the recipient directly. Hide loot tokens that players shouldn't see. There is no lock or reveal-contents control in this release.
 
-Build the playtest content first (rebuild older exports to add `packs/connections.json`). In the **Actors** directory, click **Create a Crow**, or use **Settings → System Settings → Character Creator**. A script macro can also open it:
+Keep a GM **logged into the world** for map drops, shared pickups, and chat actions. Running the server alone isn't enough. Transfers between actors the player owns can work without a GM. If a request times out, check the inventories before trying again.
 
-```js
-game.crows.createCrow()
-```
+If a pickup fails, check ownership, distance, the selected/assigned character, and free inventory space. A socket warning calls for restarting the Foundry server and reconnecting, not just refreshing a browser.
 
-The creator reads the local generated packs directly; importing compendiums is not required. It shows an actionable error if a required file or grant is missing. Players need Foundry's **Create Actors** permission to finish; without it they can preview through Settings and ask the GM to create their crow.
+## Creating a Crow
 
-Background rolls use Foundry's standard Roll chat messages: `1d6 * 10 + 1d6` displays the d66 result and the selected background. Starting gold also posts a standard roll, including any background gold bonus in the formula and total. Both use Foundry's current chat visibility setting. Manual entries do not post a roll.
+After building the content, click **Create a Crow** in the Actors directory, or open **Character Creator** in the Crows settings. A macro can use `game.crows.createCrow()` too. Importing compendiums isn't required for the wizard; the generated files are. Players will need the 'Create Actors' permission to create their own crows through the creator.
 
-Roll the two background dice separately, assign the permitted characteristics, name your crow and feature, roll or enter starting gold, and add your village connection. Background selection and rerolls are available for Ref-approved choices or physical dice. The review shows every starting item and its assigned location before creating a new actor. Going back keeps your choices. Existing actors are never replaced.
+Choose or roll a background, assign characteristics, add your name and feature, roll or enter starting gold, and record your NPC connection. Background and gold rolls post to chat using Foundry's current roll visibility. Manual choices don't post rolls. The last step previews your equipment and its locations before saving.
 
-The creator preserves kit quantities, gives lore books their individual subjects, adds the starting trait, and fills all starting expertise pools. Pets become separately owned actors linked from the crow's biography. Connection details are saved in biography and creation flags. Choose an optional home village on the NPC connection step: if you own that village, the creator also adds the Crow and connection to its sheet. Otherwise the home choice is saved and the Ref can add the Crow from the village sheet. A starting Reputation trait also asks for its merchant choice.
+The creator adds the starting trait and expertise uses, keeps kit quantities and lore-book subjects, and creates separately owned pets with links from the Crow. **Starting gold, including the background bonus, goes into one purse.** Quivers and bolt cases use their starting supply counts. A starting Reputation trait asks for its merchant choice.
 
-Equipment is placed into available hands, belt, and backpack slots. Overflow remains in home storage and is called out before creation. Cumbersome weapons start stowed because the current sheet represents hand occupancy by slot count. Review your loadout on the sheet before adventuring. Gold uses the system's existing separate loose-coin stack, with the empty purse retained; purse capacity rules are not automated by the creator.
+Choose an optional home village on the connection step. If you own it, the creator also adds the Crow and connection there. Otherwise it saves the home choice for the Ref to finish later.
 
-This version creates new crows at **0 XP**. Replacement-character advancement, retirement bonuses, shopping, and village construction are not part of the wizard. Trait and connection descriptions are references; conditional benefits are not automatically applied. If a save fails or returns an incomplete result, the creator blocks another save and displays a reference ID. Check the Actors directory for the crow and pets before opening a fresh creator; a server failure may have saved some documents.
+Review your loadout: cumbersome weapons start stowed. The preview flags overflow as **Home storage**; this remains on the new actor and isn't automatically deposited in a village. The current Crow sheet has no general home-storage tray, so resolve overflow with the Ref before play.
 
-## Villages
-
-Create an Actor with type **village** in the Actors directory. Each village has its own institutions, NPCs, quests, notes, prosperity, treasury, and cycle/day counters. No Crows are required. Ownership controls who can view or edit the sheet; notes are shared with anyone who can view it.
-
-Use **Add starting institutions** for the five standard level-1 institutions, then add the group's chosen sixth institution. This adds only missing types. Institutions can link to village NPCs as stewards and track services, current/maximum levels, and a pending level with its availability cycle. Apply due changes manually. Costs, prosperity adjustments, and cycle advancement remain the Ref's responsibility. Sale value updates from prosperity. **Roll village event** sends a standard Foundry roll to chat; consult the Village Event table and record the outcome in event notes.
-
-Add NPCs independently, optionally linking their actor sheets. Quests track their issuer, status, reward, deadline, and notes. These records are embedded in their village, so editing one village does not alter another.
-
-Use **Add Crow** or drag a Crow from the Actors directory to record them. Each Crow has one optional home village; **Set as home** changes that choice if you own the Crow. The character creator also offers visible villages as home choices. A home-village membership copies the Crow's NPC connection; other memberships do not. Copied connections can be edited independently in the village. Re-adding a Crow preserves existing edits. Changing home keeps old village records for the Ref to review or remove. Missing linked actors leave their records intact.
+New Crows start at **0 XP**. Replacement-character advancement, retirement bonuses, purchases, and conditional trait or connection benefits are manual. If creation reports an incomplete save, check the Actors directory for the Crow and pets before starting again; some may already have been saved.
 
 ## Inventory and gold
 
-The Crow's gc display totals equipment marked **Gold coins**. The adjacent + creates a gold stack: set its quantity on the item sheet, up to 250 gc in one slot. Gold moves, drops, and occupies wounded backpack slots like other equipment. Existing Crow coin balances convert on GM startup; if there is not enough room, the balance stays visible as pending. Free slots and reload to finish conversion.
+Drag item cards between hands, belt, backpack, and magic-item slots. Multi-slot equipment reserves consecutive slots. A full inventory refuses pickups or moves that can't make room for displaced gear.
 
-Quantity controls appear on stackable items even at quantity 1. Drag an owned stack onto matching equipment to combine up to the destination's limit; any remainder stays at the source. Different properties, including greed and usage dice, prevent merging. A full inventory rejects new pickups and moves that cannot place displaced gear. Use map loot or container actors for external storage.
+Merging item stacks is not currently supported. Supply holders such as purses and quivers don't stack.
 
-Depleted supplies remain visible on inventory cards. Use the restore control after completing the required rest or refill; it restores the item's maximum usage dice.
+The **gc** display totals loose Gold Coins and gold held in the Crow's supply items. The adjacent **+** creates a loose stack; it doesn't fill a purse. Adjust purse contents on its card or item sheet. Moving money between purses, loose stacks, and the village treasury is manual. See [Supply items](SUPPLIES.md).
 
-Known invalid core icon paths from older exports are corrected when importing. Exact matches on world items and actor inventories are repaired on active-GM startup. Re-import to update unedited compendium entries; locally edited compendium entries remain protected.
+### Extra belt slots
 
-## Moving loot on the map
+On a trait's **Trait Details**, set **Extra belt slots** and **Slot restrictions**, such as `1` and `Alchemy items only`. Owning that trait adds labelled belt slots automatically; multiple grants add together. You configure the fields manually, and the restriction is a reminder rather than an enforced item filter. Other trait effects aren't automatically applied.
 
-Drag a loose item's map icon onto an open inventory sheet or onto a Crow, NPC, or
-container token to transfer it. Dropping onto empty map space cancels the pickup.
-Items dragged from inventory sheets onto empty space still create ground loot.
-Dropping onto a token uses its inventory; sheet slots allow more precise placement.
+Move equipment out of the affected slots and later belt slots before changing a trait's slot count or deleting it. This prevents occupied slots from disappearing or getting a different trait's label.
 
-Players can pick up unlocked loot into actors they own and put items into unlocked
-containers, subject to the loot reach setting. A GM must be connected for transfers
-involving inventories the player does not own. GMs can also give items to NPCs.
+### Moving loot on the map
 
-Direct icon dragging applies to generic loot containing one equipment item and no
-coins. Chests, corpses, and piles with multiple items retain their container sheets.
-Double-click a loose item to open its sheet; as GM, hold Shift to reposition its
-underlying token normally.
+Drag carried equipment onto empty map space to create a scene item. Drag its icon onto a character token or sheet to pick it up. A sheet slot gives you a preferred destination; if it can't fit there, a transfer can use another free slot. Double-clicking scene loot opens its public item view and pickup button.
 
-## Status
+Quantities and supply counts travel with the item. Directory/compendium drops create copies; transfers from actor inventories move the owned item. Only GMs can place new directory/compendium items on the map through this workflow.
 
-### Dungeon Turn hourglass
+Prototype token settings are respected: linked placements share an item, while unlinked placements have independent copies. It's my intention to add containers in future releases. (Once I figure out how I want that to work... hah!)
 
-The running hourglass follows a saved deadline using Foundry's synchronized server
-clock. It continues through background tabs, reloads, and disconnections; pause it
-before taking a break. Every client animates locally, and only the active GM changes
-the shared timer. Expiry stops at zero; End Turn still performs the encounter check
-and advances to a fresh, paused turn.
+## Villages
 
-If publishing a turn resolution fails, check chat before using Reset to clear its
-pending status. This prevents repeated encounter rolls after an uncertain write.
+Create a **village** actor. It keeps institutions, NPCs, quests, Crows, graves, shared inventory, prosperity, treasury, and cycle/day counters. Notes are shared with anyone who can view the village.
 
-### Chat actions
+**Add starting institutions** adds missing standard institution types at level 1. You'll need to add the group's extra choice manually. Record services, stewards, maximum levels, and pending upgrades. When a pending change is due, its **Apply** control sets the level; advancing the cycle doesn't apply it automatically (yet!). Construction costs, prosperity changes, services, and time remain manual.
 
-New attack, character-test, and Miasma-resistance cards save their roll context in
-message flags. Targets retain their scene and token identities; expertise uses the
-original damage outcomes and updates the card's consequences and actions together.
-Apply expertise before applying damage. Each attack can apply damage once per target.
+The sale percentage display follows prosperity. **Roll village event** rolls with the current prosperity, but the Ref consults the table and records what happens. Neither button handles purchases, sales, or treasury payments.
 
-Damage still opens the allocation dialog. If the roll or target changes before
-committing, reopen the dialog to get a fresh allocation. Multiplayer chat actions
-require a connected GM to serialize updates. The requester must own the actor being
-changed (or be a GM); rolling an attack does not grant control of its target.
+### Shared inventory
 
-Failed or interrupted writes remain marked pending or needing GM review to prevent
-duplicate changes. Check the actor and message before making a manual correction.
-Historical cards retain their text and damage buttons, but need a new roll to use
-the new expertise flow; their old damage buttons do not have replay protection.
+Use **Inventory → Add loot** for custom equipment, or drag equipment in from a Crow/compendium. Drag it back to an owned Crow to withdraw it. Compendium make copies; drops from another actor transfer that item. Storage has no enforced capacity or travel check. Stored coins stay items, separate from the treasury field.
 
-This is playtest software tracking a playtest game. Rules will change and so will this system. Issues and pull requests are welcome.
+### Crows and connections
 
-### At the table
+Use **Add Crow** or drag a Crow from the Actors directory. Each Crow can have one home village. **Set as home** changes it when you own the Crow; a home membership can copy the creator's NPC connection. Other memberships don't copy that connection automatically.
 
-See [Playing the playtest](MANUAL-PLAY.md) for spellcasting, XP, companion wounds, and the steps handled manually.
+Village records are independent copies. Editing one doesn't rewrite the Crow's biography or another village. Re-adding a Crow preserves existing records. Changing home keeps old memberships for the Ref to review; deleting a membership doesn't delete the actor.
+
+### Crypt boons
+
+Add a grave and enter its custom boon name, notes, and uses. **Claim boon** copies these to an owned Crow's **Lore & Notes → Crypt Boon**. Each Crow has one crypt boon; claiming another asks before replacing the existing name, notes, uses, and source.
+
+This is a recordkeeping feature. The Ref decides eligibility, timing, effects, and any limits from the rules. Claiming doesn't update the grave's holder/cycle tracking, spend its uses, check institution benefits, or change the Crow's statistics. Edit the grave and the Crow's remaining uses separately.
+
+## Getting help
+
+This is playtest software for a playtest game. If something goes wrong, [open an issue](https://github.com/pirsqed/fvtt-crows-system/issues) with your Foundry/system versions, the steps you took, and any error message. [Planned work](TODO.md) is listed separately from shipped features.
+
+Fortune, or death!

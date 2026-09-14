@@ -5,7 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
-LAUNCHER = Path(__file__).resolve().parents[1] / "build-playtest-content.sh"
+LAUNCHER = Path(__file__).resolve().parents[1] / "build_playtest_content.sh"
 SHELL = shutil.which("sh")
 if not SHELL and Path("C:/Program Files/Git/usr/bin/sh.exe").exists():
     SHELL = "C:/Program Files/Git/usr/bin/sh.exe"

@@ -3,7 +3,9 @@ packs/*.json
 assets/monsters/
 tools/out/
 tools/.venv/
-pdfs/
+# Ship only the setup note; extracted packets and ZIPs stay local.
+pdfs/*
+!pdfs/ADD_PDFS_HERE.txt
 
 __pycache__/
 *.pyc
