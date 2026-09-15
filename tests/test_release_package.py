@@ -10,17 +10,23 @@ from build_release import build_release, PDF_NOTE
 
 
 class ReleaseTests(unittest.TestCase):
-    def test_archive_ships_note_and_tools_but_no_local_packet_or_generated_content(self):
+    def test_archive_ships_runtime_and_docs_but_no_local_packet_or_old_tooling(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
-            keep = [PDF_NOTE, "system.json", "build_playtest_content.cmd", "build_playtest_content.sh",
-                    "templates/setup-guide.html", "tools/build_all.py", "tools/data/icons.json"]
+            keep = [PDF_NOTE, "system.json", "crows.mjs", "README.md", "MANUAL-PLAY.md",
+                    "SUPPLIES.md", "CHANGELOG.md", "LICENSE", "templates/setup-guide.html",
+                    "templates/pdf-importer.html", "styles/crows.css", "module/apps/pdf-importer.mjs"]
             exclude = ["pdfs/packet.zip", "pdfs/README-secret.pdf", "pdfs/Packet/Characters.PDF",
                        "pdfs/Packet/Inventory Cards/cards.pdf", "pdfs/README-from-packet.txt",
                        "packs/traits.json", "assets/monsters/crow.webp", "tools/out/build.log",
                        "tools/.venv/bin/python", "tools/__pycache__/common.pyc",
                        ".git/config", ".github/workflows/release.yml", "backup.PDF",
-                       "old-release.zip", "RELEASE-TEST-CHECKLIST.md"]
+                       "old-release.zip", "RELEASE-TEST-CHECKLIST.md",
+                       "LEGACY-IMPORT.md", "tools/build_all.py", "tools/data/icons.json",
+                       "build_playtest_content.cmd", "build_playtest_content.sh",
+                       "tools/pdfjs-prototype/extract.mjs", "tests/test_release_package.py",
+                       "docs/images/character-header.png", "docs/images/character-inventory.png",
+                       "docs/images/README.md"]
             for name in keep + exclude:
                 path = root / name
                 path.parent.mkdir(parents=True, exist_ok=True)

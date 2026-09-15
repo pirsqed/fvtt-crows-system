@@ -35,6 +35,19 @@ export class CrowsCharacterCreator extends FormApplication {
   }
 
   async loadContent() {
+    const provider = game.modules?.get("fvtt-crows-pdf-importer")?.api?.getCharacterContent;
+    const imported = provider ? await provider() : null;
+    if (imported) {
+      const { backgrounds, equipment, traits, connections, monsters } = imported;
+      if (!Array.isArray(connections) || connections.length !== 10
+        || connections.some(c => typeof c.name !== "string" || typeof c.description !== "string")
+        || !Array.isArray(equipment) || !equipment.length || !Array.isArray(traits) || !traits.length
+        || !Array.isArray(monsters)) throw new Error("Imported character-creation data is invalid. Re-import the packet.");
+      this.content = { backgrounds: validateBackgrounds(backgrounds), equipment: repairImportIcons(equipment),
+        traits: repairImportIcons(traits), connections, monsters };
+      this.readMonsters = async () => {};
+      return;
+    }
     const read = async name => {
       const response = await fetch(`systems/${CREATOR_SCOPE}/packs/${name}.json`, { cache: "no-store" });
       if (!response.ok) throw new Error(`Could not load ${name}.json. Run Build Playtest Content with your playtest packet, then Retry.`);

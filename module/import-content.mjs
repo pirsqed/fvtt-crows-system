@@ -86,7 +86,7 @@ export class CrowsContentImport {
     } finally { this.busy = false; }
   }
 
-  static async importPack(config, data, result, onProgress = () => { }) {
+  static async importPack(config, data, result, onProgress = () => { }, { forceOverwrite = false } = {}) {
     let pack = game.packs.get(`world.${config.name}`);
     if (pack && pack.documentName !== config.type) throw new Error("Existing compendium has the wrong document type.");
     if (pack?.locked) throw new Error("Compendium is locked. Unlock it before importing.");
@@ -99,14 +99,14 @@ export class CrowsContentImport {
       if (matches.length > 1) { result.preserved.push(`${raw.name} (ambiguous match)`); continue; }
       const old = matches[0];
       const meta = old?.getFlag(SCOPE, "importSource");
-      if (old && !meta) { result.preserved.push(`${raw.name} (existing untracked entry)`); continue; }
-      if (old && fingerprint(old.toObject()) !== meta.baseline) {
+      if (old && !meta && !forceOverwrite) { result.preserved.push(`${raw.name} (existing untracked entry)`); continue; }
+      if (old && !forceOverwrite && fingerprint(old.toObject()) !== meta.baseline) {
         result.preserved.push(`${raw.name} (locally edited)`); continue;
       }
       const source = fingerprint(raw);
-      if (old && meta.source === source) { result.unchanged++; continue; }
+      if (old && meta?.source === source && fingerprint(old.toObject()) === meta.baseline) { result.unchanged++; continue; }
       // Embedded-document replacement is deliberately not automatic: actor inventories may be linked externally.
-      if (old && config.type === "Actor") { result.preserved.push(`${raw.name} (updated source; review actor inventory)`); continue; }
+      if (old && config.type === "Actor" && !forceOverwrite) { result.preserved.push(`${raw.name} (updated source; review actor inventory)`); continue; }
       const payload = foundry.utils.deepClone(raw);
       delete payload._id;
       const metadata = { key, source, baseline: null };
@@ -115,7 +115,15 @@ export class CrowsContentImport {
       if (old) {
         // Existing IDs, folders, ownership and unrelated flags remain intact.
         delete payload.folder; delete payload.ownership;
-        doc = await old.update(payload);
+        if (config.type === "Actor" && forceOverwrite) {
+          const items = payload.items ?? [];
+          delete payload.items;
+          // Force mode explicitly replaces the imported actor's embedded inventory.
+          // Retain the parent Actor ID and its artwork, folder and ownership.
+          await old.deleteEmbeddedDocuments("Item", old.items.map(item => item.id));
+          doc = await old.update(payload);
+          await doc.createEmbeddedDocuments("Item", items.map(item => { const entry = foundry.utils.deepClone(item); delete entry._id; return entry; }));
+        } else doc = await old.update(payload);
         result.updated++;
       } else {
         [doc] = await pack.documentClass.createDocuments([payload], { pack: pack.collection });

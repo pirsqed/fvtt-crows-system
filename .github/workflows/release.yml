@@ -36,3 +36,4 @@ jobs:
             fvtt-crows-system.zip
             system.json
           generate_release_notes: true
+          prerelease: ${{ github.ref_name == 'v0.2.1' }}

@@ -1,17 +1,17 @@
 <form class="crows-importer-form flexcol" autocomplete="off">
   <header class="importer-intro">
-    <h2>Import your playtest content</h2>
+    <h2>Legacy generated-file import</h2>
     <p>Build the files from your own PDFs, then import them below. Re-imports preserve local edits and never delete entries.</p>
   </header>
   <details class="importer-setup">
     <summary>How to build the content</summary>
-    <p>First time? The setup guide walks through Python, finding your PDF folder, and hosting.</p>
+    <p>For the PDF-folder workflow, open the setup guide. The instructions below are for the legacy Python builder.</p>
     <button type="button" class="btn-setup-guide">Open Setup Guide</button>
     <ol>
       <li>Extract your playtest ZIP into the included <code>pdfs/</code> folder inside the system folder. Its <code>ADD_PDFS_HERE.txt</code> note has the short instructions.</li>
       <li>Windows: open <strong>build_playtest_content.cmd</strong>.<br>
         Linux: run <code>sh build_playtest_content.sh --setup --interactive</code> from the system folder.</li>
-      <li>Click <strong>Re-check files</strong>, then import. The setup guide also covers custom packet folders and remote servers.</li>
+      <li>Click <strong>Re-check files</strong>, then import. See LEGACY-IMPORT.md in the system folder for the legacy builder instructions.</li>
     </ol>
     <p>Only unedited, tracked entries are updated. Older imports, local edits, and changed actors are preserved for review.</p>
   </details>

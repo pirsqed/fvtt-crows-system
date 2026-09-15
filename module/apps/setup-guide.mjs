@@ -1,4 +1,4 @@
-import { CrowsImporter } from "./importer.mjs";
+import { CrowsPDFImporter } from "./pdf-importer.mjs";
 
 const SYSTEM = "fvtt-crows-system";
 
@@ -25,7 +25,7 @@ export class CrowsSetupGuide extends FormApplication {
     super.activateListeners(html);
     html.find(".open-importer").click(event => {
       event.preventDefault();
-      if (game.user.isGM) new CrowsImporter().render(true);
+      if (game.user.isGM) new CrowsPDFImporter().render(true);
     });
     html.find(".close-guide").click(event => { event.preventDefault(); this.close(); });
   }

@@ -1,0 +1,14 @@
+<form class="crows-guide" autocomplete="off">
+  <h1>Import your playtest PDFs</h1>
+  {{#if missing}}
+  <p>Install <strong>Crows PDF Importer (Unofficial)</strong> on your Foundry host, then enable it in this world under <strong>Settings → Manage Modules</strong>.</p>
+  <p>Install the module from its release ZIP in <code>Data/modules/fvtt-crows-pdf-importer</code> and restart Foundry. Use it with Crows v0.2.1.</p>
+  {{/if}}
+  {{#if disabled}}
+  <p><strong>Crows PDF Importer (Unofficial)</strong> is installed. Enable it under <strong>Settings → Manage Modules</strong> and let the world reload.</p>
+  {{/if}}
+  {{#if unavailable}}
+  <p><strong>Crows PDF Importer (Unofficial)</strong> is enabled, but its importer is unavailable. Reload the world. If this persists, check that the system and module versions are compatible and check the console for startup errors.</p>
+  {{/if}}
+  <p>Then reopen <strong>Import Playtest Content</strong>, select your extracted packet folder, and review the content before saving it.</p>
+</form>

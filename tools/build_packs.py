@@ -52,6 +52,11 @@ def key(name):
 
 def display_name(card):
     n = NAME_ALIASES.get(card["name"], card["name"])
+    if n == "Lore Book":
+        text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", "", card.get("body_html", "")))
+        expertise = re.search(r"\bThis book relates to the ([^.?!]+?) Lore expertise\b", text, re.I)
+        if expertise:
+            n += f" ({expertise.group(1).strip()})"
     if card.get("spell") and card["spell"].get("rank") is not None and n.endswith(" Book"):
         n = f"{n} R{card['spell']['rank']}"
     return n
@@ -177,7 +182,7 @@ def to_item(card, img_lookup, relic=False):
 
     img = img_lookup.get(key(name)) or img_lookup.get(key(card["name"]))
     if not img:
-        img = DEFAULT_IMG["book" if sp else "weapon" if w else "armor" if card.get("armor_ad") is not None else "default"]
+        img = DEFAULT_IMG["book" if sp or card["name"] == "Lore Book" else "weapon" if w else "armor" if card.get("armor_ad") is not None else "default"]
 
     card_name_norm = (card.get("name") or "").strip().lower()
     disp_name_norm = name.strip().lower()

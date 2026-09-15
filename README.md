@@ -2,7 +2,7 @@
 
 Greetings, Crows and Refs! This is an unofficial Foundry system for **Crows**, MCDM's survival-horror dungeon crawler. It was built to make running the playtest easier, especially all that item management. :)
 
-**Foundry 14 is required.** You'll need your own MCDM playtest packet to build the item, trait, and bestiary compendiums. Those compendiums and the PDF artwork aren't bundled with the system. Sheet labels, some rule reminders, and a few fixed tables are included; this isn't a replacement for the books.
+**Foundry 14 is required.** You'll need your own MCDM playtest packet to import the item, trait, and bestiary compendiums. Those compendiums and the PDF artwork aren't bundled with the system. Sheet labels, some rule reminders, and a few fixed tables are included; this isn't a replacement for the books.
 
 Crows is © MCDM Productions LLC. This project is not affiliated with or endorsed by MCDM.
 
@@ -14,7 +14,7 @@ Install through Foundry's **Game Systems → Install System** using this manifes
 https://raw.githubusercontent.com/pirsqed/fvtt-crows-system/main/system.json
 ```
 
-Create a world using **Crows (Unofficial)** and join as the GM. The **Start Here** guide opens on your first visit. Reopen it anytime through **Settings → Configure Settings → Crows (Unofficial) → Start Here**. It walks through Python, the PDF folder, and importing. Players can read it too; only the Ref or host needs to build and import content.
+Create a world using **Crows (Unofficial)** and join as the GM. The **Start Here** guide opens on your first visit. Reopen it anytime through **Settings → Configure Settings → Crows (Unofficial) → Start Here**. It walks through enabling Crows PDF Importer, selecting the PDF folder, and reviewing the import. Players can read it too; the Ref imports once for the world.
 
 - [Importing the playtest content](#importing-the-playtest-content)
 - [Player permissions and loot setup](#gm-setup-player-permissions)
@@ -42,81 +42,62 @@ See [Playing the playtest](MANUAL-PLAY.md) for the details. If a rule isn't expl
 
 ## Importing the playtest content
 
-There are two parts: **build files from your PDFs outside Foundry**, then **import those files inside your world**. I know this is a little complicated, and I am planning on better tools in the future. This is also the most fragile part of the system, as changes to the PDFs are quite likely to break my importing scripts! So, check for updates on Github if there are new PDFs.
+The Ref imports the packet once for the world. Players then use the compendiums and **Create a Crow**. Extraction runs in the Ref's browser, including for hosted games. Select the PDFs on the computer running that browser; the reviewed content is saved in the Foundry world.
 
-### 1. Install Python and unpack the packet
+### 1. Enable the module
 
-Install **Python 3.10 or newer** on the computer where you'll run the builder. The [Python download page](https://www.python.org/downloads/) has the installers. Linux also needs Python's `venv` support. The first build downloads helper libraries, so you'll need an internet connection for setup.
+Install **Crows PDF Importer (Unofficial)** alongside the system and enable it under **Settings → Manage Modules**. Reload the world. Open **Settings → Configure Settings → Crows (Unofficial) → Import Playtest Content**, or use **Open PDF Importer** in **Start Here**.
 
-Find Foundry's **User Data folder**, then open `Data/systems/fvtt-crows-system`. On Foundry's Setup screen, **Application Configuration** shows the User Data Path. A hosting service may provide its own file manager.
+Install the companion module from its release ZIP in `Data/modules/fvtt-crows-pdf-importer` on the Foundry host, then restart Foundry. The host needs both the v0.2.1 system and a compatible importer module. If the module is missing, disabled, or unavailable, **Import Playtest Content** explains what to check.
 
-Extract the playtest ZIP into the included **pdfs** folder. Its **ADD_PDFS_HERE.txt** note has the short instructions. Keep the original filenames and subfolders, including Inventory Cards. The builder needs the Characters book, Ref book, Inventory cards, Profession cards, and POI cards. Keep one copy of each PDF; store older packets elsewhere.
+### 2. Choose and extract the PDFs
 
-Want to keep the packet somewhere else? On Windows, open its folder in File Explorer, press **Ctrl+L**, and copy the full path. Paste that into the builder's prompt. Choose the extracted folder, not the ZIP or an individual PDF. Quotes from **Copy as path** are okay.
+Extract your playtest ZIP on the computer running your browser. Keep the original filenames and subfolders. For a complete library, include the **Characters book**, **Ref book**, **core Inventory Cards**, **Profession cards**, and **POI/Dungeon cards**.
 
-### 2. Run the builder
+Choose **Packet folder** to include subfolders, or **Individual PDFs** to choose the books directly. Check each file's assigned content type; renamed files can be assigned manually. Skip duplicate copies and unrelated books. Click **Extract selected PDFs** and wait for the results, then **Choose entries & review →**.
 
-**Windows:** double-click **build_playtest_content.cmd** in the system folder. Press Enter to use `pdfs`, or paste another packet folder. The launcher installs the helper libraries on its first run and leaves the window open so you can read the result.
+Extraction saves nothing to your world. **Extraction results** contains the per-book details; **Developer tools & extraction data** is available when troubleshooting.
 
-**Linux / macOS:** open a terminal in the system folder and run:
+### 3. Select what to import
 
-```sh
-sh build_playtest_content.sh --setup --interactive
-```
+All extracted entries start selected. Use the checkboxes to choose individual entries, or narrow the list with search and the category filter. **Select visible** and **Deselect visible** affect only the entries currently shown; hidden selections stay selected. The selection count shows the total that will be reviewed.
 
-Press Enter for `pdfs`, or enter your packet folder. On later runs, you can omit `--setup`.
+For example, to import only Nature Lore Books: clear the search, choose **All categories**, click **Deselect visible**, search for `Lore Book (Nature)`, and select the entries you want.
 
-For a server or an explicit path:
+Repeated copies are combined, and core inventory takes precedence over matching profession cards. Lore Books are named for their printed expertise—Nature, Monster, Historical or Magic—with plain **Lore Book** for an unspecified expertise. If other entries have conflicting definitions, choose a definition or skip the entry.
 
-```sh
-sh build_playtest_content.sh --setup --packet "/srv/crows/playtest packet"
-```
+### 4. Choose import options
 
-Replace that example with your actual path. A folder on your desktop isn't a folder on your server! If your host can't run Python, build using a local copy of this system, then upload **packs/*.json** and **assets/monsters/** to the matching locations in the hosted system. Don't upload `tools/.venv`.
+- **Update character-creation content:** publishes backgrounds, NPC connections and starting-kit content for **Create a Crow** after a successful import. It is available when the complete background/connection data was extracted. Required equipment, traits and pets must be selected or already present in the world compendiums. Leave this on for initial setup; turn it off for a standalone item or creature import. Turning it off keeps previously published creator content.
+- **Force overwrite existing entries:** off by default. Enable it to replace imported fields on edited or untracked matches and to replace an imported creature's embedded Items, including attacks and traits. Parent document IDs, custom artwork, folders and ownership remain. Embedded Item IDs change. Ambiguous duplicate matches are still preserved.
 
-The build prints progress and saves extraction output to `tools/out/build.log`. If it stops, read the error before moving on. Missing PDFs usually mean the ZIP wasn't extracted, the folder is wrong, or a required part of the packet is missing.
+### 5. Review and save
 
-### 3. Import in Foundry
+As the active GM, click **Check world and review changes**. Unlock any locked target compendiums first. Read the result for each selected entry:
 
-Join as the active GM and open **Settings → Configure Settings → Crows (Unofficial) → Import Playtest Content**. Click **Re-check files**, then **Import everything found**.
+| Result | Meaning |
+| --- | --- |
+| **create** | Add a new entry to the compendium. |
+| **update** | Update an existing entry, retaining its parent ID. In force mode, this can replace local edits and creature inventories. |
+| **unchanged** | The imported content is already current. |
+| **preserve** | Keep the existing entry; the Details column explains why. |
 
-You'll get four world compendiums:
+Click **Import selected entries** to save. Changing selections or import options requires a new review. A world change detected after review also requires another check.
 
-- **Crows Equipment & Spellbooks**
-- **Crows Dungeon Loot & Relics**
-- **Crows Traits**
-- **Crows Bestiary**
+The complete current packet produces **134 equipment entries, 40 dungeon-loot entries, 276 traits and 71 creatures** across four world compendiums—521 entries total. Character-creation publishing adds **36 backgrounds and 10 NPC connection choices** to the creator; they are not separate compendiums.
 
-Backgrounds and NPC connections are also generated, for the character creator. They aren't separate compendiums.
+### Re-importing and troubleshooting
 
-### Rebuilding and updating
+By default, re-importing updates unedited tracked Items, preserves local edits and older untracked entries, and preserves changed creature inventories. Custom artwork is retained; the generic bag icon on a Lore Book is corrected to a book icon. Imports affect the world compendiums, not copies already placed on character sheets or scenes.
 
-Re-importing adds missing entries and updates unedited entries tracked by this importer. It preserves local edits and older, untracked entries for review. It doesn't delete entries or replace actors and items you've already copied into your world. Existing bestiary actors are also preserved for review.
+**Stop after current entry** keeps completed changes. A failed import can also leave partial changes, especially during forced creature-inventory replacement. Read the result, correct the problem and review again before retrying. Creator content is published only after the import succeeds. After editing compendiums, repeat the review/import with **Update character-creation content** enabled to refresh what the creator uses.
 
-Unlock the destination compendiums before importing. Missing generated files are skipped; invalid files stop validation before importing begins. If a later write fails, earlier changes can remain. Read the report before retrying.
+- **Missing starting spellbooks:** extract the core inventory PDF together with the Characters book.
+- **Missing creator reference:** include the named equipment, trait or pet, or turn off creator publishing for a standalone import.
+- **Preserved duplicate match:** resolve the duplicate compendium entries manually; force overwrite does not choose between them.
+- **Extraction failed:** check the book assignment and packet version. Include the error and PDF/page details when reporting an issue.
 
-Keep your original packet and back up your Foundry data before updating. The installed system folder can be replaced by an update, so you may need to rebuild the generated files. Only `pdfs/ADD_PDFS_HERE.txt` ships with the system; your extracted packet is ignored by Git and excluded from release ZIPs.
-
-<details>
-<summary>Extra build options and developer tools</summary>
-
-The shell launcher accepts `--check` to check the packet and dependencies without exporting, `--interactive` to ask for the path, and `--help` for the full list. Use `--setup` when dependencies need installing. `--packet` overrides `CROWS_PACKET`; otherwise the default is the system's `pdfs` folder.
-
-You can also call the builder directly from the system folder:
-
-```sh
-python tools/build_all.py --setup --packet "C:/path/to/Crows Playtest"
-```
-
-Use `python3` if that's your Python command. Setup creates `tools/.venv`; later direct runs can use `tools/.venv/Scripts/python.exe` on Windows or `tools/.venv/bin/python` on Linux/macOS.
-
-The builder runs the card, background, pack, trait, and monster exporters. Failed extraction leaves installed generated content alone. Installation replaces files individually; fix an installation error and rerun if it stops partway through. These extractors depend on the current playtest layout, so a future packet may need updated tools.
-
-Script macros can use `game.crows.importPlaytestItems()`, or the individual `importEquipment()`, `importDungeonLoot()`, `importTraits()`, and `importMonsters()` helpers on `game.crows`.
-
-Maintainers can check bundled icon paths with `python tools/check_icons.py "C:/Program Files/Foundry Virtual Tabletop/resources/app/public"` and build the release with `python tools/build_release.py`. The release builder includes the PDF setup note but excludes PDF files, ZIP archives, generated packs, and extracted monster art.
-
-</details>
+Some fresh-import icons remain generic; importing the packet's separate creature artwork is still pending. Future packet layouts may need an importer update.
 
 ## GM setup: player permissions
 
@@ -135,7 +116,7 @@ Give each player **Owner** access to their Crow and any companions they control.
 | Read a village and claim a custom crypt boon | Be able to view the village and own the receiving Crow. Editing the grave itself requires village ownership. |
 | Import content or control the shared timer | The active GM. |
 
-**Create Tokens** is only needed if players should place their own character tokens through Foundry's normal tools. **Create Items** controls standalone world Items. Give players viewing access to compendiums if they should browse or drag from them; the character creator reads the generated files directly.
+**Create Tokens** is only needed if players should place their own character tokens through Foundry's normal tools. **Create Items** controls standalone world Items. Give players viewing access to compendiums if they should browse or drag from them; the character creator uses the published import content without requiring players to browse the compendiums.
 
 ### Loot setup and troubleshooting
 
@@ -149,7 +130,7 @@ If a pickup fails, check ownership, distance, the selected/assigned character, a
 
 ## Creating a Crow
 
-After building the content, click **Create a Crow** in the Actors directory, or open **Character Creator** in the Crows settings. A macro can use `game.crows.createCrow()` too. Importing compendiums isn't required for the wizard; the generated files are. Players will need the 'Create Actors' permission to create their own crows through the creator.
+After importing with **Update character-creation content** enabled, click **Create a Crow** in the Actors directory, or open **Character Creator** in the Crows settings. A macro can use `game.crows.createCrow()` too. Players need **Create Actors** permission to finish creating their Crows. Existing legacy setups can still use generated character-creation files when no module content has been published.
 
 Choose or roll a background, assign characteristics, add your name and feature, roll or enter starting gold, and record your NPC connection. Background and gold rolls post to chat using Foundry's current roll visibility. Manual choices don't post rolls. The last step previews your equipment and its locations before saving.
 

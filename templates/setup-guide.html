@@ -2,81 +2,126 @@
   <header>
     <p class="guide-eyebrow">Crows for Foundry · Unofficial</p>
     <h1>Greetings, Crows and Refs!</h1>
-    <p>Welcome! Before we head into the dungeon, let's get your playtest content into Foundry. There are a couple of steps outside the game, but you don't need to know how to code. :)</p>
+    <p>Let's bring your playtest packet into Foundry so you can start making Crows.</p>
   </header>
 
   <div class="guide-callout">
     <strong>The short version</strong>
-    <p>Install Python → unpack your PDFs → run the builder → import in Foundry.</p>
-    <p>This is a <strong>Ref / host setup job</strong>. Players don't need Python or their own import.</p>
+    <p>Install and enable Crows PDF Importer module → select your packet folder → extract → review and import.</p>
+    <p>The Ref (GM) imports once for the world. Players use the imported content to create their Crows.</p>
   </div>
+  <p>You'll need your own MCDM playtest PDFs. The module reads them in your browser. Equipment,
+    traits, creatures, backgrounds, and NPC connection benefits come from your packet. Keep the books handy for the
+    rules.</p>
 
-  <p>The item, trait, and bestiary compendiums aren't bundled with the system. The included tools read <em>your copy</em> of the MCDM playtest PDFs to build them. Some rule reminders and fixed tables are included, so keep the books handy too. These are playtest materials, so future packets may need updated tools.</p>
+  <h2>1. Enable the PDF importer</h2>
+  <p>Install <strong>Crows PDF Importer (Unofficial)</strong> on the Foundry host, then enable it in your world under
+    <strong>Settings → Manage Modules</strong>. Let the world reload.</p>
+  <p>Install the companion module from its release ZIP in <code>Data/modules/fvtt-crows-pdf-importer</code> and restart
+    Foundry. The host needs Crows v0.2.1 and a compatible importer module.</p>
 
-  <h2>1. Get Python ready</h2>
-  <p>You'll need <strong>Python 3.10 or newer</strong> on the computer running the builder. Grab a current stable version from <a href="https://www.python.org/downloads/" target="_blank" rel="noopener noreferrer">python.org</a> and follow its installer. Python is free. You won't be writing any Python yourself!</p>
-  <p>On Windows, enable <strong>Add Python to PATH</strong> if your installer offers it. After installing, close and reopen the builder. On Linux, you'll also need Python's <code>venv</code> support; your host can help with that.</p>
+  <h2>2. Select your packet</h2>
+  <p>Download and extract the playtest ZIP on the computer where you're using the browser. Keep the original filenames
+    and subfolders, with one copy each of the Characters book, Ref book, core Inventory Cards, Profession cards, and
+    POI/Dungeon cards.</p>
+  <p>Open <strong>Settings → Configure Settings → Crows (Unofficial) → Import Playtest Content</strong>, or use the
+    button below. Choose <strong>Packet folder</strong> and select the extracted folder. Subfolders are included. You
+    can also choose <strong>Individual PDFs</strong> to select the books individually.</p>
+  {{#if isGM}}<button type="button" class="open-importer"><i class="fas fa-download"></i> Open PDF
+    Importer</button>{{else}}<p>Your Ref handles the import. You can create your Crow once they've finished.</p>{{/if}}
+  <p>For a hosted game, select the PDFs from your own computer. Extraction runs in your browser; the reviewed content is
+    saved to the Foundry world.</p>
 
-  <h2>2. Find your system folder and your PDFs</h2>
-  <p>Find Foundry's <strong>User Data folder</strong>, then open <code>Data/systems/fvtt-crows-system</code>. This is where the builder lives. If you're using a hosting service, this folder is on the server: see the hosting note below.</p>
-  <details>
-    <summary>Where is my User Data folder?</summary>
-    <p>On Foundry's Setup screen, open <strong>Application Configuration</strong> using the cog icon at the top right. Copy the <strong>User Data Path</strong>, open that folder in your file manager, then go into <code>Data</code>, <code>systems</code>, and <code>fvtt-crows-system</code>. You should see the two builder files there. A managed host may provide its own file manager instead.</p>
-  </details>
-  <p>Download your playtest packet and <strong>extract the ZIP first</strong>. Keep the Characters book, Ref book, Inventory Cards, Profession cards, and POI cards together, with one copy of each PDF. Keep the packet's subfolders and original filenames.</p>
+  <h2>3. Extract and choose entries</h2>
+  <p>Check the detected book assignments and click <strong>Extract selected PDFs</strong>. Assign renamed files manually
+    and skip duplicate copies or unrelated books. Include the core inventory PDF with the Characters book so starting
+    spellbooks can resolve. Extraction saves nothing to your world.</p>
+  <p>When extraction finishes, click <strong>Choose entries &amp; review →</strong>. All entries start selected. Choose
+    individual entries with their checkboxes, or use search and the category filter to narrow the list.</p>
   <div class="guide-callout">
-    <strong>Easiest option: no long folder path to type!</strong>
-    <p>Open the included <code>pdfs</code> folder inside <code>fvtt-crows-system</code> and extract your playtest ZIP there. There's a little <code>ADD_PDFS_HERE.txt</code> readme inside to point you in the right direction. The builder searches inside it, including subfolders. When asked for the playtest folder, press <strong>Enter</strong>.</p>
+    <strong>Just want a few items?</strong>
+    <p>Clear the search, choose <strong>All categories</strong>, then click <strong>Deselect visible</strong>. Search
+      for what you want and tick its checkbox. <strong>Select visible</strong> and <strong>Deselect visible</strong>
+      affect only the displayed entries; hidden selections remain selected. Check the total selection count before
+      continuing.</p>
   </div>
-  <details>
-    <summary>Want to keep the PDFs somewhere else?</summary>
-    <p>That's fine! Give the builder the folder containing the extracted packet, not the ZIP or an individual PDF.</p>
-    <p><strong>Windows:</strong> open that folder in File Explorer, click the address bar (or press <kbd>Ctrl</kbd> + <kbd>L</kbd>), and copy the full path. Paste it when the builder asks for the playtest folder. For example: <code>C:\Users\YourName\Downloads\Crows Playtest</code>. Quotes from “Copy as path” are okay.</p>
-    <p><strong>Linux / macOS:</strong> use the folder's full path with <code>--packet</code>. Put quotes around it, especially if it has spaces. The examples below are placeholders: replace them with your actual folder.</p>
-  </details>
+  <p>Repeated copies are combined. Lore Books with a named expertise are separate entries, such as <strong>Lore Book
+      (Nature)</strong>. If other definitions conflict, choose the one to keep or skip that entry.</p>
 
-  <h2>3. Run the builder</h2>
-  <p>Choose the computer you're building on. The first run downloads a few helper libraries, so it needs an internet connection. Let it finish; the progress messages will tell you what it's doing.</p>
-  <details open>
-    <summary>Windows</summary>
-    <p>In the system folder, double-click <strong>build_playtest_content.cmd</strong>. Paste your PDF folder when asked, or press Enter for the <code>pdfs</code> folder. The launcher handles the helper libraries for you.</p>
-  </details>
-  <details>
-    <summary>Linux / macOS</summary>
-    <p>Open a terminal in the system folder and run:</p>
-    <pre><code>sh build_playtest_content.sh --setup --interactive</code></pre>
-    <p>Paste your PDF folder at the prompt, or press Enter for <code>pdfs</code>. For a server or an explicit folder path, use:</p>
-    <pre><code>sh build_playtest_content.sh --setup --packet "/path/to/Crows Playtest"</code></pre>
-    <p>On later runs, you can leave out <code>--setup</code>.</p>
-  </details>
-  <details>
-    <summary>Using a hosting service or another computer?</summary>
-    <p>A folder on your desktop isn't a folder on your server. Run the builder where the PDFs actually are. If your host supports Python, use the server's system folder and a PDF folder on that server.</p>
-    <p>Otherwise, build locally using a copy of this system, then upload the generated <code>packs/*.json</code> files and <code>assets/monsters/</code> folder to the same locations in the hosted system. Keep their folder structure. You don't need to upload Python or <code>tools/.venv</code>. Your host's file manager or support team can help.</p>
-  </details>
+  <h2>4. Choose your import options</h2>
+  <p><strong>Update character-creation content</strong> publishes backgrounds, NPC connections and starting kits for
+    <strong>Create a Crow</strong>. Leave it on for initial setup. Required equipment, traits and pets must be selected
+    or already available in the world compendiums. The review tells you if something is missing.</p>
+  <p>For a standalone item or creature import, turn this option off. Previously published character-creation content
+    stays available. The option is unavailable if complete background/connection data wasn't extracted.</p>
+  <p><strong>Force overwrite existing entries</strong> is off by default. Enable it to replace imported fields on edited
+    or untracked entries, including a creature's embedded Items such as attacks and traits. Existing artwork, parent
+    document IDs, folders and ownership stay intact; replaced embedded Items get new IDs. Ambiguous duplicates remain
+    preserved.</p>
 
-  <h2>4. Bring it into Foundry</h2>
-  <p>Once the build succeeds, join your world as the Ref (GM). Open <strong>Settings → Configure Settings → Crows (Unofficial) → Import Playtest Content</strong>, or use the button below. Click <strong>Re-check files</strong>, then <strong>Import everything found</strong>.</p>
-  <p>Your equipment, dungeon loot, traits, and bestiary will appear in the <strong>Compendium Packs</strong> tab. That's it! You can start making Crows. Re-importing preserves local edits and doesn't delete entries; check the report for anything it kept for review.</p>
-  {{#if isGM}}<button type="button" class="open-importer"><i class="fas fa-download"></i> Open Importer</button>{{else}}<p>Your Ref handles this step. You can get ready to play once they've imported the content.</p>{{/if}}
+  <h2>5. Review and import</h2>
+  <p>As the active GM, click <strong>Check world and review changes</strong>. Unlock any locked target compendiums
+    first. Each selected entry has a result:</p>
+  <ul>
+    <li><strong>create:</strong> adds a new compendium entry.</li>
+    <li><strong>update:</strong> changes the existing entry. Check force-overwrite updates carefully if you edited that
+      content.</li>
+    <li><strong>unchanged:</strong> the content is already current.</li>
+    <li><strong>preserve:</strong> keeps the existing entry; the Details column explains why.</li>
+  </ul>
+  <p>Click <strong>Import selected entries</strong> to save. Changing your selection or options requires a fresh review.
+    The importer also asks for another check if the world changed after review.</p>
+  <p>Your equipment, dungeon loot, traits and creatures appear in <strong>Compendium Packs</strong>. With
+    character-creation publishing enabled, backgrounds and NPC connections become available through <strong>Settings →
+      Configure Settings → Crows (Unofficial) → Create a Crow</strong>.</p>
+  <details>
+    <summary>What should a full import contain?</summary>
+    <p>The current packet produces 134 equipment entries, 40 dungeon-loot entries, 276 traits and 71 creatures: 521
+      entries across four compendiums. Character creation also receives 36 backgrounds and 10 NPC connection choices.
+    </p>
+    <p>Some fresh-import icons remain generic. Importing the separate creature artwork is still pending.</p>
+  </details>
+  <details>
+    <summary>Re-importing or stopping an import</summary>
+    <p>Default imports preserve local edits, older untracked entries and changed creature inventories. They update
+      unedited tracked Items and retain custom artwork. Compendium imports don't replace copies already placed on
+      character sheets or scenes.</p>
+    <p><strong>Stop after current entry</strong> keeps completed changes. Errors can also leave partial changes,
+      especially during forced creature-inventory replacement. Read the result and review again before retrying.
+      Character-creation content is published only after a successful import.</p>
+    <p>After editing compendiums, repeat review/import with <strong>Update character-creation content</strong> enabled
+      to refresh what the creator uses.</p>
+  </details>
 
   <details>
     <summary>Something didn't work?</summary>
     <ul>
-      <li><strong>Python wasn't found:</strong> finish installing Python, then reopen the launcher. On Windows, try <code>py --version</code> or <code>python --version</code> in a new terminal; on Linux/macOS, try <code>python3 --version</code>.</li>
-      <li><strong>Folder or PDF not found:</strong> check that you extracted the ZIP and chose the packet folder. Compare the folder printed by the builder with the one you meant to use.</li>
-      <li><strong>More than one matching PDF:</strong> keep old packets and duplicate downloads outside your chosen folder.</li>
-      <li><strong>Missing libraries or venv:</strong> use the first-run command with <code>--setup</code>; on Linux, ask your host to install Python's venv support.</li>
-      <li><strong>Foundry says “Not built”:</strong> check that the builder finished successfully and that the files are in the system folder used by your Foundry server. Then click Re-check files.</li>
+      <li><strong>Module missing or disabled:</strong> follow the message shown by Open PDF Importer, then reload the
+        world.</li>
+      <li><strong>Folder selection unavailable:</strong> use Individual PDFs and select the five books.</li>
+      <li><strong>Missing or duplicate books:</strong> extract the ZIP first, check the selected folder, and resolve
+        duplicate assignments before extraction.</li>
+      <li><strong>Background spellbooks unresolved:</strong> include the core inventory PDF with the Characters book.
+      </li>
+      <li><strong>Missing creator reference:</strong> select the named equipment, trait or pet, or turn off
+        character-creation publishing for a standalone import.</li>
+      <li><strong>Target pack locked:</strong> unlock it in Compendium Packs, then check the world again.</li>
+      <li><strong>World changed after review:</strong> check the world again before importing.</li>
+      <li><strong>Extraction error:</strong> keep the error message and book/page details when reporting the issue.
+        Future PDF layouts may require an importer update.</li>
     </ul>
-    <p>Still stuck? Include the error message and what step you reached when <a href="https://github.com/pirsqed/fvtt-crows-system/issues" target="_blank" rel="noopener noreferrer">reporting an issue</a>. If extraction started, its log is in <code>tools/out/build.log</code>.</p>
   </details>
-
   <footer>
     <h2>Ready for the rest?</h2>
-    <p>Foundry helps with rolls, slots, and resource tracking. You and the Ref still handle most trait effects, spell effects, ammunition spending, and downtime. A button does its named action; it doesn't resolve every rule around it. The <a href="https://github.com/pirsqed/fvtt-crows-system/blob/main/MANUAL-PLAY.md" target="_blank" rel="noopener noreferrer">play guide explains what's automatic and what's manual</a>.</p>
-    <p>The <a href="https://github.com/pirsqed/fvtt-crows-system#readme" target="_blank" rel="noopener noreferrer">full docs on GitHub</a> cover character creation, item management, permissions, villages, and more. Please give it a try and let me know how it goes. ^_^</p>
-    <p>Reopen this guide anytime from <strong>Settings → Configure Settings → Crows (Unofficial) → Start Here</strong>. Closing it stops the automatic welcome for your user in this world.</p>
+    <p>Foundry helps with rolls, slots, and resource tracking. You and the Ref still handle most trait effects, spell
+      effects, ammunition spending, and downtime. A button does its named action; it doesn't resolve every rule around
+      it. The <a href="https://github.com/pirsqed/fvtt-crows-system/blob/main/MANUAL-PLAY.md" target="_blank"
+        rel="noopener noreferrer">play guide explains what's automatic and what's manual</a>.</p>
+    <p>The <a href="https://github.com/pirsqed/fvtt-crows-system#readme" target="_blank" rel="noopener noreferrer">full
+        docs on GitHub</a> cover character creation, item management, permissions, villages, and more. Please give it a
+      try and let me know how it goes. ^_^</p>
+    <p>Reopen this guide anytime from <strong>Settings → Configure Settings → Crows (Unofficial) → Start Here</strong>.
+      Closing it stops the automatic welcome for your user in this world.</p>
     <p><strong>Fortune, or death!</strong></p>
     <button type="button" class="close-guide">Got it — close guide</button>
   </footer>

@@ -1,26 +1,20 @@
-"""Package the system while keeping locally generated game content out of releases."""
+"""Package the Foundry runtime and current user documentation."""
 import argparse
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
 SYSTEM = Path(__file__).resolve().parent.parent
 PDF_NOTE = "pdfs/ADD_PDFS_HERE.txt"
+TOP_LEVEL = {"system.json", "crows.mjs", "README.md", "MANUAL-PLAY.md",
+             "SUPPLIES.md", "CHANGELOG.md", "LICENSE", PDF_NOTE}
 
 
 def include_in_release(path):
     """Paths are relative to the system root, with POSIX separators."""
-    parts = Path(path).parts
-    if any(part in {".git", ".github", "__pycache__"} for part in parts):
-        return False
-    if path.startswith("pdfs/"):
-        return path == PDF_NOTE
-    if path.startswith(("tools/out/", "tools/.venv/", "assets/monsters/")):
-        return False
-    if path.startswith("packs/") and path.lower().endswith(".json"):
-        return False
-    if path.lower().endswith((".pdf", ".zip", ".pyc")):
-        return False
-    return not path.endswith("RELEASE-TEST-CHECKLIST.md")
+    return (path in TOP_LEVEL
+            or path.startswith("module/") and path.endswith(".mjs")
+            or path.startswith("templates/") and path.endswith(".html")
+            or path.startswith("styles/") and path.endswith(".css"))
 
 
 def build_release(root, output):
@@ -47,4 +41,4 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, default=SYSTEM / "fvtt-crows-system.zip")
     args = parser.parse_args()
     files = build_release(SYSTEM, args.output)
-    print(f"Built {args.output}: {len(files)} files, including {PDF_NOTE}; no PDFs or generated packs.")
+    print(f"Built {args.output}: {len(files)} runtime and documentation files; no PDFs or generated packs.")

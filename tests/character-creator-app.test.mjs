@@ -33,6 +33,25 @@ test("creation rejects deleted or hidden home villages before saving actors", as
   }
 });
 
+test("creator loads published module content without fetching generated files", async () => {
+  const creator=setup(),content=structuredClone(creator.content);
+  content.backgrounds=Array.from({length:36},(_,i)=>({...structuredClone(content.backgrounds[0]),name:`Background ${i}`,roll:`${Math.floor(i/6)+1}-${i%6+1}`}));
+  content.connections=Array.from({length:10},(_,i)=>({name:`Benefit ${i}`,description:'Description'}));
+  content.monsters=[];
+  game.modules=new Map([['fvtt-crows-pdf-importer',{api:{getCharacterContent:async()=>structuredClone(content)}}]]);
+  const originalFetch=globalThis.fetch;globalThis.fetch=()=>{throw new Error('Should not fetch generated files');};
+  try{await creator.loadContent();assert.equal(creator.content.backgrounds.length,36);assert.equal(creator.content.connections.length,10);await creator.readMonsters();}
+  finally{globalThis.fetch=originalFetch;}
+});
+
+test("creator keeps generated-file fallback when no module data is published", async () => {
+  const creator=setup();game.modules=new Map([['fvtt-crows-pdf-importer',{api:{getCharacterContent:async()=>null}}]]);
+  let calls=0;const originalFetch=globalThis.fetch;
+  globalThis.fetch=async()=>{calls++;return {ok:false};};
+  try{await assert.rejects(creator.loadContent(),/Could not load/);assert.equal(calls,4);}
+  finally{globalThis.fetch=originalFetch;}
+});
+
 test("a player's home choice is saved without requiring village edit permission", async () => {
   const creator=setup(); creator.draft.homeVillageId="village";
   game.actors={get:()=>({id:"village",name:"Village",type:"village",visible:true,isOwner:false})};

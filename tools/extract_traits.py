@@ -168,7 +168,7 @@ def main():
             r["connected"] = sorted(recs[b]["name"] for b in links.get(r["box"], []))
             # prerequisites: connected traits that are cheaper or equal (you climb the tree, not down it)
             prereq = [recs[b]["name"] for b in sorted(links.get(r["box"], [])) if recs[b]["cost"] <= r["cost"] and b != r["box"]]
-            r["prereq"] = "Starting Trait" if r["starting"] else (" or ".join(prereq) if prereq else "")
+            r["prereq"] = "Starting Trait" if r["starting"] else (" | ".join(prereq) if prereq else "")
             icon = old_icon.get(r["name"].lower()) or eq_icon.get(TREE_ICON.get(tree, ""), "icons/sundries/books/book-worn-brown.webp")
             traits.append({
                 "name": r["name"], "type": "trait", "img": icon,
