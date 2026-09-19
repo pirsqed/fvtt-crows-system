@@ -18,7 +18,7 @@ Crows is © MCDM Productions LLC. This project is not affiliated with or endorse
 
 ### An attack in play
 
-![Sword attack in chat showing a Tier 2 mixed hit, five damage, and controls to apply expertise or damage.](docs/images/attack-roll.jpg)
+<img src="docs/images/attack-roll.jpg" alt="Sword attack in chat showing a Tier 2 mixed hit, five damage, and controls to apply expertise or damage." width="320">
 
 ## Start here
 
