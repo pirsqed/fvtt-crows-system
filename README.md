@@ -58,11 +58,19 @@ See [Playing the playtest](MANUAL-PLAY.md) for the details. If a rule isn't expl
 
 The Ref imports the packet once for the world. Players then use the compendiums and **Create a Crow**. Extraction runs in the Ref's browser, including for hosted games. Select the PDFs on the computer running that browser; the reviewed content is saved in the Foundry world.
 
-### 1. Enable the module
+### 1. Install and enable the module
+
+From Foundry's Setup screen, open **Add-on Modules → Install Module**, paste this URL into **Manifest URL**, and click **Install**:
+
+```text
+https://github.com/pirsqed/fvtt-crows-pdf-importer/releases/latest/download/module.json
+```
+
+This link follows the latest published stable release. Enable the module in your world under **Settings → Manage Modules**, then reload. For a specific older version, use the `module.json` asset from that version's GitHub release.
 
 Install **[Crows PDF Importer](https://github.com/pirsqed/fvtt-crows-pdf-importer)** alongside the system and enable it under **Settings → Manage Modules**. Reload the world. Open **Settings → Configure Settings → Crows → Import Playtest Content**, or use **Open PDF Importer** in **Start Here**.
 
-Install the companion module from its release ZIP in `Data/modules/fvtt-crows-pdf-importer` on the Foundry host, then restart Foundry. The host needs both the v0.2.2 system and importer v0.1.1. If the module is missing, disabled, or unavailable, **Import Playtest Content** explains what to check.
+For manual installation, extract the companion module release ZIP into `Data/modules/fvtt-crows-pdf-importer` on the Foundry host, then restart Foundry. The host needs both the v0.2.2 system and importer v0.1.1. If the module is missing, disabled, or unavailable, **Import Playtest Content** explains what to check.
 
 ### 2. Choose and extract the PDFs
 
