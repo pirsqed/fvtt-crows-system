@@ -961,17 +961,20 @@
   margin-top: auto;
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   width: 100%;
   padding-top: 4px;
 }
 
+.crows .slot-card-footer.flexrow > .slot-tag-group,
 .slot-tag-group {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: flex-end;
   margin-left: auto;
+  flex: 0 0 auto;
+  align-self: flex-end;
 }
 
 .slot-tag-badge {
@@ -989,6 +992,8 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: all 0.15s ease;
 }
 
@@ -1129,18 +1134,22 @@
   margin-top: auto;
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   width: 100%;
   padding-top: 4px;
 }
 
+.crows .slot-card-footer.flexrow > .slot-footer-left,
+.crows .backpack-slot-footer.flexrow > .slot-footer-left,
 .slot-footer-left {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: flex-start;
   min-width: 0;
   gap: 4px;
+  flex: 1 1 auto;
+  align-self: flex-end;
 }
 
 .slot-footer-left .qty-max-hint {
@@ -1196,10 +1205,14 @@
   box-shadow: 0 0 8px rgba(239, 68, 68, 0.7);
 }
 
+.crows .backpack-slot-footer.flexrow > .slot-dc-group,
 .slot-dc-group {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: flex-end;
+  margin-left: auto;
+  flex: 0 0 auto;
+  align-self: flex-end;
 }
 
 .slot-dc-tag {
@@ -1213,6 +1226,8 @@
   border-radius: 3px;
   letter-spacing: 0.05em;
   user-select: none;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-retrieve-dc {
@@ -1233,6 +1248,8 @@
   transition: all 0.15s ease;
   line-height: 1.3;
   height: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-retrieve-dc:hover {
