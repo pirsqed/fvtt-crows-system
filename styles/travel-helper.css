@@ -1,0 +1,1069 @@
+/* ==========================================================================
+   CROWS TRAVEL HELPER (MCDM CROWS GRIMDARK THEME)
+   ========================================================================== */
+
+/* Outer Window overrides for Foundry window-app */
+.window-app.crows-travel-helper,
+#crows-travel-helper {
+  background: #14171d !important;
+  color: #e5e7eb !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8) !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+.window-app.crows-travel-helper .window-header,
+#crows-travel-helper .window-header {
+  background: #0d0f12 !important;
+  border-bottom: 1px solid #2d3748 !important;
+  color: #f3f4f6 !important;
+}
+
+.window-app.crows-travel-helper .window-title,
+#crows-travel-helper .window-title {
+  font-family: 'Cinzel', serif !important;
+  font-weight: 700 !important;
+  color: #f9fafb !important;
+  letter-spacing: 0.05em !important;
+}
+
+.window-app.crows-travel-helper .window-content,
+#crows-travel-helper .window-content,
+.crows-travel-helper .window-content {
+  padding: 0 !important;
+  background: radial-gradient(circle at top right, #1f242d 0%, #11141a 100%) !important;
+  color: #e5e7eb !important;
+  overflow: hidden !important;
+}
+
+.crows-travel-helper {
+  --travel-ink: #e5e7eb;
+  --travel-ink-bright: #ffffff;
+  --travel-muted: #94a3b8;
+  --travel-subtle: #64748b;
+  --travel-accent: #60a5fa;
+  --travel-accent-hover: #93c5fd;
+  --travel-border: rgba(148, 163, 184, 0.22);
+  --travel-border-glow: rgba(96, 165, 250, 0.5);
+  --travel-card-bg: rgba(17, 24, 39, 0.75);
+  --travel-panel-bg: rgba(15, 23, 42, 0.8);
+  --travel-gold: #fbbf24;
+  --travel-crimson: #ef4444;
+  --travel-emerald: #10b981;
+  color: var(--travel-ink);
+  font-family: 'Inter', sans-serif;
+}
+
+.crows-travel-helper .travel-content {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  gap: 14px;
+  scrollbar-color: #475569 #11141a;
+  background: radial-gradient(circle at top right, #1f242d 0%, #11141a 100%) !important;
+  color: #e5e7eb !important;
+}
+
+.crows-travel-helper fieldset {
+  flex: 1;
+  min-height: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.crows-travel-helper .travel-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 3px;
+}
+.crows-travel-helper .travel-body > *,
+.crows-travel-helper .travel-masthead,
+.crows-travel-helper .travel-footer { flex-shrink: 0; }
+.crows-travel-helper .travel-pace-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--travel-muted);
+}
+.crows-travel-helper .travel-pace-summary strong { color: var(--travel-ink-bright); }
+.crows-travel-helper .travel-active-section { border-color: var(--travel-border-glow) !important; }
+.crows-travel-helper .travel-candidate-card:focus-within {
+  outline: 2px solid var(--travel-accent);
+  outline-offset: 2px;
+}
+
+/* Typography */
+.crows-travel-helper h1,
+.crows-travel-helper h2,
+.crows-travel-helper h3,
+.crows-travel-helper .travel-title,
+.crows-travel-helper .travel-pace-name {
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: #f3f4f6;
+}
+
+/* Masthead Header */
+.crows-travel-helper .travel-masthead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: rgba(0, 0, 0, 0.45) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+}
+
+.crows-travel-helper .travel-masthead-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.crows-travel-helper .travel-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--travel-accent);
+  margin-bottom: 4px;
+}
+
+.crows-travel-helper .travel-eyebrow-sep {
+  opacity: 0.5;
+}
+
+.crows-travel-helper .travel-badge-pill {
+  background: rgba(59, 130, 246, 0.18);
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  color: #93c5fd;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.crows-travel-helper .travel-badge-pill.accent {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(251, 191, 36, 0.4);
+  color: #fcd34d;
+}
+
+.crows-travel-helper .travel-title {
+  font-size: 22px;
+  margin: 0 0 4px;
+  border: 0;
+  line-height: 1.2;
+}
+
+.crows-travel-helper .travel-subtitle {
+  font-size: 12px;
+  color: var(--travel-muted);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.crows-travel-helper .travel-masthead-icon {
+  font-size: 32px;
+  color: var(--travel-accent);
+  opacity: 0.85;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 10px rgba(96, 165, 250, 0.4));
+}
+
+/* Callouts & Alerts */
+.crows-travel-helper .travel-alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.crows-travel-helper .travel-alert.warning {
+  background: rgba(120, 53, 15, 0.25) !important;
+  border: 1px solid #b45309 !important;
+  border-left: 4px solid #f59e0b !important;
+  color: #fde68a !important;
+}
+
+.crows-travel-helper .travel-alert.danger {
+  background: rgba(153, 27, 27, 0.25) !important;
+  border: 1px solid #dc2626 !important;
+  border-left: 4px solid #ef4444 !important;
+  color: #fca5a5 !important;
+}
+
+.crows-travel-helper .travel-alert i {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* Step Navigation Tracker Bar */
+.crows-travel-helper .travel-steps {
+  display: flex;
+  gap: 4px;
+  padding: 5px;
+  background: rgba(0, 0, 0, 0.4) !important;
+  border: 1px solid var(--travel-border) !important;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.crows-travel-helper .travel-step-btn {
+  height: auto !important;
+  min-height: 64px !important;
+  flex: 1 1 0;
+  min-width: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 4px;
+  background: rgba(15, 23, 42, 0.6) !important;
+  border: 1px solid transparent !important;
+  border-radius: 5px;
+  color: var(--travel-muted) !important;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  line-height: 1.2;
+}
+
+.crows-travel-helper .travel-step-btn:hover {
+  background: rgba(30, 41, 59, 0.8) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.crows-travel-helper .travel-step-btn.current,
+.crows-travel-helper .travel-step-btn[aria-current="step"] {
+  background: #1d4ed8 !important;
+  color: #ffffff !important;
+  border-color: var(--travel-accent) !important;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.45) !important;
+  font-weight: 700;
+}
+
+.crows-travel-helper .travel-step-btn.passed {
+  background: rgba(15, 23, 42, 0.4) !important;
+  color: #cbd5e1 !important;
+  border-color: rgba(148, 163, 184, 0.15) !important;
+}
+
+.crows-travel-helper .travel-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.crows-travel-helper .travel-step-btn.current .travel-step-num {
+  background: #ffffff !important;
+  color: #1d4ed8 !important;
+}
+
+.crows-travel-helper .travel-step-btn.passed .travel-step-num {
+  background: rgba(16, 185, 129, 0.2) !important;
+  color: #34d399 !important;
+}
+
+.crows-travel-helper .travel-step-label {
+  white-space: normal;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+/* Sections */
+.crows-travel-helper .travel-section {
+  background: var(--travel-card-bg) !important;
+  border: 1px solid var(--travel-border) !important;
+  border-radius: 8px;
+  padding: 16px 18px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+}
+
+.crows-travel-helper .travel-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.crows-travel-helper .travel-section-header h2 {
+  font-size: 17px;
+  margin: 0;
+  border: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.crows-travel-helper .travel-section-header h2 i {
+  color: var(--travel-accent);
+  font-size: 15px;
+}
+
+.crows-travel-helper .travel-count-badge {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid rgba(96, 165, 250, 0.35);
+  color: #93c5fd;
+}
+
+.crows-travel-helper .travel-status-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: rgba(51, 65, 85, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: var(--travel-muted);
+}
+
+.crows-travel-helper .travel-status-pill.active {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(52, 211, 153, 0.4);
+  color: #6ee7b7;
+}
+
+.crows-travel-helper .travel-section-desc {
+  font-size: 12px;
+  color: var(--travel-muted);
+  margin: 0 0 12px;
+  line-height: 1.5;
+}
+
+.crows-travel-helper .travel-hint-text {
+  font-size: 11px;
+  color: var(--travel-subtle);
+}
+
+/* Pace Cards */
+.crows-travel-helper .travel-paces {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.crows-travel-helper .travel-pace-card {
+  display: flex;
+  flex-direction: column;
+  background: rgba(15, 23, 42, 0.7) !important;
+  border: 1px solid var(--travel-border) !important;
+  border-radius: 8px;
+  padding: 12px;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.crows-travel-helper .travel-pace-card:hover {
+  border-color: rgba(96, 165, 250, 0.4) !important;
+  background: rgba(15, 23, 42, 0.9) !important;
+}
+
+.crows-travel-helper .travel-pace-card.chosen {
+  border: 2px solid #3b82f6 !important;
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.35) !important;
+  background: rgba(30, 41, 59, 0.7) !important;
+}
+
+.crows-travel-helper .travel-pace-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.crows-travel-helper .travel-pace-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(96, 165, 250, 0.3);
+  border-radius: 6px;
+  color: var(--travel-accent);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.crows-travel-helper .travel-pace-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.crows-travel-helper .travel-pace-name {
+  font-size: 14px;
+  color: #f3f4f6;
+}
+
+.crows-travel-helper .travel-pace-count {
+  font-size: 11px;
+  color: var(--travel-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.crows-travel-helper .travel-pace-desc {
+  font-size: 11px;
+  color: var(--travel-muted);
+  line-height: 1.4;
+  margin: 0;
+  flex: 1;
+}
+
+.crows-travel-helper .travel-pace-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.crows-travel-helper .travel-btn-vote,
+.crows-travel-helper .travel-btn-pace {
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+  border: 1px solid #475569 !important;
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+}
+
+.crows-travel-helper .travel-btn-vote:hover,
+.crows-travel-helper .travel-btn-pace:hover {
+  background: #334155 !important;
+  color: #fff !important;
+}
+
+.crows-travel-helper .travel-btn-vote.active,
+.crows-travel-helper .travel-btn-pace.active,
+.crows-travel-helper button[aria-pressed="true"] {
+  background: #1d4ed8 !important;
+  border-color: var(--travel-accent) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4) !important;
+}
+
+/* Candidate Grid & Compact Avatars */
+.crows-travel-helper .travel-candidate-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.crows-travel-helper .travel-candidate-grid.compact {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.crows-travel-helper .travel-candidate-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(15, 23, 42, 0.6) !important;
+  border: 1px solid var(--travel-border) !important;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+  position: relative;
+}
+
+.crows-travel-helper .travel-candidate-card:hover {
+  border-color: rgba(96, 165, 250, 0.45) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+}
+
+.crows-travel-helper .travel-candidate-card.selected {
+  border-color: #3b82f6 !important;
+  background: rgba(30, 58, 138, 0.25) !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.25) !important;
+}
+
+.crows-travel-helper .travel-candidate-card.dead {
+  border-color: rgba(220, 38, 38, 0.4) !important;
+  background: rgba(127, 29, 29, 0.15) !important;
+}
+
+.crows-travel-helper .travel-hidden-checkbox {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+  margin: 0;
+}
+
+/* Portrait boxes & avatars strictly sized to compact badge scale */
+.crows-travel-helper .travel-candidate-portrait-box {
+  position: relative !important;
+  width: 26px !important;
+  height: 26px !important;
+  flex: 0 0 26px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.crows-travel-helper .travel-candidate-grid.compact .travel-candidate-portrait-box {
+  width: 22px !important;
+  height: 22px !important;
+  flex: 0 0 22px !important;
+}
+
+.crows-travel-helper .travel-avatar,
+.crows-travel-helper img.travel-avatar {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  max-width: 26px !important;
+  min-height: 26px !important;
+  max-height: 26px !important;
+  border-radius: 4px !important;
+  object-fit: cover !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  background: #0f172a !important;
+  flex-shrink: 0 !important;
+}
+
+.crows-travel-helper .travel-candidate-grid.compact .travel-avatar,
+.crows-travel-helper .travel-candidate-grid.compact img.travel-avatar {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+  max-width: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+}
+
+.crows-travel-helper .travel-candidate-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.crows-travel-helper .travel-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.crows-travel-helper .travel-candidate-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f3f4f6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: 'Cinzel', serif;
+}
+
+.crows-travel-helper .travel-dead-tag {
+  font-family: 'Cinzel', serif;
+  font-size: 8px;
+  font-weight: 800;
+  padding: 1px 4px;
+  border-radius: 2px;
+  background: rgba(185, 28, 28, 0.9);
+  color: #ffffff;
+  border: 1px solid #f87171;
+  letter-spacing: 0.5px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.crows-travel-helper .travel-candidate-status-tag {
+  font-size: 10px;
+}
+
+.crows-travel-helper .tag-traveling {
+  color: #60a5fa;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.crows-travel-helper .tag-resting {
+  color: var(--travel-subtle);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.crows-travel-helper .travel-toggle-indicator {
+  font-size: 10px;
+  color: var(--travel-muted);
+}
+
+.crows-travel-helper .travel-candidate-card.selected .travel-toggle-indicator {
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+.crows-travel-helper .travel-candidate-sheet-btn {
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  color: var(--travel-muted) !important;
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.crows-travel-helper .travel-candidate-sheet-btn:hover {
+  color: var(--travel-accent) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* GM Roster Drawer (details/summary) */
+.crows-travel-helper .travel-roster-drawer {
+  background: rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid var(--travel-border) !important;
+  border-radius: 6px;
+  margin: 10px 0 14px;
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.crows-travel-helper .travel-roster-drawer[open] {
+  border-color: rgba(96, 165, 250, 0.35) !important;
+}
+
+.crows-travel-helper .travel-roster-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.6) !important;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--travel-ink);
+  user-select: none;
+  transition: background 0.15s ease;
+}
+
+.crows-travel-helper .travel-roster-summary:hover {
+  background: rgba(30, 41, 59, 0.8) !important;
+}
+
+.crows-travel-helper .travel-drawer-hint {
+  font-size: 11px;
+  color: var(--travel-accent);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.crows-travel-helper .travel-drawer-hint i {
+  transition: transform 0.2s ease;
+}
+
+.crows-travel-helper .travel-roster-drawer[open] .travel-drawer-hint i {
+  transform: rotate(180deg);
+}
+
+.crows-travel-helper .travel-roster-drawer-body {
+  padding: 10px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Role Guidelines */
+.crows-travel-helper .travel-role-guide {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 11px;
+  color: var(--travel-muted);
+}
+
+.crows-travel-helper .travel-role-guide-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.crows-travel-helper .travel-role-guide-item i {
+  color: var(--travel-accent);
+}
+
+.crows-travel-helper .travel-role-guide-item strong {
+  color: #e2e8f0;
+}
+
+/* Traveling Members List */
+.crows-travel-helper .travel-members {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.crows-travel-helper .travel-member-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(15, 23, 42, 0.6) !important;
+  border: 1px solid var(--travel-border) !important;
+  border-radius: 6px;
+  transition: border-color 0.15s ease;
+}
+
+.crows-travel-helper .travel-member-row:hover {
+  border-color: rgba(148, 163, 184, 0.35) !important;
+}
+
+.crows-travel-helper .travel-member-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.crows-travel-helper .travel-member-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.crows-travel-helper .travel-member-name {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #f3f4f6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crows-travel-helper .travel-actor-sheet-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent !important;
+  border: none !important;
+  color: #f3f4f6 !important;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.15s ease;
+}
+
+.crows-travel-helper .travel-actor-sheet-link:hover {
+  color: var(--travel-accent) !important;
+}
+
+.crows-travel-helper .travel-actor-sheet-link i {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.crows-travel-helper .travel-role-select-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 210px;
+}
+
+.crows-travel-helper .travel-role-select-box .select-icon {
+  color: var(--travel-muted);
+  font-size: 12px;
+}
+
+.crows-travel-helper .travel-role-select-box select,
+.crows-travel-helper .travel-select-box select,
+.crows-travel-helper select {
+  width: 100%;
+  height: 32px !important;
+  background: rgba(15, 23, 42, 0.85) !important;
+  border: 1px solid #475569 !important;
+  border-radius: 4px !important;
+  color: #f9fafb !important;
+  font-size: 12px !important;
+  padding: 4px 8px !important;
+  font-family: 'Inter', sans-serif !important;
+  color-scheme: dark;
+}
+
+.crows-travel-helper select option {
+  background-color: #0f172a !important;
+  color: #f9fafb !important;
+}
+
+.crows-travel-helper .travel-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(51, 65, 85, 0.6) !important;
+  border: 1px solid rgba(148, 163, 184, 0.2) !important;
+  color: var(--travel-muted) !important;
+}
+
+.crows-travel-helper .travel-role-badge.assigned {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border-color: rgba(96, 165, 250, 0.3) !important;
+  color: #93c5fd !important;
+}
+
+/* Tables Section */
+.crows-travel-helper .travel-table-picker {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.crows-travel-helper .travel-select-box {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.crows-travel-helper .travel-select-box i {
+  position: absolute;
+  left: 10px;
+  color: var(--travel-muted);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.crows-travel-helper .travel-select-box select {
+  padding-left: 30px !important;
+}
+
+.crows-travel-helper .travel-secondary-btn {
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #475569 !important;
+  border-radius: 4px !important;
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.crows-travel-helper .travel-secondary-btn:hover {
+  background: #334155 !important;
+  color: #fff !important;
+  border-color: var(--travel-accent) !important;
+}
+
+.crows-travel-helper .tables-empty-hint {
+  margin-top: 8px;
+}
+
+/* Empty States */
+.crows-travel-helper .travel-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  text-align: center;
+  color: var(--travel-muted);
+  gap: 8px;
+}
+
+.crows-travel-helper .travel-empty-state i {
+  font-size: 28px;
+  color: var(--travel-accent);
+  opacity: 0.6;
+}
+
+.crows-travel-helper .travel-empty-state p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.crows-travel-helper .travel-subtle {
+  color: var(--travel-muted);
+  font-size: 12px;
+  font-weight: normal;
+  margin: 0;
+}
+
+/* Footer Controls */
+.crows-travel-helper .travel-footer {
+  border-top: 1px solid var(--travel-border);
+  background: #11141a;
+  flex-wrap: wrap;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+.crows-travel-helper .travel-primary {
+  flex: 1;
+  padding: 10px 18px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  font-family: 'Cinzel', serif !important;
+  letter-spacing: 0.05em !important;
+  background: #1d4ed8 !important;
+  border: 1px solid var(--travel-accent) !important;
+  border-radius: 6px !important;
+  color: #ffffff !important;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 0 14px rgba(59, 130, 246, 0.35) !important;
+  transition: all 0.2s ease;
+}
+
+.crows-travel-helper .travel-primary:hover {
+  background: #2563eb !important;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.55) !important;
+}
+
+.crows-travel-helper .travel-primary.travel-start-btn {
+  padding: 12px 24px !important;
+  font-size: 14px !important;
+}
+
+.crows-travel-helper .travel-footer .travel-secondary-btn {
+  height: auto !important;
+  white-space: normal;
+  padding: 9px 14px !important;
+  font-size: 12px !important;
+  font-weight: 600;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.05em;
+}
+
+.crows-travel-helper .travel-footer .travel-cancel {
+  color: #fca5a5 !important;
+  border-color: rgba(248, 113, 113, .4) !important;
+  font-family: 'Inter', sans-serif;
+}
+.crows-travel-helper .travel-footer .travel-primary { height: auto !important; }
+
+.crows-travel-helper .travel-player-wait-note {
+  font-size: 12px;
+  color: var(--travel-muted);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0;
+}
+
+/* Open Travel Directory Button */
+.crows-open-travel {
+  margin: 6px 0;
+  background: #1e293b !important;
+  color: #e2e8f0 !important;
+  border: 1px solid #475569 !important;
+  border-radius: 4px !important;
+  font-weight: 600;
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.crows-open-travel:hover {
+  background: #334155 !important;
+  color: #fff !important;
+  border-color: #60a5fa !important;
+}
+
+/* Responsive tweaks */
+@media (max-width: 600px) {
+  .crows-travel-helper .travel-paces {
+    grid-template-columns: 1fr;
+  }
+  .crows-travel-helper .travel-role-guide {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .crows-travel-helper .travel-member-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+}

@@ -29,7 +29,8 @@
     "styles/crows.css",
     "styles/character-creator.css",
     "styles/village.css",
-    "styles/setup-guide.css"
+    "styles/setup-guide.css",
+    "styles/travel-helper.css"
   ],
   "packs": [],
   "languages": [],

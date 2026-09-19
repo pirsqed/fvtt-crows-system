@@ -16,11 +16,20 @@ import { CrowsToken } from "./module/token.mjs";
 import { CrowsDungeonTimer } from "./module/apps/dungeon-timer.mjs";
 import { CrowsPDFImporter } from "./module/apps/pdf-importer.mjs";
 import { CrowsSetupGuide } from "./module/apps/setup-guide.mjs";
+import { CrowsTravel } from "./module/travel.mjs";
+import { CrowsTravelHelper, addTravelButton, addTravelToDocumentDirectory, refreshTravelButton } from "./module/apps/travel-helper.mjs";
 import { repairWorldIcons } from "./module/icon-repairs.mjs";
 import { CrowsCharacterCreator, addCharacterCreatorButton, addCharacterCreatorToDocumentDirectory,
   refreshCharacterCreatorButtons } from "./module/apps/character-creator.mjs";
 
 Hooks.on("renderActorDirectory", addCharacterCreatorButton);
+Hooks.on("renderActorDirectory", addTravelButton);
+Hooks.on("renderDocumentDirectory", addTravelToDocumentDirectory);
+Hooks.on("renderSidebar", refreshTravelButton);
+Hooks.once("ready", refreshTravelButton);
+for (const hook of ["createActor", "updateActor", "deleteActor", "updateUser", "userConnected", "createRollTable", "updateRollTable", "deleteRollTable"]) {
+  Hooks.on(hook, () => CrowsTravelHelper.sync());
+}
 Hooks.on("renderDocumentDirectory", addCharacterCreatorToDocumentDirectory);
 Hooks.on("renderSidebar", refreshCharacterCreatorButtons);
 Hooks.once("ready", refreshCharacterCreatorButtons);
@@ -90,6 +99,12 @@ Hooks.once("init", async () => {
 
   // Ground loot chat settings
   CrowsLoot.registerSettings();
+  CrowsTravel.register(() => CrowsTravelHelper.sync());
+  game.settings.registerMenu("fvtt-crows-system", "travelHelper", {
+    name: "Travel Together", label: "Open Travel Helper",
+    hint: "Coordinate the traveling party, pace votes, roles, and the daily procedure.",
+    icon: "fas fa-route", type: CrowsTravelHelper, restricted: false
+  });
 
   game.settings.registerMenu("fvtt-crows-system", "setupGuide", {
     name: "Start Here", label: "Open Setup Guide",
@@ -331,6 +346,7 @@ async function importContent(packs) {
 Hooks.once("ready", () => {
   // Loot transfers requested by players are executed by the active GM's client
   CrowsLoot.activateSocket();
+  CrowsTravel.activate();
   CrowsChatActions.activate([...EXPERTISES_CONFIG.general, ...EXPERTISES_CONFIG.spellcasting, ...EXPERTISES_CONFIG.weapon]);
   repairWorldIcons().catch(error => console.error("Crows | Icon repair failed", error));
   CrowsLoot.migrateGold().catch(error => {
@@ -344,6 +360,7 @@ Hooks.once("ready", () => {
 
   // Expose system helper utilities
   game.crows = {
+    travel: { show: () => CrowsTravelHelper.show() },
     createCrow: () => new CrowsCharacterCreator().render(true),
     timerHUD: timerHUD,
 
@@ -456,4 +473,5 @@ Hooks.once("ready", () => {
     importMonsters: () => importContent([IMPORT_PACKS[3]]),
     importPlaytestItems: () => importContent(IMPORT_PACKS)
   };
+  CrowsTravelHelper.sync();
 });
