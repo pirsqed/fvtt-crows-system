@@ -26,7 +26,7 @@ export async function castSpell(actor, item, { circumstance = "standard", modifi
     flags: rollFlags(state), content: renderRollState(state) });
 }
 
-export function showSpellcastDialog(actor, item) {
+export function showSpellcastDialog(actor, item, { validate = () => true } = {}) {
   if (!actor?.isOwner || !item?.system.isSpellbook) return;
   let busy = false;
   return new Dialog({ title: `Cast: ${item.name}`,
@@ -36,6 +36,7 @@ export function showSpellcastDialog(actor, item) {
       <p>Apply expertise before resolving effects, chaos, and usage dice. These remain manual.</p></form>`,
     buttons: { cast: { label: "Cast", callback: async html => {
       if (busy) return;
+      if (!validate()) return;
       busy = true;
       try { await castSpell(actor, item, { circumstance: html.find('input[name="circumstance"]:checked').val() || "standard",
         modifier: Number(html.find('[name="modifier"]').val()) || 0 }); }

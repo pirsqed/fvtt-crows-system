@@ -6,6 +6,10 @@ Before the first session, review [player permissions and loot setup](README.md#g
 
 ## Tests, attacks, and expertise
 
+Drag an item onto the hotbar to create a shortcut: weapons open Attack, spellbooks open Cast, and stat-block attacks open their attack dialog. Other items open their sheet for reference, including consumables, traits, armor, and boons. Directory and compendium items open for reference; drag from a Crow or monster inventory to create an action shortcut.
+
+Weapon and spellbook shortcuts require the original item to be equipped in a hand. This is checked again when confirming the roll. Shortcuts retain the original actor and item, regardless of the selected token; deleting or transferring the item requires a new shortcut. Spellbook depletion is checked by the normal casting flow. Consumable effects, ammunition, and trait exceptions remain manual.
+
 **Handled:** characteristic tests, weapon attacks, stat-block attacks, and casting use the system's 2d10 roll flow. Choose standard, edge, bane, double edge, or double bane in the dialog. The roll applies that choice and shows its tier, including crit or doom. Weapon attacks use the item's configured tier damage; stat-block attacks use their printed bonus and tier text.
 
 **Your call:** which characteristic and circumstance apply, whether a target is in range, cover, line of sight, weapon qualities, and what the result means in the scene. Condition icons don't automatically change your roll. Enter situational modifiers and select circumstances yourself.

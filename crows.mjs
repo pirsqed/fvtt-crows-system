@@ -17,10 +17,12 @@ import { CrowsDungeonTimer } from "./module/apps/dungeon-timer.mjs";
 import { CrowsPDFImporter } from "./module/apps/pdf-importer.mjs";
 import { CrowsSetupGuide } from "./module/apps/setup-guide.mjs";
 import { repairWorldIcons } from "./module/icon-repairs.mjs";
+import { onHotbarDrop, useItemShortcut } from "./module/hotbar.mjs";
 import { CrowsCharacterCreator, addCharacterCreatorButton, addCharacterCreatorToDocumentDirectory,
   refreshCharacterCreatorButtons } from "./module/apps/character-creator.mjs";
 
 Hooks.on("renderActorDirectory", addCharacterCreatorButton);
+Hooks.on("hotbarDrop", onHotbarDrop);
 Hooks.on("renderDocumentDirectory", addCharacterCreatorToDocumentDirectory);
 Hooks.on("renderSidebar", refreshCharacterCreatorButtons);
 Hooks.once("ready", refreshCharacterCreatorButtons);
@@ -344,6 +346,7 @@ Hooks.once("ready", () => {
 
   // Expose system helper utilities
   game.crows = {
+    useItemShortcut,
     createCrow: () => new CrowsCharacterCreator().render(true),
     timerHUD: timerHUD,
 

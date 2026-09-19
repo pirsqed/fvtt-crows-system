@@ -18,6 +18,8 @@ This checklist is for the system release paired with Crows PDF Importer v0.1.0. 
 
 ## Gameplay and upgrade
 
+- [ ] Drag a weapon, spellbook, monster attack, and reference item to hotbar slots. Verify the expected dialogs and icon; repeat a drop and verify macro reuse. Test as an owning player and with an unlinked token. Put a weapon/book in a backpack, belt, ground, or stash, or disable Equipped, and verify the shortcut warns without rolling. Also move/delete it or revoke ownership while its dialog is open; confirm the roll is blocked. Check a depleted spellbook and a deleted-item shortcut.
+
 - [ ] Create a Crow and starting pet from imported content as GM and as a player with Create Actors permission. Check starting trait, kit quantities, expertise, purse, and NPC connection; confirm incomplete creator data produces an actionable error.
 - [ ] Spot-check inventory transfers, map loot with a logged-in GM, attacks, wounds, spellcasting reminders, dungeon timer, and villages in the candidate system. Use [the play guide](MANUAL-PLAY.md) to check which steps remain manual.
 - [ ] Update a copy of a v0.2.0 world to v0.2.1 with the module enabled. Confirm owned actors and existing world compendiums remain usable; review/import the packet again to update source content without replacing local edits by default. Record any migration or installation issues.
