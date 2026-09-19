@@ -1,4 +1,4 @@
-# Crows (Unofficial) for Foundry VTT
+# Crows for Foundry VTT
 
 Greetings, Crows and Refs! This is an unofficial Foundry system for **Crows**, MCDM's survival-horror dungeon crawler. It was built to make running the playtest easier, especially all that item management. :)
 

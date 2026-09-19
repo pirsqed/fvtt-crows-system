@@ -1,6 +1,6 @@
 {
   "id": "fvtt-crows-system",
-  "title": "Crows (Unofficial)",
+  "title": "Crows: Fortune or Death",
   "description": "An unofficial Foundry system for the Crows public playtest. Import content from your own playtest PDFs with the companion Crows PDF Importer module; game content and artwork are not bundled.",
   "version": "0.2.1",
   "compatibility": {
