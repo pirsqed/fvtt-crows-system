@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Crows PDF prototype</title>
+<style>
+body{color:#eee8da;background:#212522;font:16px/1.5 system-ui;margin:0;padding:28px;max-width:1000px}h1{font:32px Georgia;margin:0 0 12px}label{display:block;margin:16px 0}input,select,button{font:inherit;padding:7px;background:#343b36;color:inherit;border:1px solid #839080;border-radius:4px}button{cursor:pointer}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#171b18;padding:16px;border-radius:6px}p{color:#c4cbbf}#status{color:#e2c889}
+</style>
+<h1>Crows PDF extraction prototype</h1>
+<p>Select an inventory-card PDF or the Characters book. Extraction runs locally. Results are a preview and do not change your world.</p>
+<form id="probe"><label>PDF <input id="file" type="file" accept="application/pdf,.pdf" required></label>
+<label>Page layout <select id="kind"><option value="cards">Inventory cards</option><option value="traits">Trait tree</option></select></label>
+<label>PDF page number <input id="page" type="number" value="1" min="1" step="1" required></label>
+<button id="run">Extract page</button> <button id="cancel" type="button" disabled>Cancel</button></form>
+<p id="status" role="status">Ready.</p><pre id="result">Choose a PDF to begin.</pre>
+<script type="module" src="./ui.mjs"></script></html>
