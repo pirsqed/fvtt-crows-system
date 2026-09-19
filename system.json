@@ -2,7 +2,7 @@
   "id": "fvtt-crows-system",
   "title": "Crows: Fortune or Death",
   "description": "An unofficial Foundry system for the Crows public playtest. Import content from your own playtest PDFs with the companion Crows PDF Importer module; game content and artwork are not bundled.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "compatibility": {
     "minimum": 14,
     "verified": 14
@@ -15,7 +15,7 @@
   ],
   "url": "https://github.com/pirsqed/fvtt-crows-system",
   "manifest": "https://raw.githubusercontent.com/pirsqed/fvtt-crows-system/main/system.json",
-  "download": "https://github.com/pirsqed/fvtt-crows-system/releases/download/v0.2.1/fvtt-crows-system.zip",
+  "download": "https://github.com/pirsqed/fvtt-crows-system/releases/download/v0.2.2/fvtt-crows-system.zip",
   "bugs": "https://github.com/pirsqed/fvtt-crows-system/issues",
   "readme": "README.md",
   "grid": {

@@ -123,7 +123,7 @@
       </div>
       {{#if system.isSpellbook}}
       <div class="spellbook-details-panel flexcol">
-        <p class="spellbook-cast-hint"><i class="fas fa-info-circle"></i> Cast makes a Mind test. Resolve the spell's effects, chaos/backlash, and usage dice manually after expertise.</p>
+        <p class="spellbook-cast-hint"><i class="fas fa-info-circle"></i> Cast makes a Mind test. Apply expertise, then resolve the spell's effects and any chaos/backlash. Use the separate UD button when a book usage check is due; it rolls and updates the pool.</p>
         {{#if (and hasCaster (or (eq system.location "hand1") (eq system.location "hand2")))}}<button type="button" class="item-cast"><i class="fas fa-hat-wizard"></i> Cast Spell</button>{{/if}}
       </div>
       {{/if}}

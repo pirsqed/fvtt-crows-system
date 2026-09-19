@@ -33,7 +33,7 @@ export function showSpellcastDialog(actor, item, { validate = () => true } = {})
     content: `<form class="crows-dialog-form"><p>Mind test. Have the spellbook in hand, or use an applicable trait.</p>
       ${renderCircumstanceSelector()}
       <div class="form-group"><label>Situational modifier</label><input name="modifier" type="number" value="0" /></div>
-      <p>Apply expertise before resolving effects, chaos, and usage dice. These remain manual.</p></form>`,
+      <p>Apply expertise before resolving effects and any chaos/backlash. When a book usage check is due, click its separate UD button to roll and update the pool.</p></form>`,
     buttons: { cast: { label: "Cast", callback: async html => {
       if (busy) return;
       if (!validate()) return;

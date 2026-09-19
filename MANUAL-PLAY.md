@@ -14,7 +14,7 @@ Weapon and spellbook shortcuts require the original item to be equipped in a han
 
 **Your call:** which characteristic and circumstance apply, whether a target is in range, cover, line of sight, weapon qualities, and what the result means in the scene. Condition icons don't automatically change your roll. Enter situational modifiers and select circumstances yourself.
 
-On supported Crow roll cards, **Apply Expertise** spends one use and raises the result by a tier. Agree on a relevant expertise with the Ref. Use it before applying damage or resolving a spell. The card doesn't offer it on doom, at the highest tier, or after its action has been resolved. Monster stat-block attacks don't have Crow expertise controls; Miasma resistance cards have their own outcome controls.
+On supported Crow roll cards, **Apply Expertise** spends one use and raises the result by a tier. Agree on a relevant expertise with the Ref. Use it before applying damage or resolving a spell. The card doesn't offer it on doom, at the highest tier, or after a tracked chat action has been resolved. Effects resolved outside the card, including spell effects, aren't tracked; don't apply expertise afterward. Monster stat-block attacks don't have Crow expertise controls; Miasma resistance cards have their own outcome controls.
 
 The Ref can use **Undo Expertise** to refund one use (up to the configured maximum) and restore the previous tier. It does not undo damage already applied; check and correct that separately. Pending or uncertain updates must be reviewed before undo is available.
 
@@ -36,19 +36,19 @@ Repair/AD controls change the numbers. They don't check whether you've had enoug
 
 ## Spellbooks
 
-Enable **Spellbook** on an equipment item and configure its usage dice and tier effects. Newly built spellbooks include the flag; rebuilding doesn't update copies already owned by characters.
+Imported spellbooks are marked **Spellbook** and include their usage pool and available tier effects. For a custom book, enable **Spellbook** on its equipment sheet and configure those fields. Re-importing updates compendium entries through review; it doesn't update copies already on character sheets.
 
-**Cast** rolls Mind, shows the configured effect text, and allows supported expertise upgrades. A depleted book with a configured usage maximum can't cast through the normal button. The chat card updates its chaos/backlash and usage-dice reminders when expertise changes the result.
+**Handled:** placing a book in a hand exposes **Cast** on its inventory card and **Cast Spell** on its owned item sheet. You can also drag the owned book to the hotbar. The shortcut checks that the book is still equipped in a hand, both when opening the dialog and when confirming the roll. Trait exceptions to that requirement need to be resolved separately.
 
-**Resolve these yourself:**
+**Cast** rolls Mind with your chosen circumstance and situational modifier, then shows the configured effect for the resulting tier. On a Crow's eligible chat card, **Apply Expertise** spends a use, raises the tier, and updates the effect text and chaos/usage reminders. Apply expertise before resolving the spell. A book with a configured usage maximum and no dice left is blocked from casting.
 
-- Whether the book must be in hand and whether a trait provides an exception.
-- Targets, areas, damage/healing, conditions, and the spell's actual effect.
-- Any chaos or backlash roll and its result.
-- The spellbook's usage check after casting, when required.
-- Effect duration and any separate duration dice.
+After the final tier is settled:
 
-The casting button doesn't spend usage dice. Use the usage-dice control separately when the rules call for it. On a critical casting, follow the card's reminder to skip the book's usage check. Consult the current packet for the actual spell and backlash rules.
+1. Follow the chat reminder for chaos or backlash. The card tells you when those rolls are needed, but doesn't make them or resolve their results.
+2. Resolve targets, areas, damage/healing, conditions, and other spell effects with the Ref. Displayed tier text doesn't apply those effects to actors.
+3. When a book usage check is due, click its **UD** button. The system rolls the current d6 pool, removes dice showing 1 or 2, saves the remaining pool, and posts the result. **Cast** does not trigger this check itself. A critical casting skips the book's usage check; reaching tier 3 through expertise is not itself a critical casting.
+
+Effect duration and any separate duration dice still need tracking at the table. The book's **UD** button checks the book's remaining uses; it doesn't track a spell's duration. **Restore usage dice** refills the book after you confirm that the required rest or replenishment has happened. Consult the current packet for spell rules and trait exceptions.
 
 ## Items, retrieval, and supplies
 
@@ -80,9 +80,15 @@ The Ref can set the turn number, duration, and encounter threshold, then start o
 
 Running out of sand stops the clock. **End Turn** rolls the encounter check, posts the result and reminders, advances the turn, and leaves the new timer paused. Only the active GM changes the shared timer; players can view it.
 
-The checklist is a reminder. It doesn't roll all usage dice, remove conditions, spawn monsters, schedule the warned encounter, assign greed to loot, or adjust token lighting. Resolve those steps at the table. If turn resolution fails partway through, check chat before resetting or repeating it.
+The checklist is a reminder. Click each relevant item's UD button when its check is due. End Turn doesn't roll all usage dice, remove conditions, spawn monsters, schedule the warned encounter, assign greed to loot, or adjust token lighting. Resolve those steps at the table. If turn resolution fails partway through, check chat before resetting or repeating it.
 
 Item-driven lighting isn't implemented. Use Foundry's token or scene lighting tools yourself. Depleting a torch's usage dice doesn't extinguish a light automatically.
+
+## Imported Ref tables
+
+The importer can create **Crows Ref Tables** from your Ref book. Roll a table through Foundry to select a result using its imported ranges. Multi-page result text, source references, and the Bad Weather odd/even reminder are included.
+
+You still decide when a table applies and resolve its result. References to creatures or other tables don't spawn tokens or roll follow-up tables. Handle Bad Weather's odd/even roll and seasonal choice yourself. The Major Interesting Things table retains the **101+** result for modified rolls; its ordinary formula is d100. Don't normalize its ranges.
 
 ## Village and crypt reminders
 
