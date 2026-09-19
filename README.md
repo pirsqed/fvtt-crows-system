@@ -2,9 +2,23 @@
 
 Greetings, Crows and Refs! This is an unofficial Foundry system for **Crows**, MCDM's survival-horror dungeon crawler. It was built to make running the playtest easier, especially all that item management. :)
 
-**Foundry 14 is required.** You'll need your own MCDM playtest packet to import the item, trait, and bestiary compendiums. Those compendiums and the PDF artwork aren't bundled with the system. Sheet labels, some rule reminders, and a few fixed tables are included; this isn't a replacement for the books.
+**Foundry 14 is required.** You'll need your own MCDM Crows playtest packet to import the item, trait, and bestiary compendiums. Those compendiums and the PDF artwork aren't bundled with the system. Sheet labels, some rule reminders, and a few fixed tables are included; this isn't a replacement for the books.
 
 Crows is © MCDM Productions LLC. This project is not affiliated with or endorsed by MCDM.
+
+## A look at the system
+
+### Your Crow
+
+![Crow character sheet showing characteristics, resources, equipped weapons, and worn magic slots.](docs/images/character-sheet.jpg)
+
+### What you're carrying
+
+![Belt and backpack inventory showing item cards, supply counts, multi-slot equipment, and an empty slot.](docs/images/character-inventory.jpg)
+
+### An attack in play
+
+![Sword attack in chat showing a Tier 2 mixed hit, five damage, and controls to apply expertise or damage.](docs/images/attack-roll.jpg)
 
 ## Start here
 
@@ -14,7 +28,7 @@ Install through Foundry's **Game Systems → Install System** using this manifes
 https://raw.githubusercontent.com/pirsqed/fvtt-crows-system/main/system.json
 ```
 
-Create a world using **Crows (Unofficial)** and join as the GM. The **Start Here** guide opens on your first visit. Reopen it anytime through **Settings → Configure Settings → Crows (Unofficial) → Start Here**. It walks through enabling Crows PDF Importer, selecting the PDF folder, and reviewing the import. Players can read it too; the Ref imports once for the world.
+Create a world using **Crows** and join as the GM. The **Start Here** guide opens on your first visit. Reopen it anytime through **Settings → Configure Settings → Crows → Start Here**. It walks through enabling Crows PDF Importer, selecting the PDF folder, and reviewing the import. Players can read it too; the Ref imports once for the world.
 
 - [Importing the playtest content](#importing-the-playtest-content)
 - [Player permissions and loot setup](#gm-setup-player-permissions)
@@ -46,7 +60,7 @@ The Ref imports the packet once for the world. Players then use the compendiums 
 
 ### 1. Enable the module
 
-Install **Crows PDF Importer (Unofficial)** alongside the system and enable it under **Settings → Manage Modules**. Reload the world. Open **Settings → Configure Settings → Crows (Unofficial) → Import Playtest Content**, or use **Open PDF Importer** in **Start Here**.
+Install **[Crows PDF Importer](https://github.com/pirsqed/fvtt-crows-pdf-importer)** alongside the system and enable it under **Settings → Manage Modules**. Reload the world. Open **Settings → Configure Settings → Crows → Import Playtest Content**, or use **Open PDF Importer** in **Start Here**.
 
 Install the companion module from its release ZIP in `Data/modules/fvtt-crows-pdf-importer` on the Foundry host, then restart Foundry. The host needs both the v0.2.1 system and a compatible importer module. If the module is missing, disabled, or unavailable, **Import Playtest Content** explains what to check.
 
