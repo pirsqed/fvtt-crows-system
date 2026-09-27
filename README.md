@@ -1,10 +1,24 @@
-# Crows (Unofficial) for Foundry VTT
+# Crows for Foundry VTT
 
 Greetings, Crows and Refs! This is an unofficial Foundry system for **Crows**, MCDM's survival-horror dungeon crawler. It was built to make running the playtest easier, especially all that item management. :)
 
-**Foundry 14 is required.** You'll need your own MCDM playtest packet to import the item, trait, and bestiary compendiums. Those compendiums and the PDF artwork aren't bundled with the system. Sheet labels, some rule reminders, and a few fixed tables are included; this isn't a replacement for the books.
+**Foundry 14 is required.** You'll need your own MCDM Crows playtest packet to import the item, trait, and bestiary compendiums. Those compendiums and the PDF artwork aren't bundled with the system. Sheet labels, some rule reminders, and a few fixed tables are included; this isn't a replacement for the books.
 
 Crows is © MCDM Productions LLC. This project is not affiliated with or endorsed by MCDM.
+
+## A look at the system
+
+### Your Crow
+
+![Crow character sheet showing characteristics, resources, equipped weapons, and worn magic slots.](docs/images/character-sheet.jpg)
+
+### What you're carrying
+
+![Belt and backpack inventory showing item cards, supply counts, multi-slot equipment, and an empty slot.](docs/images/character-inventory.jpg)
+
+### An attack in play
+
+<img src="docs/images/attack-roll.jpg" alt="Sword attack in chat showing a Tier 2 mixed hit, five damage, and controls to apply expertise or damage." width="320">
 
 ## Start here
 
@@ -14,7 +28,7 @@ Install through Foundry's **Game Systems → Install System** using this manifes
 https://raw.githubusercontent.com/pirsqed/fvtt-crows-system/main/system.json
 ```
 
-Create a world using **Crows (Unofficial)** and join as the GM. The **Start Here** guide opens on your first visit. Reopen it anytime through **Settings → Configure Settings → Crows (Unofficial) → Start Here**. It walks through enabling Crows PDF Importer, selecting the PDF folder, and reviewing the import. Players can read it too; the Ref imports once for the world.
+Create a world using **Crows** and join as the GM. The **Start Here** guide opens on your first visit. Reopen it anytime through **Settings → Configure Settings → Crows → Start Here**. It walks through enabling Crows PDF Importer, selecting the PDF folder, and reviewing the import. Players can read it too; the Ref imports once for the world.
 
 - [Importing the playtest content](#importing-the-playtest-content)
 - [Player permissions and loot setup](#gm-setup-player-permissions)
@@ -31,11 +45,11 @@ The system helps with rolls, item movement, and resource tracking. It doesn't en
 | --------------------| -------------------------------------------------------------------------------------------------------------------------| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Character creation | Builds a new Crow, starting kit, expertise pools, purse, and any starting pets.                                         | Ref-approved choices, checking the loadout, later advancement, and conditional trait benefits.                                                                                                                                                             |
 | Inventory          | Places items in slots, checks space, moves equipment between owned inventories, and supports map pickups.               | When moving an item is allowed, retrieval decisions, and item-specific restrictions. Most item qualities (like Cumbersome) are not yet automated. You'll need to swap that item from 1 to 2 slots depending on where it's at :)                            |
-| Traits             | Stores descriptions                                                                                                     | Purchases, prerequisites, XP spending, and other trait effects. There is an option to add a belt slot, but this will have to be manually done for now.                                                                                                     |
+| Traits | Stores descriptions and adds labelled belt slots from configured trait fields. | Configuring slot grants; checking their item restrictions; purchases, prerequisites, XP spending, and other trait effects. |
 | Rolls and attacks  | Rolls 2d10, resolves the chosen circumstance, shows tiers/crit/doom, and offers damage or expertise options in chat.    | Choosing circumstances and relevant expertise; weapon qualities, reach, targets, conditions, and special effects.                                                                                                                                          |
 | Damage and wounds  | Applies the allocation you confirm to AD, Stamina, and supported wound slots; calculates wound-related speed penalties. | Reviewing the allocation, special damage rules, healing, and moving wounds. Since wounds just fill from the first slot, you'll need to go back and put them where you want them after damage is dealt! (This is on the short list of things to add/fix :)) |
-| Spellcasting       | Rolls Mind, shows the configured tier text, and updates reminders after expertise.                                      | Spell effects, chaos/backlash rolls, usage checks, duration, and trait exceptions.                                                                                                                                                                         |
-| Dungeon Turns      | Runs a shared timer; End Turn rolls an encounter check and advances the counter.                                        | Encounters, UD rolls, condition removal, and setting item greed bonuses.                                                                                                                                                                                   |
+| Spellcasting | Offers Cast for books in hand; rolls Mind; updates tier effects and reminders after expertise; blocks depleted books. The separate UD button rolls and saves usage losses. | Choosing when to check usage; spell effects, chaos/backlash rolls, duration, and trait exceptions. |
+| Dungeon Turns | Runs a shared timer; End Turn rolls an encounter check and advances the counter. | Resolving encounters, clicking due UD checks, removing conditions, and managing lighting. |
 | Villages           | Keeps records and shared loot, displays sale percentage, rolls events, and copies custom crypt boons.                   | Costs, services, time, event results, boon eligibility, and boon effects.                                                                                                                                                                                  |
 
 See [Playing the playtest](MANUAL-PLAY.md) for the details. If a rule isn't explicitly handled, resolve it with your Ref and update the sheet yourself.
@@ -44,11 +58,19 @@ See [Playing the playtest](MANUAL-PLAY.md) for the details. If a rule isn't expl
 
 The Ref imports the packet once for the world. Players then use the compendiums and **Create a Crow**. Extraction runs in the Ref's browser, including for hosted games. Select the PDFs on the computer running that browser; the reviewed content is saved in the Foundry world.
 
-### 1. Enable the module
+### 1. Install and enable the module
 
-Install **Crows PDF Importer (Unofficial)** alongside the system and enable it under **Settings → Manage Modules**. Reload the world. Open **Settings → Configure Settings → Crows (Unofficial) → Import Playtest Content**, or use **Open PDF Importer** in **Start Here**.
+From Foundry's Setup screen, open **Add-on Modules → Install Module**, paste this URL into **Manifest URL**, and click **Install**:
 
-Install the companion module from its release ZIP in `Data/modules/fvtt-crows-pdf-importer` on the Foundry host, then restart Foundry. The host needs both the v0.2.1 system and a compatible importer module. If the module is missing, disabled, or unavailable, **Import Playtest Content** explains what to check.
+```text
+https://github.com/pirsqed/fvtt-crows-pdf-importer/releases/latest/download/module.json
+```
+
+This link follows the latest published stable release. Enable the module in your world under **Settings → Manage Modules**, then reload. For a specific older version, use the `module.json` asset from that version's GitHub release.
+
+Install **[Crows PDF Importer](https://github.com/pirsqed/fvtt-crows-pdf-importer)** alongside the system and enable it under **Settings → Manage Modules**. Reload the world. Open **Settings → Configure Settings → Crows → Import Playtest Content**, or use **Open PDF Importer** in **Start Here**.
+
+For manual installation, extract the companion module release ZIP into `Data/modules/fvtt-crows-pdf-importer` on the Foundry host, then restart Foundry. The host needs both the v0.2.2 system and importer v0.1.1. If the module is missing, disabled, or unavailable, **Import Playtest Content** explains what to check.
 
 ### 2. Choose and extract the PDFs
 

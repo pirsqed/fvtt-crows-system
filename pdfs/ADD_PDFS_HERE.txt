@@ -5,8 +5,8 @@ Foundry in a browser. Keep the packet's original filenames and subfolders.
 For a complete import, include the Characters book, Ref book, core Inventory
 Cards, Profession cards, and POI/Dungeon cards. Keep one copy of each PDF.
 
-In your world, enable Crows PDF Importer (Unofficial). Open Settings >
-Configure Settings > Crows (Unofficial) > Import Playtest Content. Choose
+In your world, enable Crows PDF Importer. Open Settings >
+Configure Settings > Crows > Import Playtest Content. Choose
 Packet folder to select this folder and its subfolders, or Individual PDFs to
 select the books directly. Check the detected book assignments, extract, choose
 entries, review changes, and import as the active GM.
@@ -16,7 +16,7 @@ packet on your own computer; you do not need to put it on the Foundry server.
 Only reviewed content is saved to the world. Your original PDFs and packet are
 not included in this system's release ZIP.
 
-For a walkthrough, open Settings > Configure Settings > Crows (Unofficial) >
+For a walkthrough, open Settings > Configure Settings > Crows >
 Start Here, or read the system README.
 
 Fortune, or death!

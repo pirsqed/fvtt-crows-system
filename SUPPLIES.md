@@ -32,7 +32,7 @@ Clicking a usage check rolls the current pool and removes dice showing 1 or 2. T
 
 **Restore usage dice** asks you to confirm that the required rest, refill, or other replenishment has happened, then refills the entire pool to its maximum. It doesn't consume supplies, charge money, heal the Crow, or verify a safe rest. It also doesn't refill ammunition counts.
 
-Spell casting and spellbook usage checks are separate actions. A spell's duration dice are separate too. See [Spellbooks](MANUAL-PLAY.md#spellbooks).
+**Cast** and the spellbook's **UD** button are separate actions. After resolving the casting and any expertise upgrade, click **UD** when the card calls for a book usage check; the button rolls and updates the pool for you. Skip that check on a critical casting. A spell's duration dice are separate and aren't tracked by this button. See [Spellbooks](MANUAL-PLAY.md#spellbooks).
 
 ## What containers don't do
 

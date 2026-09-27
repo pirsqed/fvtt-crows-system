@@ -22,15 +22,16 @@ export function canonical(value) {
       .filter(([, flags]) => Object.keys(flags).length))) : canonical(value[key])]));
 }
 export const fingerprint = value => JSON.stringify(canonical(value));
-export const sourceKey = data => `${data.type}:${data.name.trim().toLowerCase()}${data.type === "trait" ? `:${String(data.system.tree ?? "").trim().toLowerCase()}` : ""}`;
+export const sourceKey = data => `${data.results ? 'RollTable' : data.type}:${data.name.trim().toLowerCase()}${data.type === "trait" ? `:${String(data.system.tree ?? "").trim().toLowerCase()}` : ""}`;
 
 export function validateImport(data, pack) {
   if (!Array.isArray(data) || !data.length) throw new Error(`${pack.file}: expected a non-empty array.`);
   const keys = new Set();
-  const DocumentClass = pack.type === "Actor" ? Actor : Item;
+  const DocumentClass = pack.type === "RollTable" ? RollTable : pack.type === "Actor" ? Actor : Item;
   for (const entry of data) {
-    if (!entry || typeof entry.name !== "string" || !entry.name.trim() || !entry.system
-      || !CONFIG[pack.type].dataModels[entry.type]) throw new Error(`${pack.file}: invalid document name, type, or system data.`);
+    if (!entry || typeof entry.name !== "string" || !entry.name.trim()
+      || (pack.type === "RollTable" ? !Array.isArray(entry.results) || !entry.results.length || !entry.formula
+        : !entry.system || !CONFIG[pack.type].dataModels[entry.type])) throw new Error(`${pack.file}: invalid document name, type, or system data.`);
     const key = sourceKey(entry);
     if (keys.has(key)) throw new Error(`${pack.file}: duplicate entry ${entry.name}.`);
     keys.add(key);
@@ -115,7 +116,13 @@ export class CrowsContentImport {
       if (old) {
         // Existing IDs, folders, ownership and unrelated flags remain intact.
         delete payload.folder; delete payload.ownership;
-        if (config.type === "Actor" && forceOverwrite) {
+        if (config.type === "RollTable") {
+          const results = payload.results;
+          delete payload.results;
+          await old.deleteEmbeddedDocuments("TableResult", old.results.map(result => result.id));
+          doc = await old.update(payload);
+          await doc.createEmbeddedDocuments("TableResult", results.map(result => { const entry = foundry.utils.deepClone(result); delete entry._id; return entry; }));
+        } else if (config.type === "Actor" && forceOverwrite) {
           const items = payload.items ?? [];
           delete payload.items;
           // Force mode explicitly replaces the imported actor's embedded inventory.

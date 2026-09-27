@@ -31,7 +31,7 @@ export function renderDamageButtons(amount, targets = []) {
 }
 
 /** Shared weapon dialog and chat publication for Crow and monster equipment. */
-export function showWeaponAttackDialog(actor, item) {
+export function showWeaponAttackDialog(actor, item, { validate = () => true } = {}) {
   if (!item?.system.isWeapon) return;
   const chars = actor.system.characteristics || { strength: 0, agility: 0, mind: 0 };
   const content = `
@@ -60,6 +60,7 @@ export function showWeaponAttackDialog(actor, item) {
         icon: '<i class="fas fa-swords"></i>',
         label: "Attack",
         callback: async (html) => {
+          if (!validate()) return;
           const charKey = html.find("#attack-char").val();
           const charBonus = chars[charKey] || 0;
           const circumstance = html.find('input[name="circumstance"]:checked').val() || "standard";
@@ -93,7 +94,7 @@ export function showWeaponAttackDialog(actor, item) {
 }
 
 /** Stat-block attacks use their printed bonus with the same circumstance controls. */
-export function showStatBlockAttackDialog(actor, attack) {
+export function showStatBlockAttackDialog(actor, attack, { validate = () => true } = {}) {
   if (!attack) return;
   return new Dialog({
     title: `${actor.name}: ${attack.name}`,
@@ -106,7 +107,7 @@ export function showStatBlockAttackDialog(actor, attack) {
       </div>
     </form>`,
     buttons: {
-      roll: { label: "Attack", callback: html => rollStatBlockAttack(actor, attack, {
+      roll: { label: "Attack", callback: html => validate() && rollStatBlockAttack(actor, attack, {
         circumstance: html.find('input[name="circumstance"]:checked').val() || "standard",
         modifier: Number(html.find("#attack-mod").val()) || 0
       }) },

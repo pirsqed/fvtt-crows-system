@@ -19,6 +19,7 @@ import { CrowsSetupGuide } from "./module/apps/setup-guide.mjs";
 import { CrowsTravel } from "./module/travel.mjs";
 import { CrowsTravelHelper, addTravelButton, addTravelToDocumentDirectory, refreshTravelButton } from "./module/apps/travel-helper.mjs";
 import { repairWorldIcons } from "./module/icon-repairs.mjs";
+import { onHotbarDrop, useItemShortcut } from "./module/hotbar.mjs";
 import { CrowsCharacterCreator, addCharacterCreatorButton, addCharacterCreatorToDocumentDirectory,
   refreshCharacterCreatorButtons } from "./module/apps/character-creator.mjs";
 
@@ -30,6 +31,7 @@ Hooks.once("ready", refreshTravelButton);
 for (const hook of ["createActor", "updateActor", "deleteActor", "updateUser", "userConnected", "createRollTable", "updateRollTable", "deleteRollTable"]) {
   Hooks.on(hook, () => CrowsTravelHelper.sync());
 }
+Hooks.on("hotbarDrop", onHotbarDrop);
 Hooks.on("renderDocumentDirectory", addCharacterCreatorToDocumentDirectory);
 Hooks.on("renderSidebar", refreshCharacterCreatorButtons);
 Hooks.once("ready", refreshCharacterCreatorButtons);
@@ -361,6 +363,7 @@ Hooks.once("ready", () => {
   // Expose system helper utilities
   game.crows = {
     travel: { show: () => CrowsTravelHelper.show() },
+    useItemShortcut,
     createCrow: () => new CrowsCharacterCreator().render(true),
     timerHUD: timerHUD,
 
