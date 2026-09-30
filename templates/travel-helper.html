@@ -1,358 +1,135 @@
 <form class="travel-content" autocomplete="off">
-  <!-- Masthead -->
-  <header class="travel-masthead">
-    <div class="travel-masthead-main">
-      <div class="travel-eyebrow">
-        {{#if hasDay}}
-          <span class="travel-badge-pill"><i class="fas fa-sun"></i> Day {{state.day}}</span>
-          <span class="travel-eyebrow-sep">·</span>
-          <span>Expedition Procedure</span>
-        {{else}}
-          <span class="travel-badge-pill accent"><i class="fas fa-compass"></i> Expedition Planning</span>
-          <span class="travel-eyebrow-sep">·</span>
-          <span>Party Assembly</span>
-        {{/if}}
-      </div>
-      <h1 class="travel-title">{{#if hasDay}}{{currentStep.label}}{{else}}Assemble Traveling Party{{/if}}</h1>
-      <p class="travel-subtitle">{{#if hasDay}}{{currentStep.hint}}{{else}}Choose which Crows will set out on the road. Unselected Crows are not joining this journey.{{/if}}</p>
-    </div>
-    <div class="travel-masthead-icon">
-      <i class="fas {{#if hasDay}}{{currentStep.icon}}{{else}}fa-campground{{/if}}"></i>
-    </div>
-  </header>
-
-  {{#unless hasGM}}
-  <div class="travel-alert warning" role="status">
-    <i class="fas fa-exclamation-triangle"></i>
-    <div><strong>Ref Required:</strong> A Ref must be connected to save choices. You can reopen this window at any time.</div>
-  </div>
-  {{/unless}}
-
-  {{#if error}}
-  <div class="travel-alert danger" role="alert">
-    <i class="fas fa-times-circle"></i>
-    <div>{{error}}</div>
-  </div>
-  {{/if}}
-
+  {{#unless hasGM}}<p class="travel-alert" role="status">A Ref must be connected to save travel choices.</p>{{/unless}}
+  {{#if error}}<p class="travel-alert" role="alert">{{error}}</p>{{/if}}
   <fieldset {{#if busy}}disabled{{/if}}>
-    <div class="travel-body">
+    <header class="travel-topline">
+      <strong>{{#if hasDay}}Day {{state.day}}{{else}}New journey{{/if}}</strong>
+      {{#if hasDay}}
+        {{#if isGM}}<select name="travelStep" aria-label="Current travel step">{{#each steps}}<option value="{{id}}" {{#if current}}selected{{/if}}>{{number}}. {{label}}</option>{{/each}}</select>{{else}}<span>{{currentStep.label}}</span>{{/if}}
+        <span class="travel-muted">{{stepNumber}} / {{stepCount}}</span>
+      {{else}}<span>{{rosterCount}} travelers selected</span>{{/if}}
+    </header>
     {{#if hasDay}}
-      <!-- Step Navigation Tracker -->
-      <nav class="travel-steps" aria-label="Travel procedure">
-        {{#each steps}}
-          {{#if ../isGM}}
-            <button type="button" class="travel-step-btn {{#if current}}current{{/if}} {{#if passed}}passed{{/if}}"
-                    data-travel-action="step" data-step="{{id}}"
-                    {{#if current}}aria-current="step"{{/if}} title="{{label}}">
-              <span class="travel-step-num">{{#if passed}}<i class="fas fa-check"></i>{{else}}{{number}}{{/if}}</span>
-              <span class="travel-step-label">{{label}}</span>
-            </button>
-          {{else}}
-            <div class="travel-step-btn {{#if current}}current{{/if}} {{#if passed}}passed{{/if}}"
-                 {{#if current}}aria-current="step"{{/if}}>
-              <span class="travel-step-num">{{#if passed}}<i class="fas fa-check"></i>{{else}}{{number}}{{/if}}</span>
-              <span class="travel-step-label">{{label}}</span>
-            </div>
-          {{/if}}
-        {{/each}}
-      </nav>
-
-      <!-- Step 1: Pace -->
-      {{#if isPaceStep}}
-      <section class="travel-section pace-section">
-        <div class="travel-section-header">
-          <h2><i class="fas fa-tachometer-alt"></i> Party Pace</h2>
-          <span class="travel-status-pill {{#if state.pace}}active{{/if}}">{{paceLabel}}</span>
-        </div>
-        <p class="travel-section-desc">One vote per player owning a traveling Crow. The Ref makes the final decision for the party.</p>
-        <div class="travel-paces">
-          {{#each paces}}
-          <div class="travel-pace-card {{#if chosen}}chosen{{/if}} {{#if voted}}voted{{/if}}">
-            <div class="travel-pace-header">
-              <i class="fas {{icon}} travel-pace-icon"></i>
-              <div class="travel-pace-title-wrap">
-                <strong class="travel-pace-name">{{label}}</strong>
-                <span class="travel-pace-count"><i class="fas fa-users"></i> {{count}} vote(s)</span>
-              </div>
-            </div>
-            <p class="travel-pace-desc">{{desc}}</p>
-            <div class="travel-pace-actions">
-              {{#if ../voting}}
-                <button type="button" class="travel-btn-vote {{#if voted}}active{{/if}}"
-                        data-travel-action="vote" data-pace="{{id}}" aria-pressed="{{voted}}">
-                  {{#if voted}}<i class="fas fa-check"></i> Your Vote{{else}}Vote {{label}}{{/if}}
-                </button>
-              {{/if}}
-              {{#if ../isGM}}
-                <button type="button" class="travel-btn-pace {{#if chosen}}active{{/if}}"
-                        data-travel-action="pace" data-pace="{{id}}" aria-pressed="{{chosen}}">
-                  {{#if chosen}}<i class="fas fa-check-double"></i> Chosen by Ref{{else}}Choose {{label}}{{/if}}
-                </button>
-              {{/if}}
-            </div>
-          </div>
-          {{/each}}
-        </div>
-      </section>
-      {{else}}
-      <div class="travel-pace-summary">
-        <span>Party pace: <strong>{{paceLabel}}</strong></span>
-        {{#if isGM}}<button type="button" class="travel-secondary-btn" data-travel-action="step" data-step="pace">Change pace</button>{{/if}}
-      </div>
-      {{/if}}
-
-      <!-- Roles & Traveling Party Section -->
-      <section class="travel-section party-section {{#if isRolesStep}}travel-active-section{{/if}}">
-        <div class="travel-section-header">
-          <h2><i class="fas fa-users"></i> Traveling Party <span class="travel-count-badge">{{members.length}} Crows</span></h2>
-          {{#if isGM}}
-          <span class="travel-hint-text">Adjust party via the roster drawer below</span>
-          {{/if}}
-        </div>
-
-        {{#if isGM}}
-        <!-- GM Roster Management Collapsible Drawer during active day -->
-        <details class="travel-roster-drawer" {{#if rosterOpen}}open{{/if}}>
-          <summary class="travel-roster-summary">
-            <span><i class="fas fa-users-cog"></i> Adjust Party Roster ({{members.length}}/{{candidates.length}} traveling)</span>
-            <span class="travel-drawer-hint">Toggle Crows <i class="fas fa-chevron-down"></i></span>
-          </summary>
-          <div class="travel-roster-drawer-body">
-            <p class="travel-subtle">Uncheck any Crows staying behind, including retired or fallen characters. Changes update immediately.</p>
-            <div class="travel-candidate-grid compact">
-              {{#each candidates}}
-              <label class="travel-candidate-card {{#if selected}}selected{{/if}} {{#if isDead}}dead{{/if}}" title="Toggle {{name}}">
-                <input type="checkbox" data-travel-member="{{id}}" {{#if selected}}checked{{/if}} class="travel-hidden-checkbox">
-                <div class="travel-candidate-portrait-box">
-                  <img class="travel-avatar" src="{{img}}" alt="{{name}}" width="22" height="22"
-                       style="width: 22px; height: 22px; min-width: 22px; max-width: 22px; min-height: 22px; max-height: 22px; object-fit: cover; border-radius: 4px;">
-                </div>
-                <div class="travel-candidate-info">
-                  <div class="travel-name-row">
-                    <strong class="travel-candidate-name">{{name}}</strong>
-                    {{#if isDead}}<span class="travel-dead-tag">DEAD</span>{{/if}}
-                  </div>
-                </div>
-                <span class="travel-toggle-indicator">
-                  {{#if selected}}<i class="fas fa-check-circle"></i> Traveling{{else}}<i class="far fa-circle"></i> Staying Behind{{/if}}
-                </span>
-              </label>
-              {{else}}
-              <p class="travel-empty-note">No Crow actors in this world.</p>
-              {{/each}}
-            </div>
-          </div>
-        </details>
-        {{/if}}
-
-        <!-- Role Guidelines -->
-        <div class="travel-role-guide">
-          <div class="travel-role-guide-item"><i class="fas fa-compass"></i> <strong>Guide:</strong> 1 max</div>
-          <div class="travel-role-guide-item"><i class="fas fa-shield-alt"></i> <strong>Supporters:</strong> up to 3</div>
-          <div class="travel-role-guide-item"><i class="fas fa-eye"></i> <strong>Scouts:</strong> up to 3</div>
-          <div class="travel-role-guide-item"><i class="fas fa-paw"></i> <strong>Trackers:</strong> up to 3</div>
-        </div>
-
-        {{#each warnings}}
-        <div class="travel-alert warning" role="status">
-          <i class="fas fa-exclamation-triangle"></i>
-          <div>{{this}}</div>
-        </div>
-        {{/each}}
-
-        <!-- Traveling Members List -->
-        <div class="travel-members">
-          {{#each members}}
-          <div class="travel-member-row {{#if isDead}}dead{{/if}}">
-            <div class="travel-member-profile">
-              <div class="travel-candidate-portrait-box">
-                <img class="travel-avatar" src="{{img}}" alt="{{name}}" width="26" height="26"
-                     style="width: 26px; height: 26px; min-width: 26px; max-width: 26px; min-height: 26px; max-height: 26px; object-fit: cover; border-radius: 4px;">
-              </div>
-              <div class="travel-member-meta">
-                {{#if canOpen}}
-                <button type="button" class="travel-actor-sheet-link" data-travel-actor="{{id}}" title="Open character sheet">
-                  <span class="travel-member-name">{{name}}</span>
-                  <i class="fas fa-external-link-alt"></i>
-                </button>
-                {{else}}
-                <strong class="travel-member-name">{{name}}</strong>
-                {{/if}}
-                {{#if isDead}}<span class="travel-dead-tag">DEAD</span>{{/if}}
-              </div>
-            </div>
-
-            <div class="travel-member-assignment">
-              {{#if canAssign}}
-              <div class="travel-role-select-box">
-                <i class="fas fa-user-tag select-icon"></i>
-                <select data-travel-role="{{id}}" aria-label="Travel role for {{name}}">
-                  {{#each roles}}
-                  <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
-                  {{/each}}
-                </select>
-              </div>
-              {{else}}
-              <span class="travel-role-badge {{#if roleKey}}assigned{{/if}}">
-                <i class="fas fa-user-shield"></i> {{role}}
-              </span>
-              {{/if}}
-            </div>
-          </div>
-          {{else}}
-          <div class="travel-empty-state">
-            <i class="fas fa-users-slash"></i>
-            <p>No visible Crows in the traveling party.</p>
-            {{#if isGM}}<p class="travel-subtle">Use the roster drawer above to include Crows in travel.</p>{{/if}}
-          </div>
-          {{/each}}
-        </div>
-      </section>
-
-      <!-- GM World Tables section -->
-      {{#if isGM}}
-      {{#if showTables}}
-      <section class="travel-section tables-section">
-        <div class="travel-section-header">
-          <h2><i class="fas fa-dice-d20"></i> World Encounter & Travel Tables</h2>
-        </div>
-        <p class="travel-section-desc">Open an imported world table to inspect or roll. Results are resolved by the Ref.</p>
-        <div class="travel-table-picker">
-          <div class="travel-select-box">
-            <i class="fas fa-table"></i>
-            <select name="travelTable" aria-label="Imported world table">
-              <option value="">Choose an imported RollTable…</option>
-              {{#each tables}}
-              <option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>
-              {{/each}}
-            </select>
-          </div>
-          <button type="button" class="travel-open-table travel-secondary-btn">
-            <i class="fas fa-external-link-alt"></i> Open Table
-          </button>
-        </div>
-        {{#unless tables.length}}
-        <p class="travel-subtle tables-empty-hint">No world tables found. Import RollTables from compendiums when ready; travel operates smoothly with or without them.</p>
-        {{/unless}}
-      </section>
-      {{/if}}
-      {{/if}}
-
-    {{else}}
-      <!-- Screen 1: Expedition Preparation & PC Selection -->
-      <section class="travel-section prep-section">
-        <div class="travel-section-header">
-          <h2><i class="fas fa-feather-alt"></i> Assemble Traveling Party</h2>
-          <span class="travel-count-badge">{{#if isGM}}{{rosterCount}} of {{candidates.length}} Crows Selected{{else}}{{members.length}} Crows Traveling{{/if}}</span>
-        </div>
-        <p class="travel-section-desc">
-          Select every Crow embarking on this journey. Unselected Crows are not joining this journey. You can adjust this roster at any time.
-        </p>
-
-        {{#if isGM}}
-        <div class="travel-candidate-grid">
-          {{#each candidates}}
-          <label class="travel-candidate-card {{#if selected}}selected{{/if}} {{#if isDead}}dead{{/if}}" title="Click to toggle {{name}}">
-            <input type="checkbox" data-travel-member="{{id}}" {{#if selected}}checked{{/if}} class="travel-hidden-checkbox">
-            <div class="travel-candidate-portrait-box">
-              <img class="travel-avatar" src="{{img}}" alt="{{name}}" width="26" height="26"
-                   style="width: 26px; height: 26px; min-width: 26px; max-width: 26px; min-height: 26px; max-height: 26px; object-fit: cover; border-radius: 4px;">
-            </div>
-            <div class="travel-candidate-info">
-              <div class="travel-name-row">
-                <strong class="travel-candidate-name">{{name}}</strong>
-                {{#if isDead}}<span class="travel-dead-tag">DEAD</span>{{/if}}
-              </div>
-              <span class="travel-candidate-status-tag">
-                {{#if selected}}
-                  <span class="tag-traveling"><i class="fas fa-check-circle"></i> Traveling</span>
-                {{else}}
-                  <span class="tag-resting"><i class="far fa-circle"></i> Staying Behind</span>
-                {{/if}}
-              </span>
-            </div>
-            <button type="button" class="travel-candidate-sheet-btn" data-travel-actor="{{id}}" title="Open character sheet">
-              <i class="fas fa-external-link-alt"></i>
-            </button>
-          </label>
-          {{else}}
-          <div class="travel-empty-state">
-            <i class="fas fa-feather"></i>
-            <p>No Crow actors in this world yet.</p>
-            <p class="travel-subtle">Create Crows in the Actors directory before starting an expedition.</p>
-          </div>
-          {{/each}}
-        </div>
-        {{else}}
-        <!-- Non-GM Player View on Prep Screen -->
-        <div class="travel-candidate-grid">
-          {{#each members}}
-          <div class="travel-candidate-card selected">
-            <div class="travel-candidate-portrait-box">
-              <img class="travel-avatar" src="{{img}}" alt="{{name}}" width="26" height="26"
-                   style="width: 26px; height: 26px; min-width: 26px; max-width: 26px; min-height: 26px; max-height: 26px; object-fit: cover; border-radius: 4px;">
-            </div>
-            <div class="travel-candidate-info">
-              <div class="travel-name-row">
-                <strong class="travel-candidate-name">{{name}}</strong>
-                {{#if isDead}}<span class="travel-dead-tag">DEAD</span>{{/if}}
-              </div>
-              <span class="travel-candidate-status-tag">
-                <span class="tag-traveling"><i class="fas fa-check-circle"></i> In Traveling Party</span>
-              </span>
-            </div>
-            {{#if canOpen}}
-            <button type="button" class="travel-candidate-sheet-btn" data-travel-actor="{{id}}" title="Open character sheet">
-              <i class="fas fa-external-link-alt"></i>
-            </button>
-            {{/if}}
-          </div>
-          {{else}}
-          <div class="travel-empty-state">
-            <i class="fas fa-hourglass-half"></i>
-            <p>Waiting for the Ref to assemble the traveling party.</p>
-          </div>
-          {{/each}}
-        </div>
-        {{/if}}
-      </section>
-    {{/if}}
+    <div class="travel-summary" aria-label="Day overview">
+      <strong>{{paceLabel}}</strong>
+      {{#each metrics}}
+      <label class="travel-metric">{{label}}
+        {{#if ../isGM}}<span><button type="button" data-adjust="{{field}}" data-delta="-1" aria-label="Decrease {{label}}">-</button><input type="number" min="0" step="1" data-overview="{{field}}" value="{{value}}" aria-label="{{label}}"><button type="button" data-adjust="{{field}}" data-delta="1" aria-label="Increase {{label}}">+</button></span>{{else}}<strong>{{value}}</strong>{{/if}}
+      </label>
+      {{/each}}
+      <label>{{#if isGM}}<input type="checkbox" data-overview="lost" {{#if state.lost}}checked{{/if}}> Lost{{else}}{{#if state.lost}}Lost{{else}}On track{{/if}}{{/if}}</label>
     </div>
+    {{/if}}
+    <div class="travel-body">
+      <section class="travel-stage">
+        <h1>{{#if hasDay}}{{stage.title}}{{else}}Who's coming along?{{/if}}</h1>
+        <p class="travel-intro">{{#if hasDay}}{{stage.hint}}{{else}}Select actors or add named hirelings below. You can edit the party later.{{/if}}</p>
+        {{#if rulesReference}}<p class="travel-rule-reference">{{rulesReference}} <span>(Playtest 2)</span></p>{{/if}}
+        {{#if isPaceStep}}{{#if hasDay}}
+        <div class="travel-paces">
+          {{#each paces}}<article class="travel-pace {{#if chosen}}chosen{{/if}}">
+            <h2>{{label}}</h2><p class="travel-distance">{{hexes}} <span>hex/day</span></p><p>Base travel & rest EN <strong>{{en}}</strong></p><p>{{test}}</p>
+            <div class="travel-pace-controls"><span>{{count}} vote(s)</span>
+              {{#if ../voting}}<button type="button" data-travel-action="vote" data-pace="{{id}}" aria-pressed="{{voted}}">{{#if voted}}Voted{{else}}Vote{{/if}}</button>{{/if}}
+              {{#if ../isGM}}<button type="button" data-travel-action="pace" data-pace="{{id}}" aria-pressed="{{chosen}}">{{#if chosen}}Selected{{else}}Choose{{/if}}</button>{{/if}}
+            </div>
+          </article>{{/each}}
+        </div><p class="travel-footnote">Pace supplies starting values. Manually adjusted totals are preserved when pace changes. Apply speed, roads, waterways, and role outcomes in the overview.</p>
+        {{/if}}{{/if}}
+        {{#if isTravelStep}}<div class="travel-callout">
+          {{#if hasTravelEN}}<h2>Travel EN {{travelEN}}</h2>{{#if isGM}}<button type="button" class="travel-roll-encounter">Roll encounter check</button>{{/if}}{{else}}<p>Set travel EN in the overview before rolling.</p>{{/if}}
+          <p>Checks are recorded below. The Ref determines the encounter and any consequences.</p>
+        </div>{{/if}}
+        {{#if isExploreStep}}<div class="travel-callout">
+          <h2>A stop along the way, or your destination?</h2>
+          <p>For a short point of interest, leave travel open while you explore. Use today's travel EN for encounters, then continue to camp when ready.</p>
+          <p>Reached your destination? Conclude today's travel here without going through rest or Miasma. Today's records remain available until you start the next day.</p>
+          {{#if isGM}}<button type="button" data-travel-action="step" data-step="complete">Conclude travel</button>{{/if}}
+        </div>{{/if}}
+        {{#if isRestStep}}<div class="travel-callout">
+          {{#if hasRestEN}}<h2>Rest EN {{restEN}}</h2>{{#if isGM}}<button type="button" class="travel-roll-encounter">Roll rest encounter check</button>{{/if}}{{else}}<p>Set rest EN in the overview before rolling.</p>{{/if}}
+          <p>Checks are recorded below. The Ref determines the encounter and any consequences.</p>
+        </div><p class="travel-footnote">Resolve food, rest activities, and recovery on character sheets. Resting in the Miasma does not restore expertise uses.</p>{{/if}}
+        {{#if showSheets}}
+          {{#if isMiasmaStep}}<p>Open <strong>Lore & Notes → Miasma</strong> on a character sheet for resistance and effects.</p>{{/if}}
+          {{#each members}}<div class="travel-member-row"><span>{{name}}{{#if ../isMiasmaStep}} · Cruelty {{cruelty}}{{/if}}</span>{{#if canOpen}}<button type="button" data-travel-actor="{{id}}">Open sheet</button>{{/if}}</div>{{/each}}
 
-    <!-- Footer Action Controls -->
-    <footer class="travel-footer">
-      {{#if isGM}}
-        {{#if hasDay}}
-          <button type="button" class="travel-secondary-btn travel-cancel" data-travel-action="cancel"
-                  title="Return to party selection and clear this day's pace, votes, and roles. Character sheets and chat rolls are unchanged.">
-            <i class="fas fa-times"></i> Cancel travel
-          </button>
-          {{#if previousStep}}
-          <button type="button" class="travel-secondary-btn" data-travel-action="step" data-step="{{previousStep.id}}">
-            <i class="fas fa-arrow-left"></i> Back: {{previousStep.label}}
-          </button>
-          {{/if}}
-          {{#if nextStep}}
-          <button type="button" class="travel-primary" data-travel-action="step" data-step="{{nextStep.id}}">
-            Next: {{nextStep.label}} <i class="fas fa-arrow-right"></i>
-          </button>
-          {{/if}}
-          {{#if completed}}
-          <button type="button" class="travel-primary" data-travel-action="start">
-            <i class="fas fa-sun"></i> Start Next Travel Day
-          </button>
-          {{/if}}
-        {{else}}
-          <button type="button" class="travel-primary travel-start-btn" data-travel-action="start">
-            <i class="fas fa-compass"></i> Embark: Begin Travel Day {{nextDay}}
-          </button>
         {{/if}}
-      {{else}}
-        {{#unless hasDay}}
-        <p class="travel-player-wait-note"><i class="fas fa-hourglass-half"></i> The Ref will start today's expedition from this console.</p>
-        {{/unless}}
+      </section>
+      {{#if hasDay}}{{#if completed}}
+      <section class="travel-journal-section">
+        <h2>Journal entry preview</h2>
+        <p class="travel-footnote">Saved as a new day in <strong>Travel Journal</strong>, readable by {{journalAudience}}. Both buttons below save this entry before ending the day. Cancel day does not save an entry.</p>
+        {{#if isGM}}<label for="travel-journal-notes">Additional notes</label><textarea id="travel-journal-notes" data-journal-notes rows="3" maxlength="8000" placeholder="Places visited, discoveries, decisions, and anything else worth remembering…">{{journalNotes}}</textarea><p class="travel-footnote">Notes are saved with the journal entry when you finish or start the next day.</p>{{/if}}
+        <div class="travel-journal-preview">{{{journalPreview}}}</div>
+      </section>
+      {{/if}}{{/if}}
+      {{#if hasDay}}{{#if isRolesStep}}
+      <section class="travel-records travel-disclosure">
+        <p class="travel-footnote">The Ref uses each traveler’s +/− buttons to apply their contribution to the totals above. Optional roll results and notes are kept under <strong>Day notes & role outcomes</strong> on later steps, until the next day starts. Notes do not apply changes automatically.</p>
+        {{#each warnings}}<p class="travel-alert">{{this}}</p>{{/each}}
+        {{#each roleMembers}}
+        <article class="travel-record">
+          <div class="travel-member-row">{{#if canOpen}}<button type="button" class="travel-name" data-travel-actor="{{id}}">{{name}}{{#if isDead}} (Dead){{/if}}</button>{{else}}<strong>{{name}}</strong>{{/if}}
+            {{#if canAssign}}<select data-travel-role="{{id}}" aria-label="Role for {{name}}">{{#each roles}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>{{else}}<span>{{role}}</span>{{/if}}
+          </div>
+          <div class="travel-role-adjustments">
+            {{#each roleAdjustments}}<div class="travel-role-adjustment"><span>{{label}}</span>
+              {{#if ../canAdjustRole}}<button type="button" data-role-adjust="{{field}}" data-member="{{actorId}}" data-delta="-1" aria-label="Decrease {{name}} {{label}}">−</button>{{/if}}
+              <strong>{{value}}</strong>
+              {{#if ../canAdjustRole}}<button type="button" data-role-adjust="{{field}}" data-member="{{actorId}}" data-delta="1" aria-label="Increase {{name}} {{label}}">+</button>{{/if}}
+            </div>{{/each}}
+          </div>
+          <details class="travel-role-notes" data-role-notes="{{id}}" {{#if notesOpen}}open{{/if}}><summary>Optional roll & notes</summary>
+          {{#if canRecord}}<label>Result <input type="text" data-record="result" data-member="{{id}}" value="{{result}}" placeholder="Roll, tier, skipped, or any notation" aria-label="Result for {{name}}"></label><label>Outcome / ruling <textarea data-record="notes" data-member="{{id}}" rows="2" aria-label="Outcome for {{name}}">{{notes}}</textarea></label>{{else}}<p class="travel-prewrap">{{result}}</p><p class="travel-prewrap">{{notes}}</p>{{/if}}
+          </details>
+        </article>{{/each}}
+      </section>
+      {{/if}}{{/if}}
+      {{#if showTables}}
+      <aside class="travel-context-tables" aria-label="Tables for this step">
+        {{#each referenceTables}}<div class="travel-reference-link">{{#if available}}<button type="button" data-reference-table="{{name}}" title="Open {{source}}">{{name}}</button>{{else}}<span>{{name}}</span>{{#if ../isGM}}<small>{{#if ../referenceError}}{{../referenceError}}{{else}}Import your Ref Book PDF with Crows PDF Importer to use this table.{{/if}}</small>{{/if}}{{/if}}<small>{{reference}}</small></div>{{/each}}
+        {{#if isGM}}{{#if showOtherTables}}<details class="travel-disclosure"><summary>All world tables</summary>
+          {{#if tables.length}}<div class="travel-table-picker"><select name="travelTable" aria-label="World table"><option value="">Choose a world table…</option>{{#each tables}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}{{#if reference}} — {{reference}}{{/if}}</option>{{/each}}</select><button type="button" class="travel-open-table">Open table</button></div>{{else}}<p class="travel-footnote">Import a table to open it here. Book references remain available.</p>{{/if}}
+          <p class="travel-footnote"><em>Don’t see the table you’re looking for? Import it from its compendium into the world’s Rollable Tables directory.</em></p>
+        </details>{{/if}}{{/if}}
+      </aside>
       {{/if}}
+      {{#if showEncounterRecords}}
+      <section class="travel-disclosure"><h2>Encounter records</h2>
+        {{#each encounterRecords}}<div class="travel-record"><div class="travel-member-row"><p>{{#if kind}}{{kind}} check{{else}}Check{{/if}} (recorded EN: {{en}})</p>{{#if ../isGM}}<button type="button" class="travel-cancel" data-delete-check="{{@index}}" data-expected="{{expected}}" title="Remove this record from the helper. The chat roll is unchanged." aria-label="Delete encounter record">Delete entry</button>{{/if}}</div>
+          {{#if ../canEditChecks}}<label>Result <input type="text" data-check="result" data-index="{{@index}}" value="{{result}}" aria-label="Encounter result"></label><label>Ref notes <textarea data-check="notes" data-index="{{@index}}" rows="2">{{notes}}</textarea></label>{{else}}<p class="travel-prewrap">{{result}} — {{notes}}</p>{{/if}}
+        </div>{{/each}}
+        {{#if canEditChecks}}<button type="button" class="travel-add-check">Add manual encounter record</button>{{/if}}
+      </section>
+      {{/if}}
+      {{#if showDayRecord}}
+      <details class="travel-disclosure"><summary>Day notes & role outcomes</summary>
+        {{#if isGM}}<textarea data-overview="notes" rows="2" aria-label="Day notes" placeholder="Modifiers, decisions, places, reminders…">{{state.notes}}</textarea>{{else}}<p class="travel-prewrap">{{state.notes}}</p>{{/if}}
+        {{#each roleGroups}}<h3>{{label}}</h3>{{#each members}}<p class="travel-prewrap"><strong>{{name}}</strong> · {{adjustmentSummary}}<br>{{result}}{{#if notes}} — {{notes}}{{/if}}</p>{{/each}}{{/each}}
+        <p class="travel-footnote">Return to Choose roles to edit role results.</p>
+      </details>
+      {{/if}}
+      {{#if isGM}}
+      <details class="travel-roster-drawer travel-disclosure" {{#unless hasDay}}open{{/unless}} {{#if rosterOpen}}open{{/if}}>
+        <summary>Edit party · {{rosterCount}} traveling</summary>
+        <h2 class="travel-party-heading">Crows</h2>
+        <div class="travel-roster">{{#each crowCandidates}}<label class="travel-candidate {{#if selected}}selected{{/if}}"><input type="checkbox" data-travel-member="{{id}}" {{#if selected}}checked{{/if}}><span>{{name}}</span></label>{{else}}<p class="travel-muted">No living Crows available.</p>{{/each}}</div>
+        <h2 class="travel-party-heading">Travelers without an actor</h2>
+        <div class="travel-table-picker"><input name="guestName" type="text" placeholder="Hireling or traveler name" aria-label="New traveler name"><button type="button" class="travel-add-guest">Add traveler</button></div>
+        {{#if guestCandidates.length}}<div class="travel-roster">{{#each guestCandidates}}<label class="travel-candidate {{#if selected}}selected{{/if}}"><input type="checkbox" data-travel-member="{{id}}" {{#if selected}}checked{{/if}}><span>{{name}}</span></label>{{else}}<p class="travel-muted"></p>{{/each}}</div>{{/if}}
+        <details class="travel-other-actors travel-disclosure" {{#if otherActorsOpen}}open{{/if}}>
+          <summary>Other actors · {{otherCandidates.length}} available</summary>
+          <div class="travel-roster">{{#each otherCandidates}}<label class="travel-candidate {{#if selected}}selected{{/if}}"><input type="checkbox" data-travel-member="{{id}}" {{#if selected}}checked{{/if}}><span>{{name}}</span></label>{{else}}<p class="travel-muted">No other living actors available.</p>{{/each}}</div>
+        </details>
+      </details>{{/if}}
+    </div>
+    <footer class="travel-footer">{{#if isGM}}{{#if hasDay}}
+      <button type="button" class="travel-cancel" data-travel-action="cancel" title="Clear this day’s choices and records. Keep the party and lost status. Sheets and chat are unchanged.">Cancel day</button>
+      {{#if previousStep}}<button type="button" data-travel-action="step" data-step="{{previousStep.id}}">Back</button>{{/if}}
+      {{#if nextStep}}<button type="button" class="travel-primary" data-travel-action="step" data-step="{{nextStep.id}}" {{#unless state.pace}}disabled{{/unless}}>Continue: {{nextStep.label}}</button>{{/if}}
+      {{#if completed}}<button type="button" data-travel-action="finish">Finish Travel</button><button type="button" class="travel-primary" data-travel-action="start">Start day {{nextDay}}</button>{{/if}}
+      {{else}}<button type="button" class="travel-primary" data-travel-action="start">Start day {{nextDay}}</button>{{/if}}{{else}}<span>The Ref advances the day. Changes save automatically.</span>{{/if}}
     </footer>
   </fieldset>
 </form>

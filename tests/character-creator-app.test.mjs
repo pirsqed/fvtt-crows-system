@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 globalThis.FormApplication = class {
   static get defaultOptions() { return {}; }
   constructor() { this.element = { find: () => ({ prop() {} }) }; }
+  activateListeners() {}
   render() { this.renders = (this.renders ?? 0) + 1; }
   async close() { this.closed = true; }
 };
@@ -177,3 +178,74 @@ test("failed or cancelled chat creation does not silently change creator results
     assert.equal(creator._busy, false);
   }
 });
+
+test("character creator configures persistent scrolling for .creator-content", () => {
+  const options = CrowsCharacterCreator.defaultOptions;
+  assert.ok(Array.isArray(options.scrollY));
+  assert.ok(options.scrollY.includes(".creator-content"));
+});
+
+test("scroll positions are preserved across re-renders on the same step and reset on step changes", () => {
+  const creator = setup();
+  creator.step = 1;
+
+  const contentElement = { scrollTop: 240, scrollLeft: 0 };
+  const htmlMock = {
+    find(selector) {
+      if (selector === ".creator-content") return [contentElement];
+      return [];
+    }
+  };
+
+  // Same step: preserve scroll position
+  creator._lastStep = 1;
+  creator._saveScrollPositions(htmlMock);
+  assert.deepEqual(creator._scrollPositions, [{ selector: ".creator-content", scrollTop: 240, scrollLeft: 0 }]);
+
+  // Simulate re-rendered content element starting at 0
+  contentElement.scrollTop = 0;
+  creator._restoreScrollPositions(htmlMock);
+  assert.equal(contentElement.scrollTop, 240);
+  assert.equal(creator._lastStep, 1);
+
+  // Step change: reset scroll position to 0
+  creator.step = 2;
+  creator._saveScrollPositions(htmlMock);
+  assert.deepEqual(creator._scrollPositions, [{ selector: ".creator-content", scrollTop: 0, scrollLeft: 0 }]);
+
+  creator._restoreScrollPositions(htmlMock);
+  assert.equal(contentElement.scrollTop, 0);
+  assert.equal(creator._lastStep, 2);
+
+  // Error condition: reset scroll position to 0 so error banner is visible
+  creator.error = "Validation error";
+  contentElement.scrollTop = 300;
+  creator._saveScrollPositions(htmlMock);
+  assert.deepEqual(creator._scrollPositions, [{ selector: ".creator-content", scrollTop: 0, scrollLeft: 0 }]);
+});
+
+test("radio buttons maintain focus with preventScroll to avoid viewport jumps", () => {
+  const creator = setup();
+  let focusedWith = null;
+  const mockRadio = {
+    name: "spread",
+    value: "focused",
+    focus(options) { focusedWith = options; }
+  };
+  const htmlMock = {
+    find(selector) {
+      if (selector === "[data-creator-action]") return { on() {} };
+      if (selector === "select[name], input[name=gold], input[type=radio]") return { on() {} };
+      if (selector === "input[type=radio]") return {
+        each(cb) { cb(0, mockRadio); }
+      };
+      return { on() {} };
+    }
+  };
+
+  creator._statFocus = { name: "spread", value: "focused" };
+  creator.activateListeners(htmlMock);
+  assert.deepEqual(focusedWith, { preventScroll: true });
+  assert.equal(creator._statFocus, null);
+});
+

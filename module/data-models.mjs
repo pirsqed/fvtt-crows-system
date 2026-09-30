@@ -157,6 +157,13 @@ export class EquipmentDataModel extends foundry.abstract.TypeDataModel {
 export class MonsterDataModel extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
+      customExpertises: new ArrayField(new SchemaField({
+        id: new StringField({ required: true, blank: false }),
+        name: new StringField({ required: true, initial: "New Expertise" }),
+        notes: new StringField({ required: true, blank: true, initial: "" }),
+        value: new NumberField({ required: true, integer: true, min: 0, initial: 1 }),
+        max: new NumberField({ required: true, integer: true, min: 0, initial: 1 })
+      }), { initial: [] }),
       size: new StringField({ required: true, initial: "Medium" }),
       power: new NumberField({ required: true, integer: true, initial: 1 }),
       type: new StringField({ required: true, initial: "Animal" }),

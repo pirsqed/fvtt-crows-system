@@ -56,7 +56,7 @@ test("starting kit retains quantities, distinct lore subjects, expertise pools, 
 test("invalid choices and missing content cannot produce a partial crow plan", () => {
   for (const gold of [null, 2, 19, 3.5, NaN]) assert.throws(() => buildCrowPlan({ ...fixtures(), draft: { ...draft, gold } }), /gold/);
   assert.throws(() => buildCrowPlan({ ...fixtures(), traits: [] }), /Missing trait/);
-  assert.throws(() => buildCrowPlan({ ...fixtures(), monsters: [] }), /Missing monster/);
+  assert.throws(() => buildCrowPlan({ ...fixtures(), monsters: [] }), /Missing NPC/);
   assert.throws(() => buildCrowPlan({ ...fixtures(), equipment: [] }), /Missing equipment/);
   assert.throws(() => buildCrowPlan({ ...fixtures(), draft: { ...draft, connection: "unknown" } }), /benefit/);
   assert.throws(() => buildCrowPlan({ ...fixtures(), draft: { ...draft, name: " " } }), /name/);

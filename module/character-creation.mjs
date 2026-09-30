@@ -51,7 +51,7 @@ export function validateBackgrounds(data) {
 
 function uniqueEntry(entries, name, type, tree) {
   const matches = entries.filter(entry => entry.name === name && entry.type === type && (!tree || entry.system?.tree === tree));
-  if (matches.length !== 1) throw new Error(`${matches.length ? "Ambiguous" : "Missing"} ${type}: ${name}. Rebuild playtest content.`);
+  if (matches.length !== 1) throw new Error(`${matches.length ? "Ambiguous" : "Missing"} ${type === "monster" ? "NPC" : type}: ${name}. Rebuild playtest content.`);
   return clone(matches[0]);
 }
 

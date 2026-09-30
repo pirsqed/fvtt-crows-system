@@ -105,7 +105,7 @@
   <nav class="sheet-tabs tabs" data-group="primary">
     <a class="item" data-tab="attacks"><i class="fas fa-swords"></i> Attacks ({{attacks.length}})</a>
     <a class="item" data-tab="inventory"><i class="fas fa-th-large"></i> Inventory {{#if hasSlots}}({{usedSlotsCount}}/{{maxSlots}} Slots){{else if equipmentCount}}({{equipmentCount}} Items){{/if}}</a>
-    <a class="item" data-tab="traits"><i class="fas fa-scroll"></i> Traits & Lore {{#if traits.length}}({{traits.length}}){{/if}}</a>
+    <a class="item" data-tab="expertises"><i class="fas fa-feather-alt"></i> Expertises & Lore {{#if system.customExpertises.length}}({{system.customExpertises.length}}){{/if}}</a>
   </nav>
 
   <section class="sheet-body">
@@ -113,7 +113,7 @@
     <div class="tab attacks flexcol" data-group="primary" data-tab="attacks">
       <div class="inventory-section">
         <div class="section-header flexrow flex-between">
-          <h3><i class="fas fa-claw-marks"></i> Monster Attacks</h3>
+          <h3><i class="fas fa-claw-marks"></i> NPC Attacks</h3>
           <a class="item-create btn-action-small" data-type="attack" title="Create Attack"><i class="fas fa-plus"></i> Add Attack</a>
         </div>
         <ul class="item-list monster-attacks-list">
@@ -323,13 +323,40 @@
 
     </div>
 
-    <!-- ================= TRAITS & LORE TAB ================= -->
-    <div class="tab traits flexcol" data-group="primary" data-tab="traits">
+    <!-- ================= EXPERTISES & LORE TAB ================= -->
+    <div class="tab expertises flexcol" data-group="primary" data-tab="expertises">
+      <div class="inventory-section npc-expertises">
+        <div class="section-header flexrow flex-between">
+          <h3><i class="fas fa-feather-alt"></i> Expertises</h3>
+          {{#if editable}}
+          <div class="flexrow">
+            <button type="button" data-npc-expertise-action="recover" title="Restore all expertise uses">Recover All</button>
+            <button type="button" data-npc-expertise-action="add"><i class="fas fa-plus"></i> Add Expertise</button>
+          </div>
+          {{/if}}
+        </div>
+        <p>Add any expertise this NPC needs. Spend a use to improve an applicable test by one tier (maximum Tier 3); resolve the result at the table.</p>
+        {{#each system.customExpertises}}
+        <div class="npc-expertise-card">
+          <div class="flexrow npc-expertise-heading">
+            <input type="text" data-npc-expertise-field="name" data-expertise-id="{{id}}" value="{{name}}" aria-label="Expertise name" {{#unless ../editable}}disabled{{/unless}} />
+            <label>Uses <input type="number" min="0" max="{{max}}" step="1" data-npc-expertise-field="value" data-expertise-id="{{id}}" value="{{value}}" aria-label="Remaining uses" {{#unless ../editable}}disabled{{/unless}} /></label>
+            <label>Max <input type="number" min="0" step="1" data-npc-expertise-field="max" data-expertise-id="{{id}}" value="{{max}}" aria-label="Maximum uses" {{#unless ../editable}}disabled{{/unless}} /></label>
+            {{#if ../editable}}
+            <button type="button" data-npc-expertise-action="spend" data-expertise-id="{{id}}" {{#unless value}}disabled{{/unless}}>Spend</button>
+            <button type="button" data-npc-expertise-action="delete" data-expertise-id="{{id}}" title="Delete expertise" aria-label="Delete expertise"><i class="fas fa-trash"></i></button>
+            {{/if}}
+          </div>
+          <textarea data-npc-expertise-field="notes" data-expertise-id="{{id}}" aria-label="Expertise notes" placeholder="When this expertise applies…" {{#unless ../editable}}disabled{{/unless}}>{{notes}}</textarea>
+        </div>
+        {{else}}
+        <p class="empty-list-msg">No expertises yet. Use Add Expertise to create one with any name.</p>
+        {{/each}}
+      </div>
       {{#if traits.length}}
       <div class="inventory-section" style="margin-bottom: 12px;">
         <div class="section-header flexrow flex-between">
-          <h3><i class="fas fa-sitemap"></i> Monster Traits</h3>
-          <a class="item-create btn-action-small" data-type="trait" title="Create Trait"><i class="fas fa-plus"></i> Add Trait</a>
+          <h3><i class="fas fa-scroll"></i> Existing Traits</h3>
         </div>
         <div class="traits-grid">
           {{#each traits as |trait|}}
@@ -339,7 +366,7 @@
               <div class="trait-header-info flexcol">
                 <span class="trait-name">{{trait.name}}</span>
                 <div class="trait-pills flexrow">
-                  <span class="trait-pill tier-pill"><i class="fas fa-feather-alt"></i> {{trait.system.tier}}</span>
+                  <span class="trait-pill tier-pill"><i class="fas fa-feather-alt"></i> {{#if (eq trait.system.tier "Monster Feature")}}NPC Feature{{else}}{{trait.system.tier}}{{/if}}</span>
                   {{#if (gt trait.system.cost 0)}}
                   <span class="trait-pill cost-pill"><i class="fas fa-coins"></i> {{trait.system.cost}} XP</span>
                   {{/if}}
@@ -362,9 +389,6 @@
 
       <div class="bio-header flexrow flex-between" style="align-items: center; margin-bottom: 6px;">
         <h3><i class="fas fa-book-open"></i> Description, Tactics & Ecology</h3>
-        {{#unless traits.length}}
-        <a class="item-create btn-action-small" data-type="trait" title="Create Trait"><i class="fas fa-plus"></i> Add Trait</a>
-        {{/unless}}
       </div>
       {{editor enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}
     </div>

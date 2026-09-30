@@ -1,6 +1,6 @@
 import { bindSupplyControls } from "../supplies.mjs";
 import { renderCircumstanceSelector } from "../roll-dialog.mjs";
-import { canEquip } from "../equipment-rules.mjs";
+import { activeDefense, canEquip } from "../equipment-rules.mjs";
 import { showSpellcastDialog } from "../spellcasting.mjs";
 import { beltSlotGrants, beltCapacity, canStack, goldStack, restoreUsageDice } from "../inventory.mjs";
 import { createRollState, rollFlags, renderRollState } from "../chat-state.mjs";
@@ -652,9 +652,9 @@ export class CrowsActorSheet extends withPersistentScroll(ActorSheet) {
 
   async _onDumpBackpack(event) {
     event.preventDefault();
-    const backpackItems = this.actor.items.filter(i => i.system.location?.startsWith("backpack"));
+    const backpackItems = this.actor.items.filter(i => i.system.location?.startsWith("backpack") && !activeDefense(i));
     if (backpackItems.length === 0) {
-      ui.notifications.info("Your backpack is already empty!");
+      ui.notifications.info("Your backpack has no items to drop. Worn armor stays equipped.");
       return;
     }
 
@@ -676,13 +676,15 @@ export class CrowsActorSheet extends withPersistentScroll(ActorSheet) {
             icon: '<i class="fas fa-meteor"></i>',
             label: "Scatter on Map Floor",
             callback: async () => {
-              const rawItems = backpackItems.map(i => i.toObject());
+              const itemsToDrop = backpackItems.filter(i => i.system.location?.startsWith("backpack") && !activeDefense(i));
+              if (!itemsToDrop.length) return;
+              const rawItems = itemsToDrop.map(i => i.toObject());
               await CrowsLoot.scatterItemsOnCanvas(rawItems, {
                 x: token.x,
                 y: token.y,
                 scene: canvas.scene
               });
-              await this.actor.deleteEmbeddedDocuments("Item", backpackItems.map(i => i.id));
+              await this.actor.deleteEmbeddedDocuments("Item", itemsToDrop.map(i => i.id));
               
               ChatMessage.create({
                 speaker: ChatMessage.getSpeaker({ actor: this.actor }),
@@ -717,7 +719,7 @@ export class CrowsActorSheet extends withPersistentScroll(ActorSheet) {
             <i class="fas fa-box-open"></i> Dump Backpack Maneuver
           </div>
           <div class="card-body">
-            <strong>${this.actor.name}</strong> frantically dumped all backpack items onto the ground to lighten their load!
+            <strong>${this.actor.name}</strong> frantically dumped their backpack items onto the ground to lighten their load, keeping worn armor equipped!
           </div>
         </div>
       `

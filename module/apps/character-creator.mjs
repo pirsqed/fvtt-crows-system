@@ -16,15 +16,19 @@ export function canCreateCrow() {
 
 export class CrowsCharacterCreator extends FormApplication {
   static get defaultOptions() {
-    return foundry.utils.mergeObject(super.defaultOptions, {
+    const base = super.defaultOptions ?? {};
+    const options = {
       id: "crows-character-creator", title: "Create a Crow", classes: ["crows", "crows-creator"],
       template: "systems/fvtt-crows-system/templates/character-creator.html",
-      width: 800, height: 740, resizable: true, closeOnSubmit: false, submitOnChange: false
-    });
+      width: 800, height: 740, resizable: true, closeOnSubmit: false, submitOnChange: false,
+      scrollY: [".creator-content"]
+    };
+    return foundry?.utils?.mergeObject ? foundry.utils.mergeObject(base, options) : Object.assign({}, base, options);
   }
 
   constructor(...args) {
     super(...args);
+    this.options ??= this.constructor?.defaultOptions ?? {};
     this.step = 0;
     this.draft = {
       background: "", name: "", feature: "", primary: "", spread: "balanced", secondary: "",
@@ -32,6 +36,47 @@ export class CrowsCharacterCreator extends FormApplication {
     };
     this.rolls = [];
     this.creationId = foundry.utils.randomID();
+  }
+
+  _saveScrollPositions(html) {
+    if ((this._lastStep !== undefined && this._lastStep !== this.step) || this.error) {
+      this._scrollPositions = [{ selector: ".creator-content", scrollTop: 0, scrollLeft: 0 }];
+      return;
+    }
+    if (super._saveScrollPositions) {
+      super._saveScrollPositions(html);
+    } else {
+      const selectors = this.options?.scrollY ?? [];
+      this._scrollPositions = selectors.flatMap(selector => {
+        const list = [];
+        const el = html?.find ? html.find(selector) : [];
+        if (el?.each) {
+          el.each((_i, e) => { list.push({ selector, scrollTop: e.scrollTop ?? 0, scrollLeft: e.scrollLeft ?? 0 }); });
+        } else if (Array.isArray(el)) {
+          for (const e of el) list.push({ selector, scrollTop: e.scrollTop ?? 0, scrollLeft: e.scrollLeft ?? 0 });
+        }
+        return list;
+      });
+    }
+  }
+
+  _restoreScrollPositions(html) {
+    const target = this.element?.length ? this.element : html;
+    let result;
+    if (super._restoreScrollPositions) {
+      result = super._restoreScrollPositions(target);
+    } else if (this._scrollPositions?.length) {
+      for (const { selector, scrollTop, scrollLeft } of this._scrollPositions) {
+        const el = target?.find ? target.find(selector) : [];
+        if (el?.each) {
+          el.each((_i, e) => { e.scrollTop = scrollTop; e.scrollLeft = scrollLeft; });
+        } else if (Array.isArray(el)) {
+          for (const e of el) { e.scrollTop = scrollTop; e.scrollLeft = scrollLeft; }
+        }
+      }
+    }
+    this._lastStep = this.step;
+    return result;
   }
 
   async loadContent() {
@@ -133,7 +178,7 @@ export class CrowsCharacterCreator extends FormApplication {
   }
 
   activateListeners(html) {
-    super.activateListeners(html);
+    super.activateListeners?.(html);
     html.find("[data-creator-action]").on("click", event => {
       event.preventDefault();
       this.action(event.currentTarget.dataset.creatorAction).catch(error => { this.error = error.message; this._busy = false; this.render(); });
@@ -151,7 +196,10 @@ export class CrowsCharacterCreator extends FormApplication {
     if (this._statFocus) {
       const { name, value } = this._statFocus;
       html.find("input[type=radio]").each((_index, input) => {
-        if (input.name === name && input.value === value) input.focus();
+        if (input.name === name && input.value === value) {
+          try { input.focus({ preventScroll: true }); }
+          catch { input.focus(); }
+        }
       });
       this._statFocus = null;
     }

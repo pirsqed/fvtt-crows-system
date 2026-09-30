@@ -1,3 +1,4 @@
+import { saveTravelJournalDay, refreshTravelJournalAccess } from "./travel-journal.mjs";
 import { applyTravelAction, initialTravelState } from "./travel-state.mjs";
 
 export const TRAVEL_SCOPE = "fvtt-crows-system";
@@ -9,10 +10,28 @@ export class CrowsTravel {
   static pending = new Map();
 
   static register(onChange) {
+    game.settings.register(TRAVEL_SCOPE, "travelJournalAudience", {
+      name: "Travel journal readers", hint: "Who can read the Travel Journal. Changing this also updates existing entries; the live travel helper remains shared.",
+      scope: "world", config: true, type: String, default: "all",
+      choices: {all:"All players", trusted:"Trusted Players and above"},
+      onChange: () => this.refreshJournalAccess()
+    });
+    for (const hook of ["ready", "createUser", "updateUser", "deleteUser", "userConnected"]) {
+      Hooks.on(hook, () => this.refreshJournalAccess());
+    }
     game.settings.register(TRAVEL_SCOPE, "travelState", {
       name: "Travel day", scope: "world", config: false, type: Object,
       default: initialTravelState(), onChange
     });
+  }
+
+  static refreshJournalAccess() {
+    const pending = this.queue.then(() => refreshTravelJournalAccess());
+    this.queue = pending.catch(error => {
+      console.error("Crows | Travel journal permissions", error);
+      ui.notifications.error("Travel journal permissions could not be updated. Check journal ownership before sharing.");
+    });
+    return this.queue;
   }
 
   static getState() { return game.settings.get(TRAVEL_SCOPE, "travelState") ?? initialTravelState(); }
@@ -53,10 +72,17 @@ export class CrowsTravel {
   static execute(request, userId) {
     const pending = this.queue.then(async () => {
       if (!game.user.isGM || game.users.activeGM?.id !== game.user.id) throw new Error("The active Ref changed. Try again.");
-      const state = applyTravelAction(this.getState(), request, {
+      const current = structuredClone(this.getState());
+      const savingDay = current.session && current.step === "complete" && ["start", "finish"].includes(request.action);
+      if (savingDay && typeof request.journalNotes === "string") current.notes = request.journalNotes.slice(0,8000);
+      const state = applyTravelAction(current, request, {
         user: game.users.get(userId), users: game.users.contents, actors: game.actors.contents,
         sessionId: foundry.utils.randomID()
       });
+      if (savingDay) {
+        try { await saveTravelJournalDay(current); }
+        catch (error) { throw new Error(`Could not save the travel journal. Your day is still open; retry after fixing the error. ${error.message}`); }
+      }
       await game.settings.set(TRAVEL_SCOPE, "travelState", state);
       return state;
     });

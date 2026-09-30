@@ -6,7 +6,7 @@ Before the first session, review [player permissions and loot setup](README.md#g
 
 ## Tests, attacks, and expertise
 
-Drag an item onto the hotbar to create a shortcut: weapons open Attack, spellbooks open Cast, and stat-block attacks open their attack dialog. Other items open their sheet for reference, including consumables, traits, armor, and boons. Directory and compendium items open for reference; drag from a Crow or monster inventory to create an action shortcut.
+Drag an item onto the hotbar to create a shortcut: weapons open Attack, spellbooks open Cast, and stat-block attacks open their attack dialog. Other items open their sheet for reference, including consumables, traits, armor, and boons. Directory and compendium items open for reference; drag from a Crow or NPC inventory to create an action shortcut.
 
 Weapon and spellbook shortcuts require the original item to be equipped in a hand. This is checked again when confirming the roll. Shortcuts retain the original actor and item, regardless of the selected token; deleting or transferring the item requires a new shortcut. Spellbook depletion is checked by the normal casting flow. Consumable effects, ammunition, and trait exceptions remain manual.
 
@@ -14,7 +14,7 @@ Weapon and spellbook shortcuts require the original item to be equipped in a han
 
 **Your call:** which characteristic and circumstance apply, whether a target is in range, cover, line of sight, weapon qualities, and what the result means in the scene. Condition icons don't automatically change your roll. Enter situational modifiers and select circumstances yourself.
 
-On supported Crow roll cards, **Apply Expertise** spends one use and raises the result by a tier. Agree on a relevant expertise with the Ref. Use it before applying damage or resolving a spell. The card doesn't offer it on doom, at the highest tier, or after a tracked chat action has been resolved. Effects resolved outside the card, including spell effects, aren't tracked; don't apply expertise afterward. Monster stat-block attacks don't have Crow expertise controls; Miasma resistance cards have their own outcome controls.
+On supported Crow roll cards, **Apply Expertise** spends one use and raises the result by a tier. Agree on a relevant expertise with the Ref. Use it before applying damage or resolving a spell. The card doesn't offer it on doom, at the highest tier, or after a tracked chat action has been resolved. Effects resolved outside the card, including spell effects, aren't tracked; don't apply expertise afterward. NPC stat-block attacks don't have Crow expertise controls; Miasma resistance cards have their own outcome controls.
 
 The Ref can use **Undo Expertise** to refund one use (up to the configured maximum) and restore the previous tier. It does not undo damage already applied; check and correct that separately. Pending or uncertain updates must be reviewed before undo is available.
 
@@ -26,7 +26,7 @@ Weapon qualities are shown as reference text. Resolve special effects, ammunitio
 
 The rolling player doesn't gain permission to change an enemy. The target's owner or GM applies damage. If the roll or target changes while the dialog is open, reopen it for a fresh preview. If an update says it is pending or needs review, check the actor and chat before making a manual correction.
 
-For **Crows**, wounds mark backpack slots. For **Human or Animal NPCs**, they use the actor's configured inventory capacity: set **Type** to Human or Animal and configure **Slots**. Other monster types don't use that same slot-wound model. Overflow damage fills available wound slots in order. An occupied wounded slot reduces the displayed speed; the sheet also calculates the death state.
+For **Crows**, wounds mark backpack slots. For **Human or Animal NPCs**, they use the actor's configured inventory capacity: set **Type** to Human or Animal and configure **Slots**. Other NPC types don't use that same slot-wound model. Overflow damage fills available wound slots in order. An occupied wounded slot reduces the displayed speed; the sheet also calculates the death state.
 
 **Manual:** healing, choosing a different wound location, special damage rules, and the consequences of death. Move a wound by clearing its old slot and marking another. Editing a Stamina field isn't the same as using the damage dialog and doesn't create overflow wounds.
 

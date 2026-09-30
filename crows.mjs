@@ -1,3 +1,4 @@
+import { rollEncounterCheck } from "./module/encounter-check.mjs";
 import { CrowsContentImport, IMPORT_PACKS } from "./module/import-content.mjs";
 import { CrowsChatActions } from "./module/chat-actions.mjs";
 import { CrowDataModel, EquipmentDataModel, MonsterDataModel, LootDataModel, AttackDataModel, TraitDataModel } from "./module/data-models.mjs";
@@ -66,10 +67,13 @@ Hooks.once("init", async () => {
     boon: BoonDataModel
   };
 
+  // Display NPC while preserving saved actor types and sheet selections.
+  CONFIG.Actor.typeLabels.monster = "NPC";
+
   // Register Sheets
   Actors.unregisterSheet("core", ActorSheet);
   Actors.registerSheet("crows", CrowsActorSheet, { types: ["crow"], makeDefault: true });
-  Actors.registerSheet("crows", CrowsMonsterSheet, { types: ["monster"], makeDefault: true });
+  Actors.registerSheet("crows", CrowsMonsterSheet, { types: ["monster"], label: "NPC Sheet", makeDefault: true });
   Actors.registerSheet("crows", CrowsLootSheet, { types: ["loot"], makeDefault: true });
   Actors.registerSheet("crows", CrowsVillageSheet, { types: ["village"], makeDefault: true });
 
@@ -400,40 +404,7 @@ Hooks.once("ready", () => {
     /**
      * Rolls a d10 Dungeon Encounter Check (Playtest 2 rule)
      */
-    rollEncounterCheck: async (en = 9) => {
-      const roll = new Roll("1d10");
-      await roll.evaluate();
-      const result = roll.total;
-
-      let outcomeHtml = "";
-      if (result === 10) {
-        outcomeHtml = `<div class="outcome doom"><i class="fas fa-skull-crossbones"></i> IMMEDIATE ENCOUNTER! (Rolled 10)</div>
-                       <p class="flavor-sub">Monsters ambush or stumble upon the party right now!</p>`;
-      } else if (result >= en) {
-        outcomeHtml = `<div class="outcome mixed"><i class="fas fa-exclamation-triangle"></i> ENCOUNTER WARNING (Rolled ${result} &ge; EN ${en})</div>
-                       <p class="flavor-sub">The party detects signs/sounds of a coming encounter. The encounter occurs during the next Dungeon Turn.</p>`;
-      } else {
-        outcomeHtml = `<div class="outcome success"><i class="fas fa-shield-alt"></i> ALL QUIET (Rolled ${result} &lt; EN ${en})</div>
-                       <p class="flavor-sub">No encounter this turn.</p>`;
-      }
-
-      const content = `
-        <div class="crows-roll-card">
-          <div class="card-header danger">
-            <i class="fas fa-dungeon"></i> Dungeon Encounter Check (EN ${en})
-          </div>
-          <div class="card-body">
-            <div class="dice-roll-total">D10 Check: <strong>${result}</strong> vs EN ${en}</div>
-            ${outcomeHtml}
-          </div>
-        </div>
-      `;
-
-      await roll.toMessage({
-        flavor: `Dungeon Encounter Check (EN ${en})`,
-        content: content
-      });
-    },
+    rollEncounterCheck,
 
     /**
      * Rolls a 1d6 Chaos Roll for non-doom Tier 1 spellcasting

@@ -5720,7 +5720,7 @@ button.item-cast:active {
 }
 
 /* Containers share the ordinary item art and typography; only Ref preparation adds controls. */
-.crows :is(.crows-loot-sheet, .supply-settings) button,
+.crows :is(.crows-loot-sheet, .supply-settings, .npc-expertises) button,
 .crows .slot-card button.item-edit {
   color: #f8fafc !important;
   background: #273449 !important;
@@ -5734,18 +5734,18 @@ button.item-cast:active {
   text-shadow: none;
   cursor: pointer;
 }
-.crows :is(.crows-loot-sheet, .supply-settings) button:hover,
+.crows :is(.crows-loot-sheet, .supply-settings, .npc-expertises) button:hover,
 .crows .slot-card button.item-edit:hover {
   color: #ffffff !important;
   background: #3c506d !important;
   border-color: #b6d6ff !important;
 }
-.crows :is(.crows-loot-sheet, .supply-settings) button:focus-visible,
+.crows :is(.crows-loot-sheet, .supply-settings, .npc-expertises) button:focus-visible,
 .crows .slot-card button.item-edit:focus-visible {
   outline: 2px solid #93c5fd;
   outline-offset: 2px;
 }
-.crows :is(.crows-loot-sheet, .supply-settings) button:disabled {
+.crows :is(.crows-loot-sheet, .supply-settings, .npc-expertises) button:disabled {
   color: #b9c5d5 !important;
   background: #1f2937 !important;
   border-color: #64748b !important;
@@ -5774,3 +5774,15 @@ button.item-cast:active {
 .belt-settings input[type="text"] { flex: 1; }
 
 .belt-slot-grant { font-size: 0.8rem; overflow-wrap: anywhere; margin: 6px 0; color: #d6bd82; }
+
+.crows .npc-expertise-card {
+  margin: 8px 0;
+  padding: 10px;
+  border: 1px solid var(--color-border-light-primary, #777);
+  border-radius: 4px;
+}
+.crows .npc-expertise-heading { align-items: center; gap: 8px; }
+.crows .npc-expertise-heading > input { flex: 3; min-width: 120px; }
+.crows .npc-expertise-heading > label { flex: 0 0 64px; }
+.crows .npc-expertise-heading > button { flex: 0 0 auto; width: auto; }
+.crows .npc-expertise-card textarea { margin-top: 8px; min-height: 48px; resize: vertical; }

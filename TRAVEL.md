@@ -1,43 +1,43 @@
-# Travel
+# Travel helper
 
-Open **Actors → Start Travel**, or **Settings → Configure Settings → Crows → Open Travel Helper**.
-The same window can be opened from a script macro with `game.crows.travel.show()`.
+Open **Actors → Travel**, the Travel Helper settings menu, or `game.crows.travel.show()`.
+The Ref starts and advances the shared day. Participating players can reopen the helper without losing saved progress.
 
-The Ref starts the day. Connected players who own a traveling crow receive the window automatically.
-Anyone can close and reopen it without losing progress. Joining an ongoing day opens it for participating players, too.
+## Day overview
 
-**Cancel travel** in the Ref's footer returns everyone with an open helper to party selection. It keeps the roster,
-clears pace, votes, and role assignments, and lets the Ref restart the same unfinished day. Cancelling after a day
-is complete preserves its day count. This resets the helper only; character-sheet changes and chat rolls remain.
-Back, Next, and Cancel stay visible while the procedure scrolls. Once pace selection is finished, use **Change pace**
-to reopen voting. The roster drawer stays open across edits, and its cards support keyboard selection.
+The persistent overview shows chosen pace, final hex allowance, travel EN, rest EN, and lost status.
+The Ref can enter totals or use +/− controls. Selecting a pace supplies starting values; later pace changes update only values the Ref has not manually adjusted. Existing saved travel EN values are preserved. EN is normally capped at 10 by the rules, but the helper permits Ref overrides.
 
-1. **Choose pace.** Players who own at least one traveling crow each get one advisory vote. They can change it while voting is open. The Ref chooses the final pace, including when votes are tied or some players abstain.
-2. **Choose roles.** Players assign their own traveling crows to supporter, guide, scout, or tracker, or leave them unassigned/assisting. Role choices show current occupancy. Conflicting player requests are processed in order; a rejected choice keeps the previous assignment and explains how to proceed. The Ref can override the usual limits, with a warning, or clear an assignment to free a role.
-3. **Continue the procedure.** The Ref advances through travel and encounters, exploration, rest, and Miasma. Any step can be revisited or skipped after choosing a pace. Vacancies and role-limit warnings do not block progression.
-4. **Finish the day.** Starting the next day clears votes, pace, and roles, and remembers the selected party. The first day defaults to every world actor of type `crow`; an intentionally empty party remains empty. Newly created crows can be added manually to an established party.
+Day notes can explain modifiers, destinations, rulings, and reminders. All notes and results are shared with the party; they are not private Ref notes.
 
-Use the party selection cards before starting a day, or **Adjust Party Roster** during travel, to change the party. Uncheck retired, dead, or absent crows; they remain available to add back later. Click a crow's name to open its sheet.
-The Ref's imported-table picker opens any existing world RollTable using its normal Foundry sheet.
-Compendium tables should be imported into the world first. Missing tables do not block travel.
+## Party and roles
 
-This helper coordinates the procedure. It does not bundle role tasks, result descriptions, encounter entries,
-POIs, or Miasma effects, and it does not automatically roll tests, move tokens, spend supplies, or apply rest benefits.
-Resolve those using imported content, existing character sheets, and the Ref's judgment.
+The first roster defaults to world Crows. The Ref can add other actors or named hirelings without creating actor sheets. Named travelers remain Ref-controlled; linked actors use their existing ownership permissions. Party selection lists living Crows first, then travelers without actors, then a collapsible list of other actors. Actors marked dead are excluded from selection and the traveling roster. Other excluded travelers remain available in Edit party.
 
-The active GM coordinates shared updates. A disconnected GM produces a recoverable message; reopen the helper
-or retry after a GM reconnects. Stale requests from a previous travel day cannot change the current day.
+Role selection keeps travelers together in character-name order, regardless of their assigned role. The step reminder gives the resolution order: supporters, guide, scouts, trackers. Players assign their own actors during the roles step; the Ref can revisit the roles step to change assignments and override usual role limits. Everyone can leave roles vacant.
 
-## Multiplayer playtest
+Each traveler has Ref-controlled travel EN, rest EN, and hex +/− buttons. Each click updates the day total and records that traveler’s contribution; reversing it reverses that contribution. Manual overview changes remain independent. Removing a traveler does not undo already applied adjustments; the Ref can revise the overview. Optional freeform **Result** and **Outcome / ruling** fields sit in a collapsed expander. Enter a roll, tier, skipped test, assistance, or any Ref ruling. No tasks or outcome rules are embedded. Recording “+1 rest EN” does not change the overview: the Ref applies adjustments separately. Owners can update their own records, and the Ref can update any record. Role editing is confined to Choose roles. Later steps provide read-only role outcomes inside the collapsed day notes disclosure. Choose pace shows only pace choices, with no role or encounter records.
 
-- Start a day with a Ref and two players; confirm participating owners receive the window and can reopen it.
-- Vote from both players; verify votes update everywhere and only the Ref chooses the final pace.
-- Select guide simultaneously from both players; verify exactly one succeeds and the other can select another role.
-- Override a role limit as Ref, advance despite the warning, then return and correct it.
-- Remove the guide's crow and assign a new guide; verify the old assignment no longer occupies the role.
-- Change the party, finish the day, reload, and start the next day; verify the party is remembered and votes/roles reset.
-- Open an imported table. Repeat with no world tables and confirm progression still works.
-- Disconnect the active GM during selection; verify a clear error and recovery when a GM returns.
+## Checks and references
 
-Automated tests cover state transitions, permissions, simultaneous writes, socket replies, stale days, and window visibility.
-The template is also checked in a headless browser with the installed Foundry stylesheet. A live multi-client Foundry playtest remains necessary.
+The encounter step rolls 1d10 against the current travel EN, posts to chat, and saves the number and EN in the day record. It never rolls tables or applies consequences. A 10 meeting the EN is described as an immediate encounter without assuming monsters or an ambush. The Ref can edit saved results/notes and add manual encounter records for checks resolved elsewhere, including rest checks. Editing a record does not rewrite chat. The Ref can delete individual encounter entries; deleting a helper entry leaves its chat roll unchanged.
+
+Each step has a compact, relevant Rules Book page reference beneath its introduction. Role resolution offers direct links to Minor/Major Interesting Things; travel and rest offer Travel Encounters. Only travel and rest have a collapsed “All world tables” picker, containing every world table alphabetically. Roles show only the two relevant reference links. Reference matching tolerates short names, spacing, and original import identifiers/source pages. Links prefer matching world tables, then read directly from the PDF importer’s Ref Tables compendium. No world-table copy is needed to open and roll a reference. If neither source contains the table, the helper asks you to import your Ref Book PDF. Copy a table into the world only when you want to customize it. Other steps have no table picker. The optional all-world-tables picker lists world overrides; the named reference links also support the Ref Tables compendium. Missing tables never block progress. No extraction changes are required.
+
+## Rest, Miasma, and next day
+
+Rest provides reminders and an encounter-check button using rest EN; Miasma retains character-sheet links. Rest rolls are labeled in chat and the day’s encounter records. The helper does not spend supplies, apply recovery, or roll Miasma resistance. During exploration, leave the helper open for a short point of interest or use **Conclude travel** to finish the day at a destination without visiting rest or Miasma. This retains today’s records until the next day starts; completed days are also saved to the journal. The dungeon timer remains independent.
+
+The Ref can revisit or skip steps after choosing a pace; blank results do not block advancement. Completing the day offers **Finish Travel** or **Start next day**, whether reached after rest/Miasma or directly from exploration. Finish Travel ends the active session and returns to party selection without increasing the day count; the last day’s data remains saved until a subsequent day is started. Before either action, the completion page previews a journal entry and offers an additional-notes box. Both actions save a page in Travel Journal before ending/resetting the day. If saving fails, the day stays open; retries do not duplicate the page. Cancel day does not save a journal entry. Starting the next day retains the party and lost status, but clears pace, votes, assignments, results, checks, daily notes, and adjustments. Cancelling clears the current day while retaining the party and lost status; sheets and chat are unchanged.
+
+## Verification
+
+Automated tests cover saved state, old-state compatibility, Ref overrides, linked/named hirelings, ownership, freeform records, day resets, and serialized multiplayer updates. Template fixtures cover all steps and player/Ref controls. A live multiplayer Foundry playtest is still needed.
+
+## Travel Journal
+
+Each completed day becomes a text page in the system-managed Travel Journal. It records the selected party and roles, pace, lost status, final hex allowance and encounter numbers, each role’s adjustments/results/notes, other adjustments, encounter checks and notes, and freeform day notes. The hex total is an allowance, not confirmed distance traveled. Sheet-based rest and Miasma outcomes are not inferred; record them in notes if desired.
+
+The additional-notes box is a draft until Finish Travel or Start next day is clicked. Its live preview matches the saved entry. Afterward, readers can open the Travel Journal from Foundry’s Journal Entries directory. Saved pages preserve names and outcomes even if actors change later.
+
+Settings → Crows → Travel journal readers defaults to All players (read-only). Trusted Players and above restricts the journal using Foundry ownership. This updates the existing journal as well as new pages and follows user-role changes while an active Ref is connected. It does not restrict the live travel helper. The system manages journal ownership; custom per-page sharing should be avoided.

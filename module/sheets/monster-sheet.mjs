@@ -170,6 +170,9 @@ export class CrowsMonsterSheet extends withPersistentScroll(ActorSheet) {
 
     if (!this.isEditable) return;
 
+    html.find('[data-npc-expertise-action]').click(event => this._onExpertiseAction(event));
+    html.find('[data-npc-expertise-field]').on('change', event => this._onExpertiseAction(event));
+
     html.find('.companion-wound-toggle').click(async event => {
       event.preventDefault();
       if (!this.actor.isOwner) return;
@@ -224,6 +227,38 @@ export class CrowsMonsterSheet extends withPersistentScroll(ActorSheet) {
     html.find('.item-qty-input').on('keydown', ev => { if (ev.key === 'Enter') ev.target.blur(); });
 
     html.find('.item-create').click(this._onItemCreate.bind(this));
+  }
+
+  async _onExpertiseAction(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!this.isEditable || !this.actor.isOwner) return;
+    const target = event.currentTarget;
+    const { npcExpertiseAction: action, npcExpertiseField: field, expertiseId } = target.dataset;
+    const expertises = (this.actor.system.customExpertises ?? []).map(entry => ({ ...entry }));
+    const entry = expertises.find(entry => entry.id === expertiseId);
+    if (action === "add") {
+      expertises.push({ id: foundry.utils.randomID(), name: "New Expertise", notes: "", value: 1, max: 1 });
+    } else if (action === "recover") {
+      for (const expertise of expertises) expertise.value = expertise.max;
+    } else if (!entry) {
+      return;
+    } else if (action === "delete") {
+      expertises.splice(expertises.indexOf(entry), 1);
+    } else if (action === "spend") {
+      if (entry.value <= 0) return;
+      entry.value -= 1;
+    } else if (field === "name" || field === "notes") {
+      entry[field] = target.value.trim() || (field === "name" ? "New Expertise" : "");
+    } else if (field === "value" || field === "max") {
+      const value = Number(target.value);
+      if (!Number.isFinite(value)) return this.render(false);
+      entry[field] = Math.max(0, Math.floor(value));
+      entry.value = Math.min(entry.value, entry.max);
+    } else {
+      return;
+    }
+    await this.actor.update({ "system.customExpertises": expertises });
   }
 
   async _onItemCreate(event) {

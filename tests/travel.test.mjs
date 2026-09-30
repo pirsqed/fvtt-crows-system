@@ -214,3 +214,128 @@ test("player socket requests receive success and conflict replies without retain
   }
   assert.deepEqual(saved().roles, { a: "guide" });
 });
+
+test("Ref sets travel EN explicitly; it survives pace edits and resets for a new day", () => {
+  let state = roles();
+  assert.equal(state.travelEN, null);
+  assert.throws(() => apply(state, { action: "en", en: 8 }, alice), /Only the Ref/);
+  for (const en of [null, "8", 0, 11, 7.5, NaN]) assert.throws(() => apply(state, { action: "en", en }), /whole number/);
+  state = apply(state, { action: "en", en: 10 });
+  state = apply(state, { action: "pace", pace: "fast" });
+  assert.equal(state.travelEN, 10);
+  assert.equal(apply({ ...state, step: "complete" }, { action: "start" }).travelEN, null);
+  assert.equal(apply(state, { action: "cancel" }).travelEN, null);
+});
+
+
+test("named and actor hirelings participate; guests remain Ref-controlled", () => {
+  let state = apply(initialTravelState(), {action:"guest", name:"Wren"}, ref, {sessionId:"wren"});
+  state = apply(state, {action:"roster", actorId:"monster", included:true});
+  state = apply(state, {action:"start"});
+  state = apply(state, {action:"role", actorId:"guest-wren", role:"scout"});
+  state = apply(state, {action:"role", actorId:"monster", role:"tracker"});
+  assert.equal(state.roles["guest-wren"], "scout");
+  assert.equal(state.roles.monster, "tracker");
+  assert.throws(() => apply({...state, step:"roles"}, {action:"role", actorId:"guest-wren", role:"guide"}, alice), /you own/);
+  assert.throws(() => apply(state, {action:"record", actorId:"guest-wren", field:"result", value:"Tier 3"}, alice), /you own/);
+});
+
+test("freeform role records never apply outcomes and respect ownership", () => {
+  let state = roles();
+  state = apply(state, {action:"record", actorId:"a", field:"result", value:"No roll needed"}, alice);
+  state = apply(state, {action:"record", actorId:"a", field:"notes", value:"+2 hexes by Ref ruling"}, alice);
+  assert.equal(state.hexes, null);
+  assert.equal(state.records.a.result, "No roll needed");
+  assert.throws(() => apply(state, {action:"record", actorId:"b", field:"notes", value:"changed"}, alice), /you own/);
+  state = apply(state, {action:"record", actorId:"b", field:"notes", value:"Ref override"});
+  state = apply(state, {action:"roster", actorId:"a", included:false});
+  assert.equal(state.records.a, undefined);
+});
+
+test("pace updates only untouched totals; old manually set EN survives migration", () => {
+  let state = apply(start(), {action:"pace", pace:"normal"});
+  assert.deepEqual([state.hexes,state.travelEN,state.restEN], [2,7,7]);
+  state = apply(state, {action:"overview", field:"travelEN", value:11});
+  state = apply(state, {action:"overview", field:"hexes", delta:2});
+  state = apply(state, {action:"pace", pace:"fast"});
+  assert.deepEqual([state.hexes,state.travelEN,state.restEN], [4,11,6]);
+  const old = {...roles(), travelEN:9}; delete old.adjusted;
+  assert.equal(apply(old, {action:"pace", pace:"slow"}).travelEN, 9);
+  assert.throws(() => apply(state,{action:"overview",field:"hexes",value:5},alice), /Only the Ref/);
+});
+
+test("next day keeps party and lost status but clears daily records", () => {
+  let state = apply(roles(), {action:"overview",field:"lost",value:true});
+  state = apply(state,{action:"overview",field:"notes",value:"River detour"});
+  state = apply(state,{action:"encounter",result:"8",en:7});
+  state = apply(state,{action:"encounter",index:0,field:"notes",value:"Friendly travelers"});
+  assert.equal(state.encounters[0].notes,"Friendly travelers");
+  const reloaded = JSON.parse(JSON.stringify(state));
+  assert.equal(reloaded.encounters[0].result,"8");
+  const next = apply({...reloaded,step:"complete"},{action:"start"});
+  assert.equal(next.lost,true);
+  assert.deepEqual(next.roster,state.roster);
+  assert.deepEqual(next.encounters,[]);
+  assert.equal(next.notes,"");
+  assert.deepEqual(next.records,{});
+});
+
+
+test("participant adjustments update totals once, preserve notes, and allow reversal", () => {
+  let state = apply(start(), {action:"pace",pace:"normal"});
+  state = apply(state,{action:"record",actorId:"a",field:"notes",value:"Shortcut"});
+  state = apply(state,{action:"role-adjust",actorId:"a",field:"hexes",delta:1});
+  assert.equal(state.hexes,3);
+  assert.equal(state.records.a.hexes,1);
+  assert.equal(state.records.a.notes,"Shortcut");
+  state = apply(state,{action:"role-adjust",actorId:"b",field:"travelEN",delta:-1});
+  assert.equal(state.travelEN,6);
+  assert.equal(state.restEN,7);
+  state = apply(state,{action:"role-adjust",actorId:"a",field:"restEN",delta:1});
+  assert.equal(state.restEN,8);
+  assert.equal(state.records.a.restEN,1);
+  assert.equal(state.travelEN,6);
+  state = apply(state,{action:"role-adjust",actorId:"a",field:"restEN",delta:-1});
+  assert.equal(state.restEN,7);
+  assert.equal(state.records.a.restEN,0);
+  state = apply(state,{action:"role-adjust",actorId:"a",field:"hexes",delta:-1});
+  assert.equal(state.hexes,2);
+  assert.equal(state.records.a.hexes,0);
+  assert.throws(() => apply(state,{action:"role-adjust",actorId:"a",field:"hexes",delta:1},alice), /Only the Ref/);
+  assert.throws(() => apply(state,{action:"role-adjust",actorId:"missing",field:"hexes",delta:1}), /no longer/);
+  assert.throws(() => apply(state,{action:"role-adjust",actorId:"a",field:"notes",delta:1}), /Choose a travel/);
+});
+
+
+test("only the Ref can delete an encounter; stale deletes cannot remove another record", () => {
+  let state = apply(roles(),{action:"encounter",result:"8",en:7});
+  state = apply(state,{action:"encounter",result:"4",en:9});
+  const request = {action:"delete-encounter",index:0,expected:JSON.stringify(state.encounters[0])};
+  assert.throws(() => apply(state,request,alice), /Only the Ref/);
+  const next = apply(state,request);
+  assert.equal(next.encounters.length,1);
+  assert.equal(next.encounters[0].result,"4");
+  assert.throws(() => apply(next,request), /changed/);
+  assert.throws(() => apply(next,{...request,index:9}), /no longer/);
+});
+
+
+test("finish travel ends a completed session without losing results or advancing the day", () => {
+  let state = apply(roles(), {action:"record",actorId:"a",field:"notes",value:"Arrived and rested"});
+  state = apply(state, {action:"step",step:"rest"});
+  state = apply(state, {action:"step",step:"miasma"});
+  state = apply(state, {action:"step",step:"complete"});
+  assert.throws(() => apply(state,{action:"finish"},alice), /Only the Ref/);
+  assert.throws(() => apply({...state,step:"rest"},{action:"finish"}), /Complete the travel day/);
+  const finished = apply(state,{action:"finish"});
+  assert.equal(finished.session,null);
+  assert.equal(finished.day,state.day);
+  assert.deepEqual(finished.roster,state.roster);
+  assert.deepEqual(finished.records,state.records);
+  assert.throws(() => apply(finished,{action:"finish",session:state.session}), /day changed/);
+  const next = apply(finished,{action:"start"});
+  assert.equal(next.day,state.day+1);
+  assert.deepEqual(next.records,{});
+  const destination = apply(roles(),{action:"step",step:"complete"});
+  assert.equal(apply(destination,{action:"finish"}).session,null);
+});
