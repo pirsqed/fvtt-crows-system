@@ -5201,13 +5201,67 @@
 /* Monster Slots Grid */
 .monster-slots-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
   gap: 8px;
   margin-top: 8px;
 }
 
 .monster-slots-grid .slot-card {
-  min-height: 100px;
+  min-height: 140px;
+  padding: 6px 8px 10px 8px !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.monster-slots-grid .slot-header {
+  margin-bottom: 4px;
+  min-height: 18px;
+  align-items: center;
+}
+
+.monster-slots-grid .slot-dc {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #94a3b8;
+  line-height: 1;
+}
+
+.monster-slots-grid .card-quick-actions {
+  gap: 4px;
+}
+
+.monster-slots-grid .card-quick-actions a {
+  width: 16px;
+  height: 16px;
+  font-size: 0.75rem;
+}
+
+.monster-slots-grid .item-top {
+  gap: 8px;
+  align-items: center;
+}
+
+.monster-slots-grid .item.card-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  min-height: 0;
+}
+
+.monster-slots-grid .inventory-card-controls {
+  flex: 0 0 auto;
+  margin-top: auto;
+  justify-content: center;
+  align-self: center;
+  width: 100%;
+}
+
+.monster-slots-grid .empty-slot-placeholder {
+  margin: auto 0;
+  padding: 4px 0;
+  font-size: 0.75rem;
 }
 
 .monster-slots-grid .slot-card.span-2 {
@@ -5371,7 +5425,7 @@
 .crows .inventory-card-controls .qty-label { white-space: nowrap; flex: 0 0 auto; }
 .crows .magic-slot .card-content { flex-wrap: wrap; }
 .crows .card-content.flexrow:has(> .inventory-card-controls) { flex-wrap: wrap; }
-.crows .card-content > .inventory-card-controls { flex: 0 0 100%; width: 100%; }
+.crows .card-content.flexrow > .inventory-card-controls { flex: 0 0 100%; width: 100%; }
 
 .crows .slot-card:has(.ud-controls.depleted) { box-shadow: inset 3px 0 #dc2626; }
 .crows .magic-slot .inventory-card-controls { flex-basis: 100%; }
@@ -5713,7 +5767,7 @@ button.item-cast:active {
 }
 
 /* Containers share the ordinary item art and typography; only Ref preparation adds controls. */
-.crows :is(.crows-loot-sheet, .supply-settings) button,
+.crows :is(.crows-loot-sheet, .supply-settings, .npc-expertises) button,
 .crows .slot-card button.item-edit {
   color: #f8fafc !important;
   background: #273449 !important;
@@ -5727,18 +5781,18 @@ button.item-cast:active {
   text-shadow: none;
   cursor: pointer;
 }
-.crows :is(.crows-loot-sheet, .supply-settings) button:hover,
+.crows :is(.crows-loot-sheet, .supply-settings, .npc-expertises) button:hover,
 .crows .slot-card button.item-edit:hover {
   color: #ffffff !important;
   background: #3c506d !important;
   border-color: #b6d6ff !important;
 }
-.crows :is(.crows-loot-sheet, .supply-settings) button:focus-visible,
+.crows :is(.crows-loot-sheet, .supply-settings, .npc-expertises) button:focus-visible,
 .crows .slot-card button.item-edit:focus-visible {
   outline: 2px solid #93c5fd;
   outline-offset: 2px;
 }
-.crows :is(.crows-loot-sheet, .supply-settings) button:disabled {
+.crows :is(.crows-loot-sheet, .supply-settings, .npc-expertises) button:disabled {
   color: #b9c5d5 !important;
   background: #1f2937 !important;
   border-color: #64748b !important;
@@ -5767,3 +5821,14 @@ button.item-cast:active {
 .belt-settings input[type="text"] { flex: 1; }
 
 .belt-slot-grant { font-size: 0.8rem; overflow-wrap: anywhere; margin: 6px 0; color: #d6bd82; }
+.crows .npc-expertise-card {
+  margin: 8px 0;
+  padding: 10px;
+  border: 1px solid var(--color-border-light-primary, #777);
+  border-radius: 4px;
+}
+.crows .npc-expertise-heading { align-items: center; gap: 8px; }
+.crows .npc-expertise-heading > input { flex: 3; min-width: 120px; }
+.crows .npc-expertise-heading > label { flex: 0 0 64px; }
+.crows .npc-expertise-heading > button { flex: 0 0 auto; width: auto; }
+.crows .npc-expertise-card textarea { margin-top: 8px; min-height: 48px; resize: vertical; }

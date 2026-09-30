@@ -1,8 +1,11 @@
+import { EXPERTISES_CONFIG } from "./module/expertises.mjs";
+import { rollMiasmaEffect } from "./module/miasma.mjs";
+import { rollChaos } from "./module/magic-rules.mjs";
 import { CrowsContentImport, IMPORT_PACKS } from "./module/import-content.mjs";
 import { CrowsChatActions } from "./module/chat-actions.mjs";
 import { CrowDataModel, EquipmentDataModel, MonsterDataModel, LootDataModel, AttackDataModel, TraitDataModel } from "./module/data-models.mjs";
 import { CrowsActor, CrowsItem } from "./module/documents.mjs";
-import { CrowsActorSheet, EXPERTISES_CONFIG } from "./module/sheets/actor-sheet.mjs";
+import { CrowsActorSheet } from "./module/sheets/actor-sheet.mjs";
 import { CrowsMonsterSheet } from "./module/sheets/monster-sheet.mjs";
 import { CrowsLootSheet } from "./module/sheets/loot-sheet.mjs";
 import { CrowsItemSheet } from "./module/sheets/item-sheet.mjs";
@@ -57,10 +60,13 @@ Hooks.once("init", async () => {
     boon: BoonDataModel
   };
 
+  // Display NPC while preserving saved actor types and sheet selections.
+  CONFIG.Actor.typeLabels.monster = "NPC";
+
   // Register Sheets
   Actors.unregisterSheet("core", ActorSheet);
   Actors.registerSheet("crows", CrowsActorSheet, { types: ["crow"], makeDefault: true });
-  Actors.registerSheet("crows", CrowsMonsterSheet, { types: ["monster"], makeDefault: true });
+  Actors.registerSheet("crows", CrowsMonsterSheet, { types: ["monster"], label: "NPC Sheet", makeDefault: true });
   Actors.registerSheet("crows", CrowsLootSheet, { types: ["loot"], makeDefault: true });
   Actors.registerSheet("crows", CrowsVillageSheet, { types: ["village"], makeDefault: true });
 
@@ -240,9 +246,7 @@ Hooks.on("renderChatMessage", (message, html, data) => {
     btn.prop("disabled", true).text(`+1 Cruelty Added (Now ${newCruelty})`);
 
     // Trigger Miasma effect roll
-    if (actor.sheet && actor.sheet._onRollMiasmaEffect) {
-      await actor.sheet._onRollMiasmaEffect();
-    }
+    await rollMiasmaEffect(actor);
   });
 
   // Miasma Chat Handler: Clear Cruelty
@@ -421,37 +425,7 @@ Hooks.once("ready", () => {
     /**
      * Rolls a 1d6 Chaos Roll for non-doom Tier 1 spellcasting
      */
-    rollChaos: async () => {
-      const roll = new Roll("1d6");
-      await roll.evaluate();
-      const result = roll.total;
-
-      let outcomeHtml = "";
-      if (result === 1) {
-        outcomeHtml = `<div class="outcome doom"><i class="fas fa-bolt"></i> MAGICAL BACKLASH! (Rolled 1)</div>
-                       <p class="flavor-sub">Roll 1d100 + Spell Rank on the Backlash Table in The Rules Book!</p>`;
-      } else {
-        outcomeHtml = `<div class="outcome success"><i class="fas fa-check-circle"></i> SAFE (Rolled ${result})</div>
-                       <p class="flavor-sub">The chaos recedes without triggering a backlash.</p>`;
-      }
-
-      const content = `
-        <div class="crows-roll-card">
-          <div class="card-header">
-            <i class="fas fa-magic"></i> Chaos Roll (1d6)
-          </div>
-          <div class="card-body">
-            <div class="dice-roll-total">Result: <strong>${result}</strong></div>
-            ${outcomeHtml}
-          </div>
-        </div>
-      `;
-
-      await roll.toMessage({
-        flavor: `Chaos Roll (1d6)`,
-        content: content
-      });
-    },
+    rollChaos,
 
     importEquipment: () => importContent([IMPORT_PACKS[0]]),
     importDungeonLoot: () => importContent([IMPORT_PACKS[1]]),

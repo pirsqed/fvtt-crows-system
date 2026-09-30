@@ -1,3 +1,4 @@
+import { EXPERTISES_CONFIG } from "./expertises.mjs";
 const { ArrayField, BooleanField, HTMLField, NumberField, SchemaField, StringField } = foundry.data.fields;
 
 export class CrowDataModel extends foundry.abstract.TypeDataModel {
@@ -39,43 +40,10 @@ export class CrowDataModel extends foundry.abstract.TypeDataModel {
         secondEffect: new StringField({ required: true, initial: "" }),
         rollTotal: new NumberField({ required: true, integer: true, initial: 1 })
       }), { initial: [] }),
-      expertises: new SchemaField({
-        // General Expertises (18)
-        alchemy: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        athletics: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        blacksmithing: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        enchanting: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        endurance: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        gymnastics: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        handlePet: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        historicalLore: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        lift: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        magicLore: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        monsterLore: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        natureLore: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        navigate: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        pickLock: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        religiousLore: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        search: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        stealth: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        thievery: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        
-        // Spellcasting Expertises (6)
-        alteration: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        benefaction: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        conjuration: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        elemental: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        illusion: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        necromancy: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        
-        // Weapon Expertises (6)
-        bashing: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        bow: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        chopping: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        slashing: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        stabbing: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) }),
-        unarmed: new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }), max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) })
-      }),
+      expertises: new SchemaField(Object.fromEntries(Object.values(EXPERTISES_CONFIG).flat().map(({ key }) => [key,
+        new SchemaField({ value: new NumberField({ required: true, integer: true, min: 0, initial: 0 }),
+          max: new NumberField({ required: true, integer: true, min: 0, initial: 0 }) })
+      ]))),
       biography: new HTMLField({ required: true, blank: true })
     };
   }
@@ -157,6 +125,13 @@ export class EquipmentDataModel extends foundry.abstract.TypeDataModel {
 export class MonsterDataModel extends foundry.abstract.TypeDataModel {
   static defineSchema() {
     return {
+      customExpertises: new ArrayField(new SchemaField({
+        id: new StringField({ required: true, blank: false }),
+        name: new StringField({ required: true, initial: "New Expertise" }),
+        notes: new StringField({ required: true, blank: true, initial: "" }),
+        value: new NumberField({ required: true, integer: true, min: 0, initial: 1 }),
+        max: new NumberField({ required: true, integer: true, min: 0, initial: 1 })
+      }), { initial: [] }),
       size: new StringField({ required: true, initial: "Medium" }),
       power: new NumberField({ required: true, integer: true, initial: 1 }),
       type: new StringField({ required: true, initial: "Animal" }),

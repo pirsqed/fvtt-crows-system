@@ -1,3 +1,5 @@
+import { _onQuantityAdjust, _onQuantityInput, _onPostTraitToChat } from "./inventory-actions.mjs";
+import { requestUsageDice } from "./inventory-actions.mjs";
 import { bindSupplyControls } from "../supplies.mjs";
 import { renderCircumstanceSelector } from "../roll-dialog.mjs";
 import { canEquip, woundCapacity, woundMap, woundUpdate } from "../equipment-rules.mjs";
@@ -170,6 +172,9 @@ export class CrowsMonsterSheet extends withPersistentScroll(ActorSheet) {
 
     if (!this.isEditable) return;
 
+    html.find('[data-npc-expertise-action]').click(event => this._onExpertiseAction(event));
+    html.find('[data-npc-expertise-field]').on('change', event => this._onExpertiseAction(event));
+
     html.find('.companion-wound-toggle').click(async event => {
       event.preventDefault();
       if (!this.actor.isOwner) return;
@@ -226,6 +231,38 @@ export class CrowsMonsterSheet extends withPersistentScroll(ActorSheet) {
     html.find('.item-create').click(this._onItemCreate.bind(this));
   }
 
+  async _onExpertiseAction(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!this.isEditable || !this.actor.isOwner) return;
+    const target = event.currentTarget;
+    const { npcExpertiseAction: action, npcExpertiseField: field, expertiseId } = target.dataset;
+    const expertises = (this.actor.system.customExpertises ?? []).map(entry => ({ ...entry }));
+    const entry = expertises.find(entry => entry.id === expertiseId);
+    if (action === "add") {
+      expertises.push({ id: foundry.utils.randomID(), name: "New Expertise", notes: "", value: 1, max: 1 });
+    } else if (action === "recover") {
+      for (const expertise of expertises) expertise.value = expertise.max;
+    } else if (!entry) {
+      return;
+    } else if (action === "delete") {
+      expertises.splice(expertises.indexOf(entry), 1);
+    } else if (action === "spend") {
+      if (entry.value <= 0) return;
+      entry.value -= 1;
+    } else if (field === "name" || field === "notes") {
+      entry[field] = target.value.trim() || (field === "name" ? "New Expertise" : "");
+    } else if (field === "value" || field === "max") {
+      const value = Number(target.value);
+      if (!Number.isFinite(value)) return this.render(false);
+      entry[field] = Math.max(0, Math.floor(value));
+      entry.value = Math.min(entry.value, entry.max);
+    } else {
+      return;
+    }
+    await this.actor.update({ "system.customExpertises": expertises });
+  }
+
   async _onItemCreate(event) {
     event.preventDefault();
     const header = event.currentTarget;
@@ -262,83 +299,9 @@ export class CrowsMonsterSheet extends withPersistentScroll(ActorSheet) {
     return await Item.create(itemData, { parent: this.actor });
   }
 
-  async _onQuantityAdjust(delta, event) {
-    event.preventDefault();
-    event.stopPropagation();
-    const currentTarget = event.currentTarget;
-    const target = typeof $ === "function" ? $(currentTarget) : null;
-    const itemId = currentTarget?.dataset?.itemId
-      || target?.data("itemId")
-      || target?.closest("[data-item-id]")?.data("itemId")
-      || target?.closest(".item")?.data("itemId");
-    const item = this.actor.items.get(itemId);
-    if (!item) return;
+  _onQuantityAdjust(delta, event) { return _onQuantityAdjust.call(this, delta, event); }
 
-    const currentQty = item.system.quantity ?? 1;
-    if (currentQty === 0 && delta < 0) return;
-
-    const maxStack = Number(item.system.maxStack) || 1;
-    const newQty = Math.max(0, currentQty + delta);
-
-    if (delta > 0 && maxStack > 1 && newQty > maxStack) {
-      ui.notifications.warn(`Quantity cannot exceed maximum stack size of ${maxStack}.`);
-      return;
-    }
-
-    if (newQty === 0) {
-      const confirmed = await Dialog.confirm({
-        title: "Delete Item?",
-        content: `<p>You have 0 remaining. Would you like to remove <strong>${item.name}</strong> from your inventory?</p>`,
-        defaultYes: false
-      });
-      if (confirmed) {
-        return item.delete();
-      }
-      return item.update({ "system.quantity": 0 });
-    }
-
-    await item.update({ "system.quantity": newQty });
-  }
-
-  async _onQuantityInput(event) {
-    event.preventDefault();
-    event.stopPropagation();
-    const input = event.currentTarget;
-    const itemId = input.dataset.itemId || $(input).closest("[data-item-id]").data("itemId");
-    const item = itemId ? this.actor.items.get(itemId) : null;
-    if (!item) return;
-
-    const maxStack = Math.max(1, Number(input.dataset.maxStack) || Number(item.system.maxStack) || 1);
-    const parsedVal = parseInt(input.value, 10);
-
-    if (isNaN(parsedVal)) {
-      input.value = item.system.quantity ?? 1;
-      return;
-    }
-
-    if (maxStack > 1 && parsedVal > maxStack) {
-      ui.notifications.warn(`Quantity cannot exceed maximum stack size of ${maxStack}.`);
-      input.value = item.system.quantity ?? 1;
-      return;
-    }
-
-    if (parsedVal <= 0) {
-      input.value = item.system.quantity ?? 1;
-      const confirmed = await Dialog.confirm({
-        title: "Delete Item?",
-        content: `<p>Setting quantity to 0 will delete <strong>${item.name}</strong>. Are you sure?</p>`,
-        defaultYes: false
-      });
-      if (confirmed) {
-        await item.delete();
-      } else {
-        await item.update({ "system.quantity": 0 });
-      }
-      return;
-    }
-
-    await item.update({ "system.quantity": parsedVal });
-  }
+  _onQuantityInput(event) { return _onQuantityInput.call(this, event); }
 
   async _onToggleArmorEquip(event) {
     event.preventDefault();
@@ -462,101 +425,9 @@ export class CrowsMonsterSheet extends withPersistentScroll(ActorSheet) {
     return showWeaponAttackDialog(this.actor, this.actor.items.get(event.currentTarget.dataset.itemId));
   }
 
-  async _onRollUsageDice(event) {
-    event.preventDefault();
-    const btn = event.currentTarget;
-    const itemId = btn.dataset.itemId;
-    const item = this.actor.items.get(itemId);
-    if (!item) return;
+  _onRollUsageDice(event) { return requestUsageDice(this.actor, event); }
 
-    const currentUD = item.system.consumable?.currentUD ?? item.system.consumable?.maxUD ?? 0;
-    if (currentUD <= 0) {
-      ui.notifications.warn(`${item.name} has no usage dice remaining!`);
-      return;
-    }
-
-    const roll = new Roll(`${currentUD}d6`);
-    await roll.evaluate();
-
-    let depletedCount = 0;
-    const diceResults = roll.dice[0].results.map(r => {
-      const isDepleted = r.result === 1 || r.result === 2;
-      if (isDepleted) depletedCount++;
-      return `<span class="ud-die ${isDepleted ? 'depleted' : 'safe'}">${r.result}</span>`;
-    }).join(" ");
-
-    const remainingUD = Math.max(0, currentUD - depletedCount);
-    await item.update({ "system.consumable.currentUD": remainingUD });
-
-    let statusText = "";
-    if (remainingUD === 0) {
-      statusText = `<div class="outcome failure"><i class="fas fa-exclamation-triangle"></i> Fully Depleted! (${item.system.consumable?.udTrigger || "Useless"})</div>`;
-    } else if (depletedCount > 0) {
-      statusText = `<div class="outcome warning">Lost ${depletedCount} Usage Die (${remainingUD} remaining)</div>`;
-    } else {
-      statusText = `<div class="outcome success">All dice held! (${remainingUD} remaining)</div>`;
-    }
-
-    const content = `
-      <div class="crows-roll-card">
-        <div class="card-header">
-          <i class="fas fa-hourglass-half"></i> Usage Dice Check: ${item.name}
-        </div>
-        <div class="card-body">
-          <div class="ud-dice-pool">${diceResults}</div>
-          ${statusText}
-        </div>
-      </div>
-    `;
-
-    await roll.toMessage({
-      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
-      flavor: `Usage Dice for ${item.name}`,
-      content: content
-    });
-  }
-
-  async _onPostTraitToChat(event) {
-    event.preventDefault();
-    event.stopPropagation();
-    const btn = $(event.currentTarget);
-    const itemId = btn.data("itemId") || btn.closest("[data-item-id]").data("itemId");
-    if (!itemId) return;
-    const trait = this.actor.items.get(itemId);
-    if (!trait) return;
-
-    const tree = trait.system.tree || "General";
-    const tier = trait.system.tier || "Starting";
-    const cost = trait.system.cost ?? 0;
-    const prereqs = trait.system.prerequisites || "";
-    const description = trait.system.description || "<em>No description provided.</em>";
-
-    const cardHtml = `
-      <div class="crows-item-card trait-card">
-        <div class="card-header trait-header flexrow" style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
-          <img src="${trait.img}" alt="${trait.name}" style="width:34px; height:34px; border-radius:4px; border:1px solid rgba(147, 51, 234, 0.4); object-fit:cover;" />
-          <div style="flex:1;">
-            <h3 style="margin:0; font-size:1.05rem; font-weight:700; color:#f3e8ff; letter-spacing:0.3px;">${trait.name}</h3>
-            <div style="font-size:0.75rem; color:#c084fc; text-transform:uppercase; letter-spacing:0.5px; font-weight:600;"><i class="fas fa-sitemap"></i> ${tree} Trait Tree</div>
-          </div>
-        </div>
-        <div class="card-badges" style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;">
-          <span class="badge" style="background:#581c87; color:#f3e8ff; border:1px solid #9333ea;"><i class="fas fa-layer-group"></i> ${tier}</span>
-          ${cost > 0 ? `<span class="badge" style="background:rgba(245,158,11,0.2); color:#fbbf24; border:1px solid #f59e0b;"><i class="fas fa-coins"></i> ${cost} XP</span>` : ''}
-          ${prereqs ? `<span class="badge" style="background:rgba(59,130,246,0.2); color:#93c5fd; border:1px solid #3b82f6;"><i class="fas fa-link"></i> Req: ${prereqs}</span>` : ""}
-        </div>
-        <div class="trait-description" style="font-size:0.85rem; line-height:1.45; color:#e5e7eb; border-top:1px solid rgba(255,255,255,0.08); padding-top:6px;">
-          ${description}
-        </div>
-      </div>
-    `;
-
-    await ChatMessage.create({
-      speaker: ChatMessage.getSpeaker({ actor: this.actor }),
-      flavor: `${this.actor.name} shared the <strong>${trait.name}</strong> trait`,
-      content: cardHtml
-    });
-  }
+  _onPostTraitToChat(event) { return _onPostTraitToChat.call(this, event); }
 
   async _onRollAttack(event) {
     event.preventDefault();
