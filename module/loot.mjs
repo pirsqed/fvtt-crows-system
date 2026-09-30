@@ -1,3 +1,6 @@
+import * as inventory from "./inventory.mjs";
+import { activeDefense } from "./equipment-rules.mjs";
+import { enqueueAction } from "./action-queue.mjs";
 /** Single scene items and authoritative inventory transfers. */
 import { beltCapacity, canStack, stackAmount, goldStack } from "./inventory.mjs";
 const SOCKET = "system.fvtt-crows-system";
@@ -80,7 +83,8 @@ export class CrowsLoot {
         if (msg.requestId) game.socket.emit(SOCKET, { channel: "loot-result", userId: msg.userId, requestId: msg.requestId, ok: false, error: "The item could not be moved. Ask the Ref to check it." });
       }
     });
-    for (const hook of ["createActor", "updateActor", "deleteActor", "createItem", "updateItem", "deleteItem"]) Hooks.on(hook, () => this.refreshSheets());
+    for (const hook of ["createActor", "updateActor", "deleteActor", "createItem", "updateItem", "deleteItem"])
+      Hooks.on(hook, document => this.refreshSheets(document));
     Hooks.on("updateToken", (token, changes) => {
       if (["delta", "actorId", "actorLink", "hidden", "x", "y", "elevation", "width", "height"].some(key => key in changes)) this.refreshSheets();
     });
@@ -93,13 +97,25 @@ export class CrowsLoot {
     });
   }
 
-  static refreshSheets() {
-    for (const actor of game.actors) if (actor.type === "crow") actor.prepareDerivedData();
-    for (const app of Object.values(ui.windows)) {
-      if (!(app.actor?.type === "loot" || app.item?.type === "equipment" || app.actor?.type === "crow")) continue;
-      if (app.requestRefresh) app.requestRefresh();
-      else if (app.rendered) app.render(false, { focus: false });
-    }
+  static refreshSheets(document = null) {
+    this._refreshDocuments ??= new Set();
+    if (document) this._refreshDocuments.add(document);
+    else this._refreshAll = true;
+    if (this._refreshTask) return this._refreshTask;
+    this._refreshTask = Promise.resolve().then(() => {
+      const documents = [...this._refreshDocuments], all = this._refreshAll;
+      this._refreshDocuments.clear(); this._refreshAll = false; this._refreshTask = null;
+      const same = (a, b) => a && b && (a === b || a.uuid && a.uuid === b.uuid);
+      for (const app of Object.values(ui.windows)) {
+        if (!(app.actor?.type === "loot" || app.item?.type === "equipment" || ["crow", "monster", "village"].includes(app.actor?.type))) continue;
+        const actor = app.actor ?? app.item?.parent;
+        if (!all && !documents.some(changed => [app.document, app.item, actor].some(target =>
+          same(target, changed) || same(target, changed.parent)))) continue;
+        if (app.requestRefresh) app.requestRefresh();
+        else if (app.rendered) app.render(false, { focus: false });
+      }
+    });
+    return this._refreshTask;
   }
 
   static isActiveGM() {
@@ -131,10 +147,9 @@ export class CrowsLoot {
   }
 
   static async _execute(action, payload, userId) {
-    if (["copyItem", "dropToGround"].includes(action)) {
+    if (["copyItem", "dropToGround", "dropBackpack"].includes(action)) {
       if (action === "dropToGround") action = "dropToGroundQueued";
-      const pending = (this._transferQueue ?? Promise.resolve()).then(() => this[`_${action}`](payload, userId));
-      this._transferQueue = pending.catch(() => {});
+      const pending = enqueueAction(() => this[`_${action}`](payload, userId));
       return pending;
     }
     switch (action) {
@@ -224,67 +239,24 @@ export class CrowsLoot {
     return created;
   }
 
-  static MAGIC_SLOTS = ["head", "neck", "waist", "gloves", "ring", "boots"];
+  static MAGIC_SLOTS = inventory.MAGIC_SLOTS;
 
   /** Slots an item of `count` slots occupies when anchored at `location`. */
-  static spanFor(location, count = 1) {
-    count = Math.max(1, count);
-    const m = location?.match(/^(backpack|slot|belt)(\d+)$/);
-    if (m) return Array.from({ length: count }, (_, i) => `${m[1]}${Number(m[2]) + i}`);
-    if (location === "hand1" && count >= 2) return ["hand1", "hand2"];
-    return [location];
-  }
+  static spanFor(location, count = 1) { return inventory.spanFor(location, count); }
 
   /** slot -> item for every carried slot on an actor, optionally ignoring one item. */
-  static occupancy(actor, excludeId = null) {
-    const map = {};
-    for (const item of actor.items) {
-      if (item.type !== "equipment" || item.id === excludeId) continue;
-      const slots = item.getOccupiedSlots ? item.getOccupiedSlots() : CrowsLoot.spanFor(item.system.location, item.system.slots);
-      for (const s of slots) if (!s.startsWith("ground") && s !== "stash") map[s] = item;
-    }
-    return map;
-  }
+  static occupancy(actor, excludeId = null) { return inventory.occupancy(actor, excludeId); }
 
-  static maxBackpack(actor) {
-    return actor.type === "crow" ? 10 : Math.max(0, Number(actor.system?.slots) || 0);
-  }
+  static maxBackpack(actor) { return inventory.maxBackpack(actor); }
 
   /** Can an item of `count` slots sit at `location` on `actor`? */
-  static fits(actor, location, count = 1, excludeId = null) {
-    if (!location || location === "ground" || location === "stash") return actor.type !== "crow";
-    if (actor.type === "monster" && /^hand[12]$/.test(location)) return false;
-    const occ = CrowsLoot.occupancy(actor, excludeId);
-    if (CrowsLoot.MAGIC_SLOTS.includes(location)) return !occ[location];
-    const b = location.match(/^belt(\d+)$/);
-    if (b && (Number(b[1]) < 1 || Number(b[1]) + count - 1 > beltCapacity(actor))) return false;
-    if (location === "hand2" && count > 1) return false;
-    const m = location.match(/^backpack(\d+)$/);
-    if (m && Number(m[1]) + count - 1 > CrowsLoot.maxBackpack(actor)) return false;
-    return CrowsLoot.spanFor(location, count).every(s => !occ[s]);
-  }
+  static fits(actor, location, count = 1, excludeId = null) { return inventory.fits(actor, location, count, excludeId); }
 
   /** First location where an item of `count` slots fits, else "ground". */
-  static findFreeSlot(actor, count = 1, excludeId = null) {
-    const bp = Array.from({ length: CrowsLoot.maxBackpack(actor) }, (_, i) => `backpack${i + 1}`);
-    const order = actor.type === "crow" ? [...Array.from({ length: beltCapacity(actor) }, (_, i) => `belt${i + 1}`), "hand1", "hand2", ...bp] : bp;
-    for (const loc of order) if (CrowsLoot.fits(actor, loc, count, excludeId)) return loc;
-    return actor.type === "crow" ? null : "ground";
-  }
+  static findFreeSlot(actor, count = 1, excludeId = null) { return inventory.findFreeSlot(actor, count, excludeId); }
 
   /** Can an item of `count` slots be anchored at `location` at all (ignoring what's there now)? */
-  static validAnchor(actor, location, count) {
-    if (!location) return false;
-    if (actor.type === "monster" && /^hand[12]$/.test(location)) return false;
-    if (location === "ground" || location === "stash") return actor.type !== "crow";
-    if (CrowsLoot.MAGIC_SLOTS.includes(location)) return count === 1;
-    const b = location.match(/^belt(\d+)$/);
-    if (b && (Number(b[1]) < 1 || Number(b[1]) + count - 1 > beltCapacity(actor))) return false;
-    if (location === "hand2" && count > 1) return false;
-    const m = location.match(/^backpack(\d+)$/);
-    if (m && Number(m[1]) + count - 1 > CrowsLoot.maxBackpack(actor)) return false;
-    return true;
-  }
+  static validAnchor(actor, location, count = 1) { return inventory.validAnchor(actor, location, count); }
 
   /**
    * Move an item that already belongs to `actor` to `location`, relocating anything in the way.
@@ -371,9 +343,7 @@ export class CrowsLoot {
 
   static _doTransfer(payload, userId) {
     // Resolve after earlier pickups finish, so simultaneous requests cannot copy one item twice.
-    const pending = (this._transferQueue ?? Promise.resolve())
-      .then(() => this._transferNow(payload, userId));
-    this._transferQueue = pending.catch(() => {});
+    const pending = enqueueAction(() => this._transferNow(payload, userId));
     return pending;
   }
 
@@ -392,8 +362,7 @@ export class CrowsLoot {
   }
 
   static _doStack(payload, userId) {
-    const pending = (this._transferQueue ?? Promise.resolve()).then(() => this._stackNow(payload, userId));
-    this._transferQueue = pending.catch(() => {});
+    const pending = enqueueAction(() => this._stackNow(payload, userId));
     return pending;
   }
 
@@ -496,6 +465,28 @@ export class CrowsLoot {
       return null;
     }
     return CrowsLoot._request("dropToGround", { itemUuid: item.uuid, x, y, sceneId: scene.id });
+  }
+
+  /** Each item uses the ordinary move operation; never delete a batch after copying it. */
+  static dropBackpack(actor, items, { x, y, scene }) {
+    return this._request("dropBackpack", { actorUuid: actor.uuid, itemUuids: items.map(item => item.uuid), x, y, sceneId: scene.id });
+  }
+
+  static async _dropBackpack({ actorUuid, itemUuids, x, y, sceneId }, userId) {
+    const actor = await fromUuid(actorUuid), user = game.users.get(userId);
+    const scene = game.scenes.get(sceneId);
+    if (!actor || !scene || !user || !(user.isGM || actor.testUserPermission(user, "OWNER"))) return null;
+    if (!Array.isArray(itemUuids) || !itemUuids.length || new Set(itemUuids).size !== itemUuids.length) return null;
+    const items = await Promise.all(itemUuids.map(uuid => fromUuid(uuid)));
+    if (items.some(item => item?.parent?.uuid !== actor.uuid || !item.system.location?.startsWith("backpack")))
+      throw new Error("The backpack changed. Reopen Dump Backpack.");
+    for (let index = 0; index < items.length; index++) {
+      if (activeDefense(items[index])) continue;
+      const moved = await this._dropToGroundQueued({ itemUuid: items[index].uuid, sceneId,
+        x: x + (index % 3) * (scene.grid?.size ?? 100), y: y + Math.floor(index / 3) * (scene.grid?.size ?? 100) }, userId);
+      if (!moved) throw new Error("Scattering stopped. Already moved items are on the map; remaining items are in the backpack.");
+    }
+    return true;
   }
 
   static async _dropToGroundQueued({ itemUuid, x, y, sceneId }, userId) {

@@ -18,6 +18,8 @@ On supported Crow roll cards, **Apply Expertise** spends one use and raises the 
 
 The Ref can use **Undo Expertise** to refund one use (up to the configured maximum) and restore the previous tier. It does not undo damage already applied; check and correct that separately. Pending or uncertain updates must be reviewed before undo is available.
 
+If a card shows **Review uncertain action (Ref/GM)**, inspect the actor and correct any partial resource changes first. **Record Applied** means the intended result is now complete; **Record Cancelled** means its resource changes have been restored. Confirm that you checked the actor, and optionally add a review note. These buttons reconcile the card only: they never spend, refund, heal, or apply damage again. New expertise actions also retain their before/after tiers so reconciliation can restore the matching card state. Older uncertain expertise cards without that information must be restored manually, cancelled, and rolled again.
+
 Weapon qualities are shown as reference text. Resolve special effects, ammunition, reloads, thrown-weapon retrieval, extra actions, counterattacks, and positioning yourself. Adjust the damage amount in the allocation dialog if a quality or other effect changes it.
 
 ## Applying damage, armor, and wounds
@@ -54,9 +56,13 @@ Effect duration and any separate duration dice still need tracking at the table.
 
 Slot placement checks space, including multi-slot equipment. It doesn't check action costs or stop you moving gear at the wrong time. The backpack **DC** button rolls retrieval and reports success or failure; move the item into your hand yourself after a successful result.
 
+**Dump Backpack → Scatter on Map Floor** uses the Ref-coordinated item transfer flow. If scattering stops partway through, items already moved remain on the map and unmoved items remain in the backpack. Check both before retrying; a second click using the old item list is rejected after anything has moved. A connected Ref is required for map drops.
+
 A trait can grant extra belt slots once you fill in its **Extra belt slots** and **Slot restrictions** fields. The Crow gains those labelled slots automatically. The label doesn't filter what can go there, and automatic item placement doesn't interpret it. Check the item type yourself.
 
 Purse and ammunition counts are manual: an attack doesn't spend an arrow, and a purchase doesn't debit a purse. Usage dice are different: clicking a usage check rolls the current pool and removes dice showing 1 or 2. A depleted item remains in the inventory. See [Supply items](SUPPLIES.md) for the controls and refill behavior.
+
+Usage checks and sheet damage are coordinated by the active Ref (or locally when only one user is connected). If another action changes the usage pool or damage target first, the stale request is rejected. Reopen a stale damage dialog to review the current defenses. If a request times out, check the item or actor before trying again; a missing chat message does not mean the resource update failed.
 
 Greed stickers change the item's configured bonus and displayed value. Choose the appropriate bonus yourself; dropping or discovering an item doesn't assign it based on the hourglass. Selling it doesn't add gold or change a village's Prosperity progress.
 

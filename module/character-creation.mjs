@@ -1,3 +1,4 @@
+import { spanFor, validAnchor } from "./inventory.mjs";
 import { beltCapacity } from "./inventory.mjs";
 import { supplyPreset } from "./supplies.mjs";
 /** Pure creation rules. Game content is loaded from the user's generated packs. */
@@ -69,7 +70,9 @@ export function arrangeEquipment(items) {
     // The current inventory represents hands by slots, so leave cumbersome items stowed.
     if (prefix === "hand" && /cumbersome/i.test(item.system.traits ?? "")) return false;
     for (let start = 1; start <= limit - width + 1; start++) {
-      const slots = Array.from({ length: width }, (_, offset) => `${prefix}${start + offset}`);
+      const location = `${prefix}${start}`;
+      if (!validAnchor({ type: "crow", items }, location, width)) continue;
+      const slots = spanFor(location, width);
       if (slots.some(slot => used.has(slot))) continue;
       slots.forEach(slot => used.add(slot));
       item.system.location = slots[0];

@@ -173,8 +173,7 @@
                {{#if this.item}}data-item-id="{{this.item._id}}" draggable="true"{{/if}}>
 
             <div class="slot-header flexrow">
-              <span class="slot-dc">#{{this.slotNum}}</span>
-              <span class="slot-tag">{{this.label}}</span>
+              <span class="slot-dc">{{#if this.isMergedSpan}}{{this.spanStart}}–{{this.spanEnd}}{{else}}{{this.slotNum}}{{/if}}</span>
               {{#if this.isWounded}}
               <span class="slot-wound-badge" title="Slot is Wounded"><i class="fas fa-tint"></i> Wounded</span>
               {{/if}}
@@ -246,7 +245,7 @@
                 </div>
             {{else}}
             <div class="empty-slot-placeholder">
-              <span>Empty Slot {{this.slotNum}}</span>
+              <span>Empty</span>
             </div>
             {{/if}}
 

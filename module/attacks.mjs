@@ -1,6 +1,7 @@
 import { renderCircumstanceSelector } from "./roll-dialog.mjs";
 import { createRollState, rollFlags, renderRollState } from "./chat-state.mjs";
 import { rollPowerRoll } from "./power-roll.mjs";
+import { weaponDamage } from "./damage.mjs";
 
 /** Damage comes from the item text, never from a fallback label such as "Tier 2 Damage". */
 export function prepareWeaponAttack(actor, item, { tier, isCrit = false, isDoom = false }, charKey = "strength") {
@@ -10,9 +11,10 @@ export function prepareWeaponAttack(actor, item, { tier, isCrit = false, isDoom 
   if (isDoom || tier === 1) return { tierTitle, tierClass,
     damageDesc: isDoom ? "Disaster strikes!" : "No Damage", numericDamage: 0 };
   const rawDamage = item.system.weapon?.[tier === 3 ? "tier3Damage" : "tier2Damage"] || "";
+  const damage = weaponDamage(rawDamage, actor.system?.characteristics, charKey);
   return { tierTitle, tierClass,
-    damageDesc: actor.evaluateWeaponDamage(rawDamage, charKey) || (isCrit ? "Full Damage" : `Tier ${tier} Damage`),
-    numericDamage: actor.extractDamageNumber(rawDamage, charKey) };
+    damageDesc: rawDamage ? damage.display : (isCrit ? "Full Damage" : `Tier ${tier} Damage`),
+    numericDamage: damage.amount };
 }
 
 const escapeHTML = value => String(value ?? "").replace(/[&<>"']/g,
@@ -129,7 +131,7 @@ export async function rollStatBlockAttack(actor, attack, { circumstance = "stand
   const outcomes = Object.fromEntries([1, 2, 3].map(t => {
     const text = t === 3 ? attack.system.tier3Damage : t === 2 ? attack.system.tier2Damage : "Miss";
     return [t, { tierTitle: `Tier ${t}`, tierClass: t === 3 ? "crit" : t === 2 ? "success" : "failure",
-      damageDesc: text, numericDamage: t >= 2 ? actor.extractDamageNumber(text) : 0 }];
+      damageDesc: text, numericDamage: t >= 2 ? weaponDamage(text, actor.system?.characteristics).amount : 0 }];
   }));
   const state = createRollState(actor, { kind: "attack", itemUuid: attack.uuid, expertiseAllowed: false,
     title: `${actor.name} uses ${attack.name}`, tier, isDoom, total: roll.total, formula: roll.result, outcomes,

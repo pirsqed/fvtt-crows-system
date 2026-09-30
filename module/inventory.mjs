@@ -86,3 +86,53 @@ export function occupiedBeltEnd(items) {
     return match ? Math.max(end, Number(match[1]) + Math.max(1, parseInt(item.system.slots, 10) || 1) - 1) : end;
   }, 0);
 }
+
+export const MAGIC_SLOTS = ["head", "neck", "waist", "gloves", "ring", "boots"];
+
+export function spanFor(location, count = 1) {
+    count = Math.max(1, count);
+    const m = location?.match(/^(backpack|slot|belt)(\d+)$/);
+    if (m) return Array.from({ length: count }, (_, i) => `${m[1]}${Number(m[2]) + i}`);
+    if (location === "hand1" && count >= 2) return ["hand1", "hand2"];
+    return [location];
+  }
+
+export function occupancy(actor, excludeId = null) {
+    const map = {};
+    for (const item of actor.items) {
+      if (item.type !== "equipment" || item.id === excludeId) continue;
+      const slots = item.getOccupiedSlots ? item.getOccupiedSlots() : spanFor(item.system.location, item.system.slots);
+      for (const s of slots) if (s && !s.startsWith("ground") && s !== "stash") map[s] = item;
+    }
+    return map;
+  }
+
+export function maxBackpack(actor) {
+    return actor.type === "crow" ? 10 : Math.max(0, Number(actor.system?.slots) || 0);
+  }
+
+export function fits(actor, location, count = 1, excludeId = null) {
+  if (!validAnchor(actor, location, count)) return false;
+  if (location === "ground" || location === "stash") return true;
+  const occupied = occupancy(actor, excludeId);
+  return spanFor(location, count).every(slot => !occupied[slot]);
+}
+
+export function findFreeSlot(actor, count = 1, excludeId = null) {
+    const bp = Array.from({ length: maxBackpack(actor) }, (_, i) => `backpack${i + 1}`);
+    const order = actor.type === "crow" ? [...Array.from({ length: beltCapacity(actor) }, (_, i) => `belt${i + 1}`), "hand1", "hand2", ...bp] : bp;
+    for (const loc of order) if (fits(actor, loc, count, excludeId)) return loc;
+    return actor.type === "crow" ? null : "ground";
+  }
+
+/** Only recognized anchors are valid; the same bounds apply to fit checks and placement. */
+export function validAnchor(actor, location, count = 1) {
+  if (!Number.isSafeInteger(count) || count < 1 || !location) return false;
+  if (location === "ground" || location === "stash") return actor.type !== "crow";
+  if (MAGIC_SLOTS.includes(location)) return count === 1;
+  if (/^hand[12]$/.test(location)) return actor.type === "crow" && (location === "hand1" || count === 1);
+  const match = /^(backpack|slot|belt)([1-9]\d*)$/.exec(location);
+  if (!match) return false;
+  const limit = match[1] === "belt" ? beltCapacity(actor) : maxBackpack(actor);
+  return Number(match[2]) + count - 1 <= limit;
+}

@@ -200,3 +200,53 @@ test("existing saved rolls receive the undo control when viewed by the GM", asyn
   assert.equal(appended.length, 1);
   assert.match(appended[0], /Undo Expertise \(Ref\/GM\)/);
 });
+
+test("Ref can reconcile a spent expertise after an uncertain failure without spending it twice", async () => {
+  const { actor, message } = fixture();
+  actor.spendExpertise = async () => { actor.system.expertises.athletics.value--; throw new Error("reply lost"); };
+  await assert.rejects(CrowsChatActions.execute({ messageId: message.id, action: "expertise", key: "athletics" }, "player"), /reply lost/);
+  const request = { messageId: message.id, action: "review", key: "expertise", revision: message.state.revision,
+    resolution: "applied", checked: true, note: "Verified the use was spent." };
+  await assert.rejects(CrowsChatActions.execute(request, "player"), /Only the Ref/);
+  await assert.rejects(CrowsChatActions.execute({ ...request, checked: false }, "gm"), /Check and correct/);
+  await CrowsChatActions.execute(request, "gm");
+  assert.equal(actor.system.expertises.athletics.value, 0);
+  assert.equal(message.state.tier, 2);
+  assert.equal(message.state.expertise.key, "athletics");
+  assert.equal(message.state.actions.expertise.status, "applied");
+  assert.equal(message.state.reviews.length, 1);
+  await assert.rejects(CrowsChatActions.execute(request, "gm"), /roll changed/);
+});
+
+test("cancelling uncertain damage re-enables it without touching actor resources", async () => {
+  const { actor, message } = fixture();
+  message.state.tier = 2;
+  const key = "damage:Scene.old.Token.target";
+  message.state.actions[key] = { status: "pending", damageTotal: 4 };
+  await CrowsChatActions.execute({ messageId: message.id, action: "review", key, revision: 0,
+    resolution: "cancelled", checked: true, note: '<img src=x onerror="bad()">' }, "gm");
+  assert.equal(actor.system.stamina.value, 10);
+  assert.equal(message.state.actions[key].status, "cancelled");
+  assert.match(message.content, /Apply 2 Damage/);
+  assert.doesNotMatch(message.content, /<img/);
+  assert.equal(message.state.reviews[0].action.status, "pending");
+  await CrowsChatActions.execute({ messageId: message.id, action: "damage", targetUuid: "Scene.old.Token.target",
+    snapshot: damageSnapshot(actor), revision: message.state.revision, allocation: { damageTotal: 2 } }, "player");
+  assert.equal(actor.system.stamina.value, 8);
+});
+
+test("Ref reconciliation can finish an uncertain undo or restore its prior card state", async () => {
+  for (const resolution of ["applied", "cancelled"]) {
+    const { actor, message } = fixture();
+    await CrowsChatActions.execute({ messageId: message.id, action: "expertise", key: "athletics" }, "player");
+    actor.update = async () => { throw new Error("uncertain refund"); };
+    await assert.rejects(CrowsChatActions.execute({ messageId: message.id, action: "undo-expertise", revision: 1 }, "gm"), /uncertain refund/);
+    actor.system.expertises.athletics.value = resolution === "applied" ? 1 : 0;
+    await CrowsChatActions.execute({ messageId: message.id, action: "review", key: "undo-expertise", revision: 1,
+      resolution, checked: true }, "gm");
+    assert.equal(message.state.tier, resolution === "applied" ? 1 : 2);
+    assert.equal(Boolean(message.state.expertise), resolution !== "applied");
+    assert.equal(actor.system.expertises.athletics.value, resolution === "applied" ? 1 : 0);
+    assert.equal(message.state.actions["undo-expertise"].status, "cancelled");
+  }
+});

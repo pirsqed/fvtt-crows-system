@@ -22,12 +22,12 @@ test("damage preparation handles hits, misses, doom and absent weapon text", () 
   assert.equal(upgrade.numericDamage, 0);
 });
 
-test("selected characteristic is passed to both damage evaluators", () => {
-  const calls = [];
-  const actor = { evaluateWeaponDamage: (text, key) => { calls.push([text, key]); return text; },
-    extractDamageNumber: (text, key) => { calls.push([text, key]); return 5; } };
-  prepareWeaponAttack(actor, weapon, { tier: 3 }, "agility");
-  assert.deepEqual(calls, [["5 dam", "agility"], ["5 dam", "agility"]]);
+test("selected characteristic agrees in damage display and application", () => {
+  const actor = makeActor("crow");
+  const flexible = { system: { weapon: { tier3Damage: "4 + A or S" } } };
+  const outcome = prepareWeaponAttack(actor, flexible, { tier: 3 }, "agility");
+  assert.equal(outcome.numericDamage, 5);
+  assert.match(outcome.damageDesc, /<strong>5 Damage<\/strong>/);
 });
 
 test("damage buttons retain target token identities, escape names and handle no target", () => {

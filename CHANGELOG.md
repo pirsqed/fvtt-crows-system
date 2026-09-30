@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Route backpack scattering through ordinary coordinated transfers, retaining unmoved items if scattering stops.
+- Coordinate usage-dice checks and sheet damage with chat actions; reject stale resource requests and overlapping local usage clicks.
+- Add Ref reconciliation controls for pending or uncertain chat actions, including an audit note and explicit applied/cancelled outcomes. Reconciliation never reapplies resource changes.
+- Share damage calculation, weapon damage parsing, slot validation, expertise definitions, and inventory controls. Separate the damage dialog and Miasma behavior from actor documents and sheets.
+- Reject unknown inventory anchors and avoid interpreting numbers embedded in non-damage prose as damage. Preserve reference text for manual resolution.
+- Refresh affected sheets once per document-hook burst, and run regression tests before packaging tagged releases.
+
 ## 0.2.2 — prepared
 
 - Import Ref book RollTables with Crows PDF Importer v0.1.1, including reviewed updates and preservation of local edits.

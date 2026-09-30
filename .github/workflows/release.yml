@@ -17,6 +17,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run system regression tests
+        run: node --test tests/*.test.mjs
+
+      - name: Check release packaging
+        run: python3 -m unittest discover -s tests -p test_release_package.py
+
       - name: Check that the tag matches system.json
         run: |
           TAG="${GITHUB_REF_NAME#v}"

@@ -1,10 +1,13 @@
-import { CHAT_SCOPE, getRollState, renderRollState, renderUndoExpertise, resolveActor, damageSnapshot, escapeHTML } from "./chat-state.mjs";
+import { rollMiasmaEffect } from "./miasma.mjs";
+import { CHAT_SCOPE, getRollState, renderRollState, renderUndoExpertise, renderReviewActions, resolveActor, damageSnapshot, escapeHTML } from "./chat-state.mjs";
+import { rollUsageDice } from "./usage-dice.mjs";
+import { enqueueAction } from "./action-queue.mjs";
+import { allocationForActor } from "./damage.mjs";
 
 const SOCKET = `system.${CHAT_SCOPE}`;
 
 export class CrowsChatActions {
   static pending = new Map();
-  static queue = Promise.resolve();
 
   static activate(expertises = []) {
     this.expertiseLabels = Object.fromEntries(expertises.map(exp => [exp.key, exp.label]));
@@ -48,8 +51,10 @@ export class CrowsChatActions {
   }
 
   static execute(request, userId) {
-    const pending = this.queue.then(() => this.perform(request, userId));
-    this.queue = pending.catch(() => {});
+    const pending = enqueueAction(() => {
+      if (game.users.activeGM && game.users.activeGM.id !== game.user.id) throw new Error("The active Ref changed. Check the result before retrying.");
+      return this.perform(request, userId);
+    });
     return pending;
   }
 
@@ -58,6 +63,20 @@ export class CrowsChatActions {
   }
 
   static async perform(request, userId) {
+    const requester = game.users.get(userId);
+    if (["usage-dice", "allocate-damage"].includes(request.action)) {
+      const document = await fromUuid(request.itemUuid ?? request.actorUuid);
+      const actor = request.action === "usage-dice" ? document?.parent : document;
+      if (!requester || !actor || !(requester.isGM || actor.testUserPermission(requester, "OWNER")))
+        throw new Error("You do not have permission to change this actor.");
+      if (request.action === "usage-dice") {
+        const current = document.system.consumable?.currentUD ?? document.system.consumable?.maxUD ?? 0;
+        if (current !== request.expected) throw new Error("The usage pool changed. Check the item before rolling again.");
+        return rollUsageDice(actor, document);
+      }
+      if (request.snapshot !== damageSnapshot(actor)) throw new Error("The target changed. Reopen the damage dialog.");
+      return actor.applyAllocatedDamage(allocationForActor(actor, request.allocation));
+    }
     const message = game.messages.get(request.messageId);
     const user = game.users.get(userId);
     const current = message && getRollState(message);
@@ -65,6 +84,29 @@ export class CrowsChatActions {
     if (message.whisper?.length && !user.isGM && message.author?.id !== userId
       && !message.whisper.includes(userId)) throw new Error("You cannot use this private roll.");
     const state = foundry.utils.deepClone(current);
+    if (request.action === "review") {
+      if (!user.isGM) throw new Error("Only the Ref/GM can reconcile an action.");
+      if (request.revision !== state.revision) throw new Error("This roll changed. Reopen the review.");
+      const action = state.actions[request.key];
+      if (!action || !["pending", "needs review"].includes(action.status)) throw new Error("This action no longer needs review.");
+      if (request.checked !== true || !["applied", "cancelled"].includes(request.resolution)) throw new Error("Check and correct the actor before resolving this action.");
+      const transition = action.transition?.[request.resolution === "applied" ? "after" : "before"];
+      if (!transition && ["expertise", "undo-expertise"].includes(request.key) && request.resolution === "applied")
+        throw new Error("This older action has no saved tier transition. Restore its resources, cancel it, and make a new roll.");
+      if (transition) {
+        state.tier = transition.tier;
+        state.expertise = transition.expertise;
+        state.expertiseUndone = transition.expertiseUndone;
+        if (request.key === "undo-expertise") state.actions.expertise.status = transition.expertiseStatus;
+      }
+      state.reviews ??= [];
+      state.reviews.push({ key: request.key, resolution: request.resolution, userId,
+        note: String(request.note ?? "").slice(0, 1000), action: foundry.utils.deepClone(action) });
+      action.status = request.key === "undo-expertise" && request.resolution === "applied" ? "cancelled" : request.resolution;
+      state.revision++;
+      await this.save(message, state);
+      return { reconciled: true };
+    }
     const actor = await resolveActor(state.actorUuid);
     const owns = document => document && (user.isGM || document.testUserPermission(user, "OWNER"));
     let key, apply;
@@ -115,7 +157,8 @@ export class CrowsChatActions {
         throw new Error("Enter a positive whole damage amount.");
       if (request.snapshot !== damageSnapshot(target)) throw new Error("The target changed. Reopen the damage dialog.");
       key = `damage:${request.targetUuid}`;
-      apply = () => target.applyAllocatedDamage(request.allocation);
+      const allocation = allocationForActor(target, request.allocation);
+      apply = () => target.applyAllocatedDamage(allocation);
     } else if (["gain", "clear"].includes(request.action)) {
       if (!owns(actor) || state.kind !== "miasma" || (request.action === "gain" ? state.tier !== 1 : state.tier !== 3))
         throw new Error("This Miasma action is no longer available.");
@@ -125,7 +168,16 @@ export class CrowsChatActions {
     if (state.actions[key] && state.actions[key].status !== "cancelled")
       throw new Error("This action has already been applied or needs review.");
     // Persist the claim first. A disconnect or partial write must not silently allow a second application.
+    const before = { tier: state.tier, expertise: state.expertise ?? null,
+      expertiseUndone: state.expertiseUndone ?? false, expertiseStatus: state.actions.expertise?.status };
+    let after;
+    if (request.action === "expertise") after = { ...before, tier: state.tier + 1,
+      expertise: { key: request.key, label: this.expertiseLabels?.[request.key] ?? request.key,
+        remaining: Number(actor.system.expertises[request.key].value) - 1 } };
+    if (request.action === "undo-expertise") after = { ...before, tier: state.tier - 1, expertise: null,
+      expertiseUndone: true, expertiseStatus: "cancelled" };
     state.actions[key] = { status: "pending", userId,
+      ...(after ? { transition: { before, after } } : {}),
       ...(request.action === "damage" ? { damageTotal: request.allocation.damageTotal } : {}) };
     await this.save(message, state);
     try {
@@ -147,6 +199,11 @@ export class CrowsChatActions {
       const control = renderUndoExpertise(getRollState(message));
       if (control) html.find(".crows-chat-actions").append(control);
     }
+    const review = renderReviewActions(getRollState(message));
+    if (review) {
+      if (!game.user.isGM) html.find('[data-action="review"]').remove();
+      else if (!html.find('[data-action="review"]').length) html.find(".crows-chat-actions").append(review);
+    }
     html.find(".crows-state-action").click(async event => {
       event.preventDefault();
       const button = event.currentTarget;
@@ -160,6 +217,27 @@ export class CrowsChatActions {
 
   static async click(message, data) {
     const state = getRollState(message);
+    if (data.action === "review") {
+      if (!game.user.isGM) throw new Error("Only the Ref/GM can reconcile an action.");
+      const action = state.actions[data.key];
+      const resolve = resolution => async html => {
+        try { await this.request({ messageId: message.id, action: "review", key: data.key,
+          revision: state.revision, resolution, checked: html.find('[name="checked"]').is(':checked'),
+          note: html.find('[name="note"]').val() }); }
+        catch (error) { ui.notifications.warn(error.message); }
+      };
+      return new Dialog({ title: "Review uncertain action",
+        content: `<form><p><strong>${escapeHTML(data.key)}</strong> — ${escapeHTML(action?.status)}</p>
+          ${action?.damageTotal != null ? `<p>Requested damage: ${action.damageTotal}</p>` : ""}
+          ${action?.transition ? `<p>Intended tier: ${action.transition.before.tier} → ${action.transition.after.tier}. Expertise: ${escapeHTML(action.transition.after.expertise?.label ?? action.transition.before.expertise?.label ?? "none")}.</p>` : ""}
+          <p>Inspect the actor and correct any partial changes first. These controls update this card only; they do not spend, refund, heal, or apply damage.</p>
+          <p>Choose Applied if the intended result is now complete, or Cancelled if its resource changes have been restored.</p>
+          <label><input type="checkbox" name="checked"> I checked and corrected the actor.</label>
+          <p><label>Review note <input type="text" name="note" maxlength="1000"></label></p></form>`,
+        buttons: { applied: { label: "Record Applied", callback: resolve("applied") },
+          cancelled: { label: "Record Cancelled", callback: resolve("cancelled") }, close: { label: "Close" } }, default: "close"
+      }).render(true);
+    }
     const actor = await resolveActor(state.actorUuid);
     if (data.action === "expertise") {
       if (!actor?.isOwner) throw new Error("You do not own this roll's actor.");
@@ -198,6 +276,6 @@ export class CrowsChatActions {
       }) });
     }
     await this.request({ messageId: message.id, action: data.action, revision: state.revision });
-    if (data.action === "gain") await actor.sheet._onRollMiasmaEffect();
+    if (data.action === "gain") await rollMiasmaEffect(actor);
   }
 }

@@ -112,3 +112,16 @@ test("a queued refresh does not reopen a window closed during rendering", async 
   assert.equal(sheet.draws.length, 1);
   assert.equal(sheet.rendered, false);
 });
+
+test("related document bursts refresh once and leave unrelated actors and sheets untouched", async () => {
+  const actor = { type: "crow", uuid: "Actor.one", system: { testValue: true }, prepareDerivedData() { assert.fail("Foundry owns data preparation"); } };
+  const other = { ...actor, uuid: "Actor.two" };
+  game.actors = [actor, other];
+  const sheet = new Sheet(actor), unrelated = new Sheet(other);
+  ui.windows = { sheet, unrelated };
+  for (let i = 0; i < 5; i++) remoteUpdate("updateItem", { parent: actor });
+  await CrowsLoot._refreshTask;
+  await sheet.pending;
+  assert.equal(sheet.draws.length, 1);
+  assert.equal(unrelated.draws.length, 0);
+});
