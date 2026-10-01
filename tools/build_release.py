@@ -6,7 +6,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 SYSTEM = Path(__file__).resolve().parent.parent
 PDF_NOTE = "pdfs/ADD_PDFS_HERE.txt"
 TOP_LEVEL = {"system.json", "crows.mjs", "README.md", "MANUAL-PLAY.md",
-             "SUPPLIES.md", "CHANGELOG.md", "LICENSE", PDF_NOTE}
+             "SUPPLIES.md", "TRAVEL.md", "CHANGELOG.md", "LICENSE", PDF_NOTE}
 
 
 def include_in_release(path):
@@ -14,6 +14,7 @@ def include_in_release(path):
     return (path in TOP_LEVEL
             or path.startswith("module/") and path.endswith(".mjs")
             or path.startswith("templates/") and path.endswith(".html")
+            or path.startswith("lang/") and path.endswith(".json")
             or path.startswith("styles/") and path.endswith(".css"))
 
 

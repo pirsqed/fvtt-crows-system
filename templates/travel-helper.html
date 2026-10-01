@@ -58,10 +58,12 @@
       </section>
       {{#if hasDay}}{{#if completed}}
       <section class="travel-journal-section">
+        {{#if autoJournal}}
         <h2>Journal entry preview</h2>
-        <p class="travel-footnote">Saved as a new day in <strong>Travel Journal</strong>, readable by {{journalAudience}}. Both buttons below save this entry before ending the day. Cancel day does not save an entry.</p>
+        <p class="travel-footnote">Saved as a new day in <strong>{{journalTitle}}</strong>. All players can read it; {{journalAudience}} can edit it. Both buttons below save this entry before ending the day. Cancel day does not save an entry.</p>
         {{#if isGM}}<label for="travel-journal-notes">Additional notes</label><textarea id="travel-journal-notes" data-journal-notes rows="3" maxlength="8000" placeholder="Places visited, discoveries, decisions, and anything else worth remembering…">{{journalNotes}}</textarea><p class="travel-footnote">Notes are saved with the journal entry when you finish or start the next day.</p>{{/if}}
         <div class="travel-journal-preview">{{{journalPreview}}}</div>
+        {{else}}<p class="travel-footnote">Automatic travel journals are off. Finishing travel or starting the next day will not save a journal entry. Existing journals are kept.</p>{{/if}}
       </section>
       {{/if}}{{/if}}
       {{#if hasDay}}{{#if isRolesStep}}
@@ -73,6 +75,7 @@
           <div class="travel-member-row">{{#if canOpen}}<button type="button" class="travel-name" data-travel-actor="{{id}}">{{name}}{{#if isDead}} (Dead){{/if}}</button>{{else}}<strong>{{name}}</strong>{{/if}}
             {{#if canAssign}}<select data-travel-role="{{id}}" aria-label="Role for {{name}}">{{#each roles}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>{{/each}}</select>{{else}}<span>{{role}}</span>{{/if}}
           </div>
+          <p class="travel-modifier-label">Modifiers:</p>
           <div class="travel-role-adjustments">
             {{#each roleAdjustments}}<div class="travel-role-adjustment"><span>{{label}}</span>
               {{#if ../canAdjustRole}}<button type="button" data-role-adjust="{{field}}" data-member="{{actorId}}" data-delta="-1" aria-label="Decrease {{name}} {{label}}">−</button>{{/if}}
@@ -123,13 +126,27 @@
           <div class="travel-roster">{{#each otherCandidates}}<label class="travel-candidate {{#if selected}}selected{{/if}}"><input type="checkbox" data-travel-member="{{id}}" {{#if selected}}checked{{/if}}><span>{{name}}</span></label>{{else}}<p class="travel-muted">No other living actors available.</p>{{/each}}</div>
         </details>
       </details>{{/if}}
+        {{#unless hasDay}}
+        {{#if autoJournal}}
+        <section class="travel-journey-details">
+          <h2>Journey journal</h2>
+          <p class="travel-footnote">Give this trip a title, starting location, and purpose. These details become its opening journal page when the first day is saved. Players can add to the journal afterward.</p>
+          {{#each journeyFields}}
+          <label>{{label}}
+            {{#if ../isGM}}{{#if multiline}}<textarea data-journey="{{field}}" rows="2" maxlength="8000">{{value}}</textarea>{{else}}<input type="text" data-journey="{{field}}" value="{{value}}" maxlength="200">{{/if}}
+            {{else}}<span class="travel-prewrap">{{value}}</span>{{/if}}
+          </label>
+          {{/each}}
+        </section>
+        {{/if}}
+        {{/unless}}
     </div>
     <footer class="travel-footer">{{#if isGM}}{{#if hasDay}}
       <button type="button" class="travel-cancel" data-travel-action="cancel" title="Clear this day’s choices and records. Keep the party and lost status. Sheets and chat are unchanged.">Cancel day</button>
       {{#if previousStep}}<button type="button" data-travel-action="step" data-step="{{previousStep.id}}">Back</button>{{/if}}
       {{#if nextStep}}<button type="button" class="travel-primary" data-travel-action="step" data-step="{{nextStep.id}}" {{#unless state.pace}}disabled{{/unless}}>Continue: {{nextStep.label}}</button>{{/if}}
       {{#if completed}}<button type="button" data-travel-action="finish">Finish Travel</button><button type="button" class="travel-primary" data-travel-action="start">Start day {{nextDay}}</button>{{/if}}
-      {{else}}<button type="button" class="travel-primary" data-travel-action="start">Start day {{nextDay}}</button>{{/if}}{{else}}<span>The Ref advances the day. Changes save automatically.</span>{{/if}}
+      {{else}}<button type="button" class="travel-cancel" data-travel-action="cancel-travel" title="End this journey and close the helper. Saved journal entries are kept.">Cancel travel</button><button type="button" class="travel-primary" data-travel-action="start">Start day {{nextDay}}</button>{{/if}}{{else}}<span>The Ref advances the day. Changes save automatically.</span>{{/if}}
     </footer>
   </fieldset>
 </form>

@@ -1,49 +1,65 @@
 name: Release
 
-# Tag a commit as vX.Y.Z (matching the version in system.json) to publish a release
-# with the system zip and manifest attached. Keep the manifest's download URL
-# aligned with the release tag.
+# Both entry points package an existing version tag and create a reviewable draft.
 on:
   push:
-    tags:
-      - "v*"
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to package (vX.Y.Z)
+        required: true
+        type: string
+      prerelease:
+        description: Mark the draft as a prerelease
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
-
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - name: Run system regression tests
-        run: node --test tests/*.test.mjs
-
-      - name: Check release packaging
-        run: python3 -m unittest discover -s tests -p test_release_package.py
-
-      - name: Check that the tag matches system.json
-        run: |
-          TAG="${GITHUB_REF_NAME#v}"
-          VERSION=$(python3 -c "import json; print(json.load(open('system.json'))['version'])")
-          if [ "$TAG" != "$VERSION" ]; then
-            echo "Tag v$TAG does not match system.json version $VERSION" >&2
-            exit 1
-          fi
-
-      - name: Build the system zip
-        run: python3 tools/build_release.py
-
-      - name: Publish release
-        uses: softprops/action-gh-release@v2
+      - uses: actions/setup-python@v5
         with:
-          files: |
-            fvtt-crows-system.zip
-            system.json
-          generate_release_notes: true
-          prerelease: ${{ github.ref_name == 'v0.2.1' }}
+          python-version: '3.12'
+      - name: Verify existing tag
+        run: |
+          git show-ref --verify "refs/tags/$RELEASE_TAG"
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+      - name: Fixture-free regression tests
+        run: node --test tests/*.test.mjs
+      - name: Release tooling tests
+        run: |
+          python -m unittest discover -s tests -p test_release_package.py
+          python -m unittest discover -s tests -p test_prepare_release.py
+      - name: Build release assets
+        run: |
+          mkdir -p dist
+          python tools/build_release.py --output dist/fvtt-crows-system.zip
+          cp system.json dist/system.json
+      - name: Validate assets and prepare notes and checksums
+        run: python tools/prepare_release.py --output dist --manifest system.json --repository "$GITHUB_REPOSITORY" --tag "$RELEASE_TAG"
+      - name: Create draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRERELEASE: ${{ inputs.prerelease || false }}
+        run: |
+          flags=()
+          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); fi
+          gh release create "$RELEASE_TAG" dist/fvtt-crows-system.zip dist/system.json dist/SHA256SUMS.txt --repo "$GITHUB_REPOSITORY" --verify-tag --draft --title "$RELEASE_TAG" --notes-file dist/RELEASE-NOTES.md "${flags[@]}"

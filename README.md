@@ -36,6 +36,7 @@ Create a world using **Crows** and join as the GM. The **Start Here** guide open
 - [Playing the playtest: automated and manual steps](MANUAL-PLAY.md)
 - [Purses, ammunition, and usage dice](SUPPLIES.md)
 - [Villages and shared inventory](#villages)
+- [Travel helper and journey journals](TRAVEL.md)
 
 ## What Foundry handles
 
@@ -47,7 +48,7 @@ The system helps with rolls, item movement, and resource tracking. It doesn't en
 | Inventory          | Places items in slots, checks space, moves equipment between owned inventories, and supports map pickups.               | When moving an item is allowed, retrieval decisions, and item-specific restrictions. Most item qualities (like Cumbersome) are not yet automated. You'll need to swap that item from 1 to 2 slots depending on where it's at :)                            |
 | Traits | Stores descriptions and adds labelled belt slots from configured trait fields. | Configuring slot grants; checking their item restrictions; purchases, prerequisites, XP spending, and other trait effects. |
 | Rolls and attacks  | Rolls 2d10, resolves the chosen circumstance, shows tiers/crit/doom, and offers damage or expertise options in chat.    | Choosing circumstances and relevant expertise; weapon qualities, reach, targets, conditions, and special effects.                                                                                                                                          |
-| Damage and wounds  | Applies the allocation you confirm to AD, Stamina, and supported wound slots; calculates wound-related speed penalties. | Reviewing the allocation, special damage rules, healing, and moving wounds. Since wounds just fill from the first slot, you'll need to go back and put them where you want them after damage is dealt! (This is on the short list of things to add/fix :)) |
+| Damage and wounds  | Applies the allocation you confirm to AD, Stamina, and supported wound slots; calculates wound-related speed penalties. | Reviewing the allocation, special damage rules, healing, and moving wounds. New wounds fill from the highest available slot downward, skipping existing wounds. Move them manually when needed. |
 | Spellcasting | Offers Cast for books in hand; rolls Mind; updates tier effects and reminders after expertise; blocks depleted books. The separate UD button rolls and saves usage losses. | Choosing when to check usage; spell effects, chaos/backlash rolls, duration, and trait exceptions. |
 | Dungeon Turns | Runs a shared timer; End Turn rolls an encounter check and advances the counter. | Resolving encounters, clicking due UD checks, removing conditions, and managing lighting. |
 | Villages           | Keeps records and shared loot, displays sale percentage, rolls events, and copies custom crypt boons.                   | Costs, services, time, event results, boon eligibility, and boon effects.                                                                                                                                                                                  |
@@ -70,7 +71,7 @@ This link follows the latest published stable release. Enable the module in your
 
 Install **[Crows PDF Importer](https://github.com/pirsqed/fvtt-crows-pdf-importer)** alongside the system and enable it under **Settings → Manage Modules**. Reload the world. Open **Settings → Configure Settings → Crows → Import Playtest Content**, or use **Open PDF Importer** in **Start Here**.
 
-For manual installation, extract the companion module release ZIP into `Data/modules/fvtt-crows-pdf-importer` on the Foundry host, then restart Foundry. The host needs both the v0.2.2 system and importer v0.1.1. If the module is missing, disabled, or unavailable, **Import Playtest Content** explains what to check.
+For manual installation, extract the companion module release ZIP into `Data/modules/fvtt-crows-pdf-importer` on the Foundry host, then restart Foundry. The host needs the v0.2.3 system and importer v0.1.2 for structured NPC speeds. If the module is missing, disabled, or unavailable, **Import Playtest Content** explains what to check.
 
 ### 2. Choose and extract the PDFs
 

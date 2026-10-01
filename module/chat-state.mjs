@@ -13,7 +13,7 @@ export function formatDamage(value) {
 
 export function createRollState(actor, data) {
   return { version: 1, actorUuid: actor.uuid, actorName: actor.name,
-    expertiseAllowed: actor.type === "crow", revision: 0, actions: {},
+    expertiseAllowed: actor.type === "crow" || (actor.type === "monster" && !!actor.system?.customExpertises?.length), revision: 0, actions: {},
     targets: Array.from(game.user.targets ?? []).filter(t => t.actor).map(t => ({
       uuid: t.document?.uuid ?? t.uuid, name: t.name
     })), ...data };

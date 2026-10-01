@@ -1,7 +1,52 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { CrowsChatActions } from "../module/chat-actions.mjs";
-import { CHAT_SCOPE, damageSnapshot, renderRollState, resolveActor } from "../module/chat-state.mjs";
+import { CHAT_SCOPE, createRollState, damageSnapshot, renderRollState, resolveActor } from "../module/chat-state.mjs";
+
+function npcFixture() {
+  const result = fixture();
+  result.actor.type = "monster";
+  result.actor.system.customExpertises = [
+    { id: "custom", name: "Keen <Senses>", value: 1, max: 2, notes: "Custom use" },
+    { id: "other", name: "Athletics", value: 2, max: 2, notes: "" }
+  ];
+  result.actor.update = async function(data) { this.system.customExpertises = data["system.customExpertises"]; };
+  return result;
+}
+
+test("NPC chat spends a stable-ID pool once and GM undo refunds it after a rename", async () => {
+  const { actor, message } = npcFixture();
+  assert.equal(createRollState(actor, {}).expertiseAllowed, true);
+  const request = { messageId: message.id, action: "expertise", key: "custom" };
+  const results = await Promise.allSettled([CrowsChatActions.execute(request, "player"), CrowsChatActions.execute(request, "player")]);
+  assert.equal(results.filter(result => result.status === "fulfilled").length, 1);
+  assert.equal(actor.system.customExpertises[0].value, 0);
+  assert.equal(actor.system.customExpertises[1].value, 2);
+  assert.equal(message.state.tier, 2);
+  assert.match(message.content, /Keen &lt;Senses&gt; applied/);
+  assert.equal(message.state.actions.expertise.transition.after.expertise.label, "Keen <Senses>");
+  actor.system.customExpertises.reverse();
+  actor.system.customExpertises.find(entry => entry.id === "custom").name = "Renamed";
+  await CrowsChatActions.execute({ messageId: message.id, action: "undo-expertise", revision: 1 }, "gm");
+  assert.equal(actor.system.customExpertises.find(entry => entry.id === "custom").value, 1);
+  assert.equal(message.state.tier, 1);
+});
+
+test("NPC expertise rejects unowned, deleted, exhausted, doom, and resolved rolls", async () => {
+  const { actor, message } = npcFixture();
+  const request = { messageId: message.id, action: "expertise", key: "custom" };
+  await assert.rejects(CrowsChatActions.execute(request, "other"), /own/);
+  await assert.rejects(CrowsChatActions.execute({ ...request, key: "deleted" }, "player"), /No expertise/);
+  actor.system.customExpertises[0].value = 0;
+  await assert.rejects(CrowsChatActions.execute(request, "player"), /No expertise/);
+  actor.system.customExpertises[0].value = 1;
+  message.state.isDoom = true;
+  await assert.rejects(CrowsChatActions.execute(request, "player"), /no longer/);
+  message.state.isDoom = false;
+  message.state.actions.damage = { status: "applied" };
+  await assert.rejects(CrowsChatActions.execute(request, "player"), /no longer/);
+  assert.equal(actor.system.customExpertises[0].value, 1);
+});
 
 function fixture() {
   const player = { id: "player", isGM: false };

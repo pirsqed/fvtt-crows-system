@@ -140,6 +140,14 @@ export class MonsterDataModel extends foundry.abstract.TypeDataModel {
         max: new NumberField({ required: true, integer: true, min: 0, initial: 10 })
       }),
       speed: new StringField({ required: true, initial: "5" }),
+      movement: new SchemaField({
+        base: new NumberField({ required: true, integer: true, min: 0, initial: 5 }),
+        modes: new ArrayField(new SchemaField({
+          name: new StringField({ required: true, blank: false }),
+          value: new NumberField({ required: true, integer: true, min: 0, initial: 0 })
+        }), { initial: [] }),
+        notes: new StringField({ required: true, blank: true, initial: "" })
+      }, { nullable: true, initial: null }),
       characteristics: new SchemaField({
         agility: new NumberField({ required: true, integer: true, initial: 0 }),
         mind: new NumberField({ required: true, integer: true, initial: 0 }),

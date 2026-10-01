@@ -4,7 +4,8 @@ import { withPersistentScroll } from "./persistent-scroll.mjs";
 
 export class CrowsItemSheet extends withPersistentScroll(ItemSheet) {
   get template() {
-    const type = this.item.type === 'equipment' ? 'item' : this.item.type;
+    const type = this.item.type === 'trait' && this.item.parent?.type === 'monster'
+      ? 'feature' : this.item.type === 'equipment' ? 'item' : this.item.type;
     return `systems/fvtt-crows-system/templates/${type}-sheet.html`;
   }
 

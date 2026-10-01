@@ -32,6 +32,7 @@ function setup({ allowed = true, header = true } = {}) {
   const root = new Element();
   if (header) {
     const heading = new Element(); heading.className = "directory-header"; root.append(heading);
+    const footer = new Element(); footer.className = "directory-footer"; root.append(footer);
     const nativeActions = new Element(); nativeActions.className = "header-actions"; heading.append(nativeActions);
   }
   return root;
@@ -43,12 +44,12 @@ test("trusted player uses the same permission check as Foundry Actor creation", 
   addCharacterCreatorButton({}, root);
   const button = root.querySelector(".crows-create-crow");
   assert.ok(button);
-  assert.equal(button.parent.parent.className, "directory-header");
+  assert.equal(button.parent.parent.className, "directory-footer");
   assert.equal(root.querySelector(".header-actions").children.length, 0);
   button.click(); assert.equal(opened, 1);
 });
 
-test("V1, V2, missing headers, and repeated directory hooks produce one button", () => {
+test("V1, V2, missing footers, and repeated directory hooks produce one button", () => {
   for (const header of [true, false]) {
     const root = setup({ header });
     addCharacterCreatorButton({}, [root]);
@@ -56,7 +57,7 @@ test("V1, V2, missing headers, and repeated directory hooks produce one button",
     addCharacterCreatorToDocumentDirectory({ documentName: "Actor" }, root);
     assert.equal(root.querySelector(".crows-create-crow"), original);
     assert.equal(original.parent.children.length, 1);
-    original.parent.remove(); // Simulate replacement of the rendered directory header.
+    original.parent.remove(); // Simulate replacement of the rendered directory footer.
     addCharacterCreatorToDocumentDirectory({ tabName: "actors" }, root);
     assert.ok(root.querySelector(".crows-create-crow"));
   }

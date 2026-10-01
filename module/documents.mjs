@@ -1,4 +1,5 @@
 import { weaponDamage, calculateDamage } from "./damage.mjs";
+import { formatNpcSpeed } from "./npc-speeds.mjs";
 import { openDamageAllocationDialog } from "./apps/damage-dialog.mjs";
 import { CrowsChatActions } from "./chat-actions.mjs";
 import { damageSnapshot } from "./chat-state.mjs";
@@ -89,9 +90,7 @@ export class CrowsActor extends Actor {
     system.adSources = adSources;
     if (this.type === "monster") {
       Object.assign(system, woundStats(this));
-      // Keep the source's multiple movement modes and units intact.
-      system.derivedSpeed = String(system.speed ?? "5").replace(/\d+/g,
-        value => String(Math.max(0, Number(value) - system.speedPenalty)));
+      system.derivedSpeed = formatNpcSpeed(system, system.speedPenalty);
     }
 
 
@@ -269,7 +268,7 @@ export class CrowsActor extends Actor {
       const woundedSlots = woundMap(this);
       let remainingWoundsToApply = woundsCount;
 
-      for (let i = 1; i <= woundCapacity(this) && remainingWoundsToApply > 0; i++) {
+      for (let i = woundCapacity(this); i >= 1 && remainingWoundsToApply > 0; i--) {
         const key = `slot${i}`;
         if (!woundedSlots[key]) {
           woundedSlots[key] = true;

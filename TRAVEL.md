@@ -36,8 +36,14 @@ Automated tests cover saved state, old-state compatibility, Ref overrides, linke
 
 ## Travel Journal
 
-Each completed day becomes a text page in the system-managed Travel Journal. It records the selected party and roles, pace, lost status, final hex allowance and encounter numbers, each role’s adjustments/results/notes, other adjustments, encounter checks and notes, and freeform day notes. The hex total is an allowance, not confirmed distance traveled. Sheet-based rest and Miasma outcomes are not inferred; record them in notes if desired.
+Settings → Crows → **Automatically save travel journals** is enabled by default. Turn it off to finish or advance travel without creating journal entries. Existing journals are kept. The helper hides journal setup/preview fields and shows a reminder that saving is off. Turning it back on saves future completed days only; skipped days are not backfilled.
 
-The additional-notes box is a draft until Finish Travel or Start next day is clicked. Its live preview matches the saved entry. Afterward, readers can open the Travel Journal from Foundry’s Journal Entries directory. Saved pages preserve names and outcomes even if actors change later.
+Each journey gets its own journal. Before starting, the Ref can enter a title, starting location, goals, and journey notes on the traveler-selection screen. When its first completed day is saved, these become an opening Journey page; subsequent days append to that same journal. Finish Travel ends the journey, so the next trip starts at Day 1 in a separate journal. Existing days from before this change stay in their original Travel Journal.
 
-Settings → Crows → Travel journal readers defaults to All players (read-only). Trusted Players and above restricts the journal using Foundry ownership. This updates the existing journal as well as new pages and follows user-role changes while an active Ref is connected. It does not restrict the live travel helper. The system manages journal ownership; custom per-page sharing should be avoided.
+Each completed day becomes a text page in that journey’s journal. It records the selected party and roles, pace, lost status, final hex allowance and encounter numbers, each role’s adjustments/results/notes, other adjustments, encounter checks and notes, and freeform day notes. The hex total is an allowance, not confirmed distance traveled. Sheet-based rest and Miasma outcomes are not inferred; record them in notes if desired.
+
+The additional-notes box is a draft until Finish Travel or Start next day is clicked. Its live preview matches the saved entry. Afterward, players can open the journey journal from Foundry’s Journal Entries directory. Saved pages preserve names and outcomes even if actors change later.
+
+Settings → Crows → Travel journal editors defaults to All players. Everyone can read the journal; Trusted Players and above restricts editing to Trusted Players and the Ref. This updates all existing travel journals as well as new pages and follows user-role changes while an active Ref is connected. It does not restrict the live travel helper. The system manages journal ownership; custom per-page sharing should be avoided.
+
+Players can edit the opening page and saved days in Foundry. Saving later days or retrying a completed save preserves those edits. After a day page has saved, correct it directly in the journal; a retry does not regenerate it from the helper. Journey fields supply the opening page once, not ongoing synchronization with player-written notes.

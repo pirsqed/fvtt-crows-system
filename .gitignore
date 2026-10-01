@@ -11,3 +11,7 @@ __pycache__/
 *.pyc
 .DS_Store
 Thumbs.db
+
+# Local release build outputs
+dist/
+/fvtt-crows-system.zip

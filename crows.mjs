@@ -71,7 +71,7 @@ Hooks.once("init", async () => {
   };
 
   // Display NPC while preserving saved actor types and sheet selections.
-  CONFIG.Actor.typeLabels.monster = "NPC";
+  CONFIG.Actor.typeLabels.monster = "TYPES.Actor.monster";
 
   // Register Sheets
   Actors.unregisterSheet("core", ActorSheet);

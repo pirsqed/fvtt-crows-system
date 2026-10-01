@@ -75,6 +75,15 @@ test("weapon dialog callback publishes Crow expertise and monster attacks throug
     assert.equal(formulas[2], "2d10 + 2 + 1");
     assert.match(messages[2].content, /3 dam and grabbed/);
     assert.match(messages[2].content, /Apply 3 Damage/);
+    const npc = makeActor("monster");
+    npc.system.customExpertises = [{ id: "bite", name: "Unarmed", value: 1, max: 1 }];
+    await rollStatBlockAttack(npc, { name: "Bite", system: {
+      bonus: "+2", tier2Damage: "3 dam", tier3Damage: "7 dam" } });
+    assert.match(messages[3].content, /data-action="expertise"/);
+    assert.equal(messages[3].flags["fvtt-crows-system"].rollState.outcomes[3].numericDamage, 7);
+    showWeaponAttackDialog(npc, weapon);
+    await dialog.buttons.roll.callback(html);
+    assert.match(messages[4].content, /data-action="expertise"/);
   } finally {
     for (const key of ["Dialog", "Roll", "ChatMessage", "game"]) delete globalThis[key];
   }

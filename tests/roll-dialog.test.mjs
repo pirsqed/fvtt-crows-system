@@ -31,7 +31,8 @@ test("every power-roll dialog offers all circumstances and applies the checked o
   const paths = [
     [() => showWeaponAttackDialog(actor, { name: "Sword", system: { isWeapon: true } }), 2],
     [() => CrowsActorSheet.prototype._onRollCharacteristic.call({ actor }, event), 2],
-    [() => CrowsMonsterSheet.prototype._onRollCharacteristic.call({ actor }, event), 2],
+    [() => CrowsMonsterSheet.prototype._onRollCharacteristic.call({ actor: { ...actor, type: "monster",
+      system: { ...actor.system, customExpertises: [{ id: "notice", name: "Notice", value: 1, max: 1 }] } } }, event), 2],
     [() => CrowsActorSheet.prototype._onRollMiasmaTest.call({ actor }, event), 1],
     [() => showSpellcastDialog(actor, { name: "Spell", parent: actor, system: { isSpellbook: true } }), 2],
     [() => showStatBlockAttackDialog(actor, { name: "Bite", system: { bonus: "+ 1 + 1" } }), 2]

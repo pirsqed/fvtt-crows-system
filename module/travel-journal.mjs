@@ -31,31 +31,44 @@ ${outcomes ? `<h3>Role outcomes</h3>${outcomes}` : ""}
 }
 
 export function travelJournalOwnership(users, audience) {
-  // Observer (2) permits reading; Trusted Player is role 2 and above.
-  const ownership = {default: audience === "trusted" ? 0 : 2};
-  if (audience === "trusted") for (const user of users) ownership[user.id] = user.isGM ? 3 : user.role >= 2 ? 2 : 0;
+  // Owner (3) permits editing; Observer (2) keeps the journal readable to everyone.
+  const ownership = {default: audience === "trusted" ? 2 : 3};
+  if (audience === "trusted") for (const user of users) ownership[user.id] = user.isGM || user.role >= 2 ? 3 : 2;
   return ownership;
 }
 
-function journal() { return game.journal.contents.find(entry => entry.getFlag(SCOPE, "travelJournal") === true); }
+export function journeyJournalHTML(journey = {}) {
+  return `<h1>${escape(journey.title || "Travel Journal")}</h1>
+<p><strong>Starting location:</strong> ${lines(journey.origin) || "Not recorded"}</p>
+<h2>Goals</h2><p>${lines(journey.goals) || "Not recorded"}</p>
+<h2>Journey notes</h2><p>${lines(journey.notes) || "No additional notes."}</p>`;
+}
+
+function journals() { return game.journal.contents.filter(entry => entry.getFlag(SCOPE, "travelJournal") === true); }
 function ownership() { return travelJournalOwnership(game.users.contents, game.settings.get(SCOPE, "travelJournalAudience")); }
 
 export async function refreshTravelJournalAccess() {
   if (!game.user.isGM || game.users.activeGM?.id !== game.user.id) return;
-  const entry = journal();
-  if (entry) await entry.update({ownership:ownership()}, {diff:false,recursive:false});
+  for (const entry of journals()) await entry.update({ownership:ownership()}, {diff:false,recursive:false});
 }
 
 export async function saveTravelJournalDay(state) {
   if (!game.user.isGM || game.users.activeGM?.id !== game.user.id) throw new Error("Only the active Ref can save the travel journal.");
   if (!state.session || state.step !== "complete") throw new Error("Complete the day before saving its journal entry.");
-  let entry = journal();
-  if (!entry) entry = await JournalEntry.create({name:"Travel Journal", ownership:ownership(), flags:{[SCOPE]:{travelJournal:true}}});
+  const journeyId = state.journeyId ?? "legacy";
+  let entry = journals().find(entry => (entry.getFlag(SCOPE,"travelJourney") ?? "legacy") === journeyId);
+  if (!entry) entry = await JournalEntry.create({name:state.journey?.title || "Travel Journal", ownership:ownership(), flags:{[SCOPE]:{travelJournal:true, travelJourney:journeyId}}});
   else await entry.update({ownership:ownership()}, {diff:false,recursive:false});
-  const pageData = {name:`Day ${state.day}`, type:"text", text:{content:travelJournalHTML(state,game.actors.contents),format:1}, ownership:{default:-1}, flags:{[SCOPE]:{travelSession:state.session}}};
+  if (journeyId !== "legacy" && !entry.pages.contents.some(page => page.getFlag(SCOPE,"travelOverview"))) {
+    await entry.createEmbeddedDocuments("JournalEntryPage",[{name:"Journey",type:"text",sort:0,
+      text:{content:journeyJournalHTML(state.journey),format:1},ownership:{default:-1},flags:{[SCOPE]:{travelOverview:true}}}]);
+  }
+  // Once saved, pages belong to the players. Retrying or saving later days must
+  // not overwrite their journal edits, even if the travel-state write failed.
   const existing = entry.pages.contents.find(page => page.getFlag(SCOPE,"travelSession") === state.session);
-  // Retrying after a settings-write failure updates the same page instead of duplicating it.
-  if (existing) await existing.update(pageData);
-  else await entry.createEmbeddedDocuments("JournalEntryPage",[{...pageData,sort:(Math.max(0,...entry.pages.contents.map(page => page.sort ?? 0))+100000)}]);
+  if (!existing) {
+    const pageData = {name:`Day ${state.day}`, type:"text", text:{content:travelJournalHTML(state,game.actors.contents),format:1}, ownership:{default:-1}, flags:{[SCOPE]:{travelSession:state.session}}};
+    await entry.createEmbeddedDocuments("JournalEntryPage",[{...pageData,sort:(Math.max(0,...entry.pages.contents.map(page => page.sort ?? 0))+100000)}]);
+  }
   return entry;
 }

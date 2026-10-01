@@ -161,3 +161,5 @@
 #crows-travel-helper .travel-journal-preview :is(th,td) { padding: 6px; text-align: left; border-bottom: 1px solid var(--travel-border); overflow-wrap: anywhere; }
 #crows-travel-helper .travel-journal-preview h3 { margin-top: 18px; }
 #crows-travel-helper [data-journal-preview-notes] { white-space: pre-wrap; }
+
+#crows-travel-helper .travel-journey-details label { display: grid; gap: 6px; margin: 12px 0; }

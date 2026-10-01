@@ -2,15 +2,38 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { initialTravelState } from "../module/travel-state.mjs";
 import { CrowsTravel } from "../module/travel.mjs";
+import { applyTravelAction } from "../module/travel-state.mjs";
 
 globalThis.FormApplication = class {
   render() { this.rendered = true; this.renderCount = (this.renderCount ?? 0) + 1; return this; }
 };
 const { CrowsTravelHelper } = await import("../module/apps/travel-helper.mjs");
 
+test("cancel travel closes only after a successful save and clears journey drafts", async () => {
+  setup(initialTravelState());
+  const helper = new CrowsTravelHelper();
+  helper.getData();
+  helper.drafts.set("journey:title","Draft");
+  helper.element = {find:()=>({prop(){}})};
+  let closed = 0;
+  helper.close = async () => { closed++; };
+  const original = CrowsTravel.request;
+  try {
+    CrowsTravel.request = async () => {throw new Error("Ref disconnected");};
+    await helper.send({action:"cancel-travel"});
+    assert.equal(closed,0);
+    assert.equal(helper.drafts.get("journey:title"),"Draft");
+    CrowsTravel.request = async () => {};
+    await helper.send({action:"cancel-travel"});
+    assert.equal(closed,1);
+    assert.equal(helper.drafts.size,0);
+  } finally {CrowsTravel.request = original;}
+});
+
 test("saving a roster edit preserves the open drawer, including after a rejected update", async () => {
   setup();
   const helper = new CrowsTravelHelper();
+  helper.getData();
   helper.element = { find: selector => selector === ".travel-roster-drawer" ? [{ open: true }] : { prop() {} } };
   const original = CrowsTravel.request;
   try {
@@ -25,6 +48,46 @@ test("saving a roster edit preserves the open drawer, including after a rejected
   } finally { CrowsTravel.request = original; }
 });
 
+test("Ref has no vote control while an owning player can vote", () => {
+  const {state} = setup(); state.step="pace";
+  const helper = new CrowsTravelHelper();
+  assert.equal(helper.getData().voting,true);
+  game.user.isGM=true;
+  assert.equal(helper.getData().voting,false);
+});
+
+test("party drawer collapses on a new day or step but keeps manual expansion during edits", () => {
+  const {state} = setup(initialTravelState());
+  const helper = new CrowsTravelHelper(); helper.getData(); helper.rosterOpen=true;
+  state.session="one";
+  assert.equal(helper.getData().rosterOpen,false);
+  helper.rosterOpen=true;
+  assert.equal(helper.getData().rosterOpen,true);
+  state.step="roles";
+  assert.equal(helper.getData().rosterOpen,false);
+});
+
+test("Finish Travel closes after saving and stays open with notes intact when saving fails", async () => {
+  const {state} = setup(); state.step="complete";
+  const helper = new CrowsTravelHelper(); helper.getData();
+  helper.drafts.set("journalNotes","Remember the ruins");
+  helper.element={find:()=>({prop(){}})};
+  let closed=0; helper.close=async()=>{closed++;};
+  const original=CrowsTravel.request;
+  try {
+    CrowsTravel.request=async()=>{throw new Error("Journal save failed");};
+    await helper.send({action:"finish"});
+    assert.equal(closed,0);
+    assert.equal(helper.drafts.get("journalNotes"),"Remember the ruins");
+    const renders=helper.renderCount;
+    CrowsTravel.request=async()=>{};
+    await helper.send({action:"finish"});
+    assert.equal(closed,1);
+    assert.equal(helper.drafts.size,0);
+    assert.equal(helper.renderCount,renders);
+  } finally {CrowsTravel.request=original;}
+});
+
 function setup(state = { ...initialTravelState(), session: "one", day: 1, roster: ["a", "b"], step: "roles", pace: "normal" }) {
   const actors = [{ id: "a", type: "crow", name: "Alice's crow", isOwner: true, visible: true },
     { id: "b", type: "crow", name: "Bob's crow", isOwner: false, visible: true }];
@@ -37,6 +100,42 @@ function setup(state = { ...initialTravelState(), session: "one", day: 1, roster
   CrowsTravelHelper.seenSession = null;
   return { state, actors };
 }
+
+test("finishing at a destination offers day one while continuing or cancelling a day preserves numbering", () => {
+  const {state, actors} = setup({...initialTravelState(), session:"day-nine", journeyId:"trip", day:9, step:"explore", pace:"normal", roster:[]});
+  const ref = {id:"ref", isGM:true, active:true};
+  const act = request => Object.assign(state, applyTravelAction(state, {session:state.session,...request},
+    {user:ref, actors, users:[ref], sessionId:"new-day"}));
+  const helper = new CrowsTravelHelper();
+  act({action:"step",step:"complete"});
+  assert.equal(helper.getData().nextDay,10);
+  act({action:"finish"});
+  assert.equal(helper.getData().hasDay,false);
+  assert.equal(helper.getData().nextDay,1);
+  act({action:"start"});
+  assert.equal(state.day,1);
+  state.day=4;
+  act({action:"cancel"});
+  assert.equal(helper.getData().nextDay,4);
+});
+
+test("starting a journey submits unsaved detail drafts with the start request", async () => {
+  setup(initialTravelState());
+  game.user.isGM = true;
+  const helper = new CrowsTravelHelper();
+  helper.getData();
+  helper.drafts.set("journey:title", "To the coast");
+  helper.drafts.set("journey:goals", "Find shelter");
+  helper.element = {find: () => ({prop() {}})};
+  const original = CrowsTravel.request;
+  let sent;
+  try {
+    CrowsTravel.request = async request => { sent = request; };
+    await helper.send({action:"start"});
+    assert.equal(sent.journey.title,"To the coast");
+    assert.equal(sent.journey.goals,"Find shelter");
+  } finally { CrowsTravel.request = original; }
+});
 
 test("players see shared assignments but can edit only their own during role selection", () => {
   const { state } = setup();

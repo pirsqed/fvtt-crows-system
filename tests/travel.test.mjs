@@ -16,6 +16,40 @@ const apply = (state, action, user = ref, extra = {}) => applyTravelAction(state
 const start = () => apply(initialTravelState(), { action: "start" });
 const roles = () => ({ ...start(), step: "roles", pace: "normal" });
 
+test("cancel travel ends the journey from party selection and retains travelers", () => {
+  assert.throws(() => apply(start(),{action:"cancel-travel"}), /Cancel the current day/);
+  const selection = apply({...start(),day:9,journey:{title:"Old trip"},lost:true},{action:"cancel"});
+  assert.throws(() => apply(selection,{action:"cancel-travel"},alice), /Only the Ref/);
+  const cancelled = apply(selection,{action:"cancel-travel"});
+  assert.equal(cancelled.journeyId,null);
+  assert.equal(cancelled.journey.title,"");
+  assert.equal(cancelled.day,0);
+  assert.equal(cancelled.lost,false);
+  assert.deepEqual(cancelled.roster,selection.roster);
+  assert.equal(apply(cancelled,{action:"start"}).day,1);
+});
+
+test("journey details are Ref-controlled and survive days and cancellation but not a finished trip", () => {
+  let state = initialTravelState();
+  assert.throws(() => apply(state,{action:"journey",field:"title",value:"Trip"},alice), /Only the Ref/);
+  state = apply(state,{action:"journey",field:"title",value:"To the coast"});
+  state = apply(state,{action:"start",journey:{origin:"Ash",goals:"Find shelter",notes:"Bring food"}});
+  assert.equal(state.journey.title,"To the coast");
+  assert.equal(state.journey.origin,"Ash");
+  assert.throws(() => apply(state,{action:"journey",field:"title",value:"Changed"}), /before starting/);
+  const next = apply({...state,step:"complete"},{action:"start"});
+  assert.equal(next.journeyId,state.journeyId);
+  assert.deepEqual(next.journey,state.journey);
+  const cancelled = apply(next,{action:"cancel"});
+  assert.equal(cancelled.journeyId,state.journeyId);
+  assert.equal(apply(cancelled,{action:"start"}).day,2);
+  const finished = apply({...next,step:"complete"},{action:"finish"});
+  const fresh = apply(finished,{action:"start"},ref,{sessionId:"fresh-trip"});
+  assert.equal(fresh.day,1);
+  assert.equal(fresh.journeyId,"fresh-trip");
+  assert.equal(fresh.journey.title,"");
+});
+
 test("cancel returns to party selection, clears daily choices, and restarts the same day", () => {
   const old = { ...roles(), day: 3, roster: ["a", "b"], roles: { a: "guide" }, votes: { alice: "slow" } };
   assert.throws(() => apply(old, { action: "cancel" }, alice), /Only the Ref/);
@@ -334,7 +368,7 @@ test("finish travel ends a completed session without losing results or advancing
   assert.deepEqual(finished.records,state.records);
   assert.throws(() => apply(finished,{action:"finish",session:state.session}), /day changed/);
   const next = apply(finished,{action:"start"});
-  assert.equal(next.day,state.day+1);
+  assert.equal(next.day,1);
   assert.deepEqual(next.records,{});
   const destination = apply(roles(),{action:"step",step:"complete"});
   assert.equal(apply(destination,{action:"finish"}).session,null);

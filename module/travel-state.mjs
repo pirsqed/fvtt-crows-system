@@ -12,7 +12,7 @@ export const TRAVEL_STEPS = [
 ];
 
 export function initialTravelState() {
-  return { session: null, day: 0, step: "pace", roster: null, pace: null, votes: {}, roles: {}, travelEN: null, restEN: null, hexes: null, adjusted: {}, notes: "", lost: false, guests: {}, records: {}, encounters: [] };
+  return { journeyId: null, journey: { title: "", origin: "", goals: "", notes: "" }, session: null, day: 0, step: "pace", roster: null, pace: null, votes: {}, roles: {}, travelEN: null, restEN: null, hexes: null, adjusted: {}, notes: "", lost: false, guests: {}, records: {}, encounters: [] };
 }
 
 export function roleWarnings(state) {
@@ -33,29 +33,45 @@ export function applyTravelAction(current, request, { user, actors, users, sessi
   const requireGM = () => { if (!gm) throw new Error("Only the Ref can change the travel procedure."); };
   if (!request || typeof request.action !== "string") throw new Error("Invalid travel request.");
   if (request.session !== state.session) throw new Error("The travel day changed. Use the refreshed window.");
+  if (request.action === "start" && request.journey) {
+    requireGM();
+    if (state.session) throw new Error("Journey details are set before starting a day.");
+    state.journey = Object.fromEntries(["title", "origin", "goals", "notes"].map(field =>
+      [field, String(request.journey[field] ?? state.journey[field] ?? "").trim().slice(0, ["title", "origin"].includes(field) ? 200 : 8000)]));
+  }
   if (request.action === "start") {
     requireGM();
     if (state.session && state.step !== "complete") throw new Error("A travel day is already underway. Resume it first.");
     const roster = (state.roster ?? actors.filter(actor => actor.type === "crow").map(actor => actor.id))
       .filter(available);
-    return { ...initialTravelState(), session: sessionId, day: state.day + 1, roster, guests: state.guests, lost: state.lost };
+    return { ...initialTravelState(), session: sessionId, journeyId: state.journeyId ?? (state.session ? "legacy" : sessionId), journey: state.journey, day: state.journeyId || state.session ? state.day + 1 : 1, roster, guests: state.guests, lost: state.lost };
   }
-  if (!state.session && !["roster", "guest"].includes(request.action)) throw new Error("The Ref needs to start a travel day first.");
+  if (!state.session && !["roster", "guest", "journey", "cancel-travel"].includes(request.action)) throw new Error("The Ref needs to start a travel day first.");
   // Deleted actors and removed participants must not keep occupying a role.
   state.roster = (state.roster ?? actors.filter(actor => actor.type === "crow").map(actor => actor.id))
     .filter(available);
   const owns = actor => actor && (gm || actor.testUserPermission?.(user, "OWNER"));
   switch (request.action) {
+    case "cancel-travel":
+      requireGM();
+      if (state.session) throw new Error("Cancel the current day before cancelling travel.");
+      return { ...initialTravelState(), roster: state.roster, guests: state.guests };
     case "finish":
       requireGM();
       if (state.step !== "complete") throw new Error("Complete the travel day before finishing travel.");
-      // End the active session without incrementing the day or discarding its results.
-      // Starting a subsequent day performs the usual daily reset.
-      return { ...state, session: null, step: "pace" };
+      // Keep the completed results available; the next journey starts at day one.
+      return { ...state, session: null, journeyId: null, journey: initialTravelState().journey, step: "pace" };
     case "cancel":
       requireGM();
-      return { ...initialTravelState(), roster: state.roster, guests: state.guests, lost: state.lost,
+      return { ...initialTravelState(), journeyId: state.journeyId ?? "legacy", journey: state.journey, roster: state.roster, guests: state.guests, lost: state.lost,
         day: state.step === "complete" ? state.day : Math.max(0, state.day - 1) };
+    case "journey": {
+      requireGM();
+      if (state.session) throw new Error("Journey details are set before starting a day.");
+      if (!["title", "origin", "goals", "notes"].includes(request.field)) throw new Error("Unknown journey field.");
+      state.journey = { ...state.journey, [request.field]: String(request.value ?? "").trim().slice(0, ["title", "origin"].includes(request.field) ? 200 : 8000) };
+      break;
+    }
     case "roster": {
       requireGM();
       const actor = actors.find(actor => actor.id === request.actorId) ?? (Object.hasOwn(state.guests, request.actorId) ? { id: request.actorId } : null);

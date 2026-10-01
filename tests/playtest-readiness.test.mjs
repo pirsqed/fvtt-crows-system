@@ -39,11 +39,20 @@ test("shields require hands, while ordinary equipped armor still works", () => {
   assert.equal(activeDefense({ system: { isArmor: true, location: "backpack1" } }), true);
 });
 
+test("damage places wounds from the highest slot down, skipping existing wounds", async () => {
+  const a = actor("crow", { woundedSlots: { slot9: true }, speed: 5, stamina: { value: 0, max: 10 } });
+  const result = await a.applyAllocatedDamage({ woundsCount: 3 });
+  assert.deepEqual(result.woundedSlotNames, ["Slot 10", "Slot 8", "Slot 7"]);
+  assert.deepEqual(a.system.woundedSlots, { slot9: true, slot10: true, slot8: true, slot7: true });
+});
+
 test("companion wounds use actual slot capacity and occupied wounds slow movement", async () => {
   const a = actor("monster", { type: "Animal", slots: 2, speed: "7, climb 4", stamina: { value: 2, max: 2 }, woundSlots: [] },
     [{ type: "equipment", system: { location: "backpack1" } }]);
   await a.applyAllocatedDamage({ damageTotal: 3, staminaDamage: 2, woundsCount: 1 });
-  assert.deepEqual(a.system.woundSlots, [1]);
+  assert.deepEqual(a.system.woundSlots, [2]);
+  assert.equal(a.system.derivedSpeed, "7, climb 4");
+  await a.update({ "system.woundSlots": [1] });
   assert.equal(a.system.derivedSpeed, "6, climb 3");
   assert.equal(a.system.isDead, false);
   await a.update({ "system.woundSlots": [2] });

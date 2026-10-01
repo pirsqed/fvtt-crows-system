@@ -1,84 +1,23 @@
-<form class="{{cssClass}} flexcol crows-monster-sheet" autocomplete="off">
-  <header class="sheet-header flexrow">
-    <div class="profile-container">
-      <img class="profile-img" src="{{actor.img}}" data-edit="img" title="{{actor.name}}"/>
-    </div>
-
-    <div class="header-fields flexcol">
-      <div class="charname-row flexrow">
-        <h1 class="charname"><input name="name" type="text" value="{{actor.name}}" placeholder="Name"/></h1>
-
-        <div class="wealth-tracker flexrow" title="Coins (250 gc per slot encumbrance)">
-          <i class="fas fa-coins"></i>
-          <input type="text" name="system.coins" value="{{system.coins}}" data-dtype="Number"/>
-          <span class="coin-slots">gc {{#if coinSlots}}({{coinSlots}}s){{/if}}</span>
-        </div>
-      </div>
-
-      <div class="monster-stats-grid flexrow">
-        <div class="stat-group flexcol">
-          <label>Size</label>
-          <input type="text" name="system.size" value="{{system.size}}"/>
-        </div>
-        <div class="stat-group flexcol">
-          <label>Power</label>
-          <input type="text" name="system.power" value="{{system.power}}" data-dtype="Number"/>
-        </div>
-        <div class="stat-group flexcol">
-          <label>Type</label>
-          <input type="text" name="system.type" value="{{system.type}}"/>
-        </div>
-        <div class="stat-group flexcol">
-          <label>Speed</label>
-          <input type="text" name="system.speed" value="{{system.speed}}"/>
-        </div>
-        <div class="stat-group flexcol highlight-ad">
-          <label class="open-ad-manager" title="Click to open AD & Damage Manager"><i class="fas fa-shield-alt"></i> AD</label>
-          <div class="ad-display open-ad-manager" title="Total Active Armor Defense (Click to manage)">
-            <span class="ad-val">{{totalAD}}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="monster-stats-grid flexrow">
-        <div class="stat-group stamina-group flexcol" style="flex: 1.4;">
+<form class="{{cssClass}} flexcol crows-monster-sheet npc-panel-layout" autocomplete="off">
+  <header class="sheet-header flexrow npc-identity">
+    <div class="profile-container"><img class="profile-img" src="{{actor.img}}" data-edit="img" title="{{actor.name}}" /></div>
+    <div class="header-fields"><h1 class="charname"><input name="name" type="text" value="{{actor.name}}" placeholder="NPC Name" /></h1></div>
+  </header>
+  <div class="npc-panels">
+    <aside class="npc-sidebar" aria-label="Stats and expertises">
+      <div class="npc-vitals monster-stats-grid"><div class="stat-group stamina-group flexcol" style="flex: 1.4;">
           <label><i class="fas fa-heart"></i> Stamina</label>
           <div class="stamina-input-wrap flexrow flex-center">
             <input type="text" name="system.stamina.value" value="{{system.stamina.value}}" data-dtype="Number" title="Current Stamina"/>
             <span class="sep">/</span>
             <input type="text" name="system.stamina.max" value="{{system.stamina.max}}" data-dtype="Number" title="Max Stamina"/>
           </div>
-        </div>
-
-        <div class="stat-group slots-group flexcol" style="flex: 1.2;">
-          <label title="Slots carried by this NPC (e.g. 10 for humans, 4 for animas)"><i class="fas fa-th-large"></i> Slots</label>
-          <div class="slots-input-wrap flexrow flex-center">
-            <input type="text" name="system.slots" value="{{system.slots}}" data-dtype="Number" placeholder="0" title="Number of Inventory Slots"/>
-            {{#if hasSlots}}
-            <span class="slots-usage-pill" title="{{usedSlotsCount}} of {{maxSlots}} Slots Occupied">
-              {{usedSlotsCount}}/{{maxSlots}}
-            </span>
-            {{/if}}
+        </div><div class="stat-group flexcol highlight-ad">
+          <label class="open-ad-manager" title="Click to open AD & Damage Manager"><i class="fas fa-shield-alt"></i> AD</label>
+          <div class="ad-display open-ad-manager" title="Total Active Armor Defense (Click to manage)">
+            <span class="ad-val">{{totalAD}}</span>
           </div>
-        </div>
-
-        <div class="stat-group temp-ad-group flexcol">
-          <label title="Temporary Magic / Buff Armor Defense"><i class="fas fa-sparkles"></i> Temp AD</label>
-          <input type="text" name="system.tempAD" value="{{system.tempAD}}" data-dtype="Number" placeholder="0"/>
-        </div>
-      </div>
-
-      {{#if hasWounds}}
-      <div class="companion-wounds">
-        <strong><i class="fas fa-skull"></i> Wounds {{system.totalWounds}} / {{system.woundCapacity}}{{#if system.isDead}} — DEAD{{/if}}</strong>
-        <span>Current speed: {{system.derivedSpeed}}</span>
-        <p>Toggle a slot to add or remove a wound. A wounded slot containing equipment reduces speed by 1.</p>
-        <div class="companion-wound-slots">
-          {{#each woundSlots}}<button type="button" class="companion-wound-toggle {{#if wounded}}active{{/if}}"
-            data-slot-num="{{number}}" aria-pressed="{{wounded}}" title="Toggle wound in slot {{number}}">{{number}}</button>{{/each}}
-        </div>
-      </div>
-      {{/if}}
+        </div></div>
       <div class="characteristics flexrow">
         <div class="characteristic flexcol">
           <label class="rollable-characteristic" data-char="agility" title="Click to roll 2d10 + Agility">
@@ -99,21 +38,58 @@
           <input type="text" name="system.characteristics.strength" value="{{system.characteristics.strength}}" data-dtype="Number"/>
         </div>
       </div>
-    </div>
-  </header>
-
-  <nav class="sheet-tabs tabs" data-group="primary">
-    <a class="item" data-tab="attacks"><i class="fas fa-swords"></i> Attacks ({{attacks.length}})</a>
-    <a class="item" data-tab="inventory"><i class="fas fa-th-large"></i> Inventory {{#if hasSlots}}({{usedSlotsCount}}/{{maxSlots}} Slots){{else if equipmentCount}}({{equipmentCount}} Items){{/if}}</a>
-    <a class="item" data-tab="expertises"><i class="fas fa-feather-alt"></i> Expertises & Lore {{#if system.customExpertises.length}}({{system.customExpertises.length}}){{/if}}</a>
-  </nav>
-
-  <section class="sheet-body">
-    <!-- ================= ATTACKS TAB ================= -->
-    <div class="tab attacks flexcol" data-group="primary" data-tab="attacks">
+      <div class="monster-stats-grid npc-secondary-stats"><div class="stat-group flexcol npc-speed-summary">
+          <label>Speed {{#if editable}}<button type="button" class="npc-speed-edit" title="Edit speeds" aria-label="Edit speeds"><i class="fas fa-pencil-alt"></i></button>{{/if}}</label>
+          <strong title="Before wounds: {{baseSpeedSummary}}">{{currentSpeedSummary}}</strong>
+        </div><div class="stat-group temp-ad-group flexcol">
+          <label title="Temporary Magic / Buff Armor Defense"><i class="fas fa-sparkles"></i> Temp AD</label>
+          <input type="text" name="system.tempAD" value="{{system.tempAD}}" data-dtype="Number" placeholder="0"/>
+        </div>{{#if hasWounds}}<div class="stat-group flexcol" title="Mark or clear wounds directly on inventory slots.">
+          <label><i class="fas fa-skull"></i> Wounds</label>
+          <strong>{{system.totalWounds}} / {{system.woundCapacity}}{{#if system.isDead}} — DEAD{{/if}}</strong>
+        </div>{{/if}}</div>
+      <div class="monster-stats-grid npc-identity-stats"><div class="stat-group flexcol">
+          <label>Type</label>
+          <input type="text" name="system.type" value="{{system.type}}"/>
+        </div><div class="stat-group flexcol">
+          <label>Size</label>
+          <input type="text" name="system.size" value="{{system.size}}"/>
+        </div><div class="stat-group flexcol">
+          <label>Power</label>
+          <input type="text" name="system.power" value="{{system.power}}" data-dtype="Number"/>
+        </div></div>
+      <div class="inventory-section npc-expertises">
+        <div class="section-header flexrow flex-between">
+          <h3><i class="fas fa-feather-alt"></i> Expertises</h3>
+          {{#if editable}}
+          <div class="flexrow">
+            <button type="button" data-npc-expertise-action="recover" title="Restore all expertise uses">Recover</button>
+            <button type="button" data-npc-expertise-action="add"><i class="fas fa-plus"></i> Add</button>
+          </div>
+          {{/if}}
+        </div>
+        {{#each system.customExpertises}}
+        <div class="npc-expertise-summary" title="{{notes}}">
+          <span class="npc-expertise-name">{{name}}</span>
+          <span class="npc-expertise-count" aria-label="{{value}} of {{max}} uses remaining">{{value}} / {{max}}</span>
+          {{#if ../editable}}<button type="button" class="npc-expertise-edit" data-npc-expertise-action="edit" data-expertise-id="{{id}}" title="Edit {{name}}" aria-label="Edit {{name}}"><i class="fas fa-pencil-alt"></i></button>{{/if}}
+        </div>
+        {{else}}
+        <p class="empty-list-msg">No expertises yet. Use Add to choose or create one.</p>
+        {{/each}}
+      </div>
+    </aside>
+    <main class="npc-main">
+      <nav class="sheet-tabs tabs" data-group="primary">
+        <a class="item" data-tab="attacks"><i class="fas fa-swords"></i> Attacks & Features</a>
+        <a class="item" data-tab="inventory"><i class="fas fa-th-large"></i> Inventory</a>
+        <a class="item" data-tab="lore"><i class="fas fa-book-open"></i> Lore</a>
+      </nav>
+      <section class="sheet-body">
+<div class="tab attacks flexcol" data-group="primary" data-tab="attacks">
       <div class="inventory-section">
         <div class="section-header flexrow flex-between">
-          <h3><i class="fas fa-claw-marks"></i> NPC Attacks</h3>
+          <h3><i class="fas fa-claw-marks"></i> Attacks</h3>
           <a class="item-create btn-action-small" data-type="attack" title="Create Attack"><i class="fas fa-plus"></i> Add Attack</a>
         </div>
         <ul class="item-list monster-attacks-list">
@@ -145,10 +121,54 @@
           {{/each}}
         </ul>
       </div>
-    </div>
 
-    <!-- ================= INVENTORY TAB ================= -->
-    <div class="tab inventory flexcol" data-group="primary" data-tab="inventory">
+      <div class="inventory-section" style="margin-bottom: 12px;">
+        <div class="section-header flexrow flex-between">
+          <h3><i class="fas fa-scroll"></i> Features</h3>
+          {{#if editable}}<a class="item-create btn-action-small" data-type="trait" title="Create Feature"><i class="fas fa-plus"></i> Add Feature</a>{{/if}}
+        </div>
+        <div class="traits-grid">
+          {{#each traits as |trait|}}
+          <div class="trait-card-box flexcol item" data-item-id="{{trait._id}}" draggable="true">
+            <div class="trait-card-top flexrow">
+              <img class="trait-img" src="{{trait.img}}" title="{{trait.name}}" />
+              <div class="trait-header-info flexcol">
+                <span class="trait-name">{{trait.name}}</span>
+              </div>
+              <div class="trait-card-actions flexrow">
+                <a class="trait-post-chat" data-item-id="{{trait._id}}" title="Post Feature to Chat"><i class="fas fa-comment-alt"></i></a>
+                {{#if ../editable}}
+                <a class="item-edit" data-item-id="{{trait._id}}" title="Edit Feature"><i class="fas fa-edit"></i></a>
+                <a class="item-delete" data-item-id="{{trait._id}}" title="Delete Feature"><i class="fas fa-trash"></i></a>
+                {{/if}}
+              </div>
+            </div>
+            <div class="trait-desc-body">
+              {{{trait.system.description}}}
+            </div>
+          </div>
+          {{else}}
+          <p class="empty-list-msg">No features yet. Add a feature to describe an ability, special rule, or passive effect.</p>
+          {{/each}}
+        </div>
+      </div>
+    </div>
+<div class="tab inventory flexcol" data-group="primary" data-tab="inventory">
+      <div class="npc-inventory-settings"><div class="stat-group slots-group flexcol" style="flex: 1.2;">
+          <label title="Slots carried by this NPC (e.g. 10 for humans, 4 for animas)"><i class="fas fa-th-large"></i> Slots</label>
+          <div class="slots-input-wrap flexrow flex-center">
+            <input type="text" name="system.slots" value="{{system.slots}}" data-dtype="Number" placeholder="0" title="Number of Inventory Slots"/>
+            {{#if hasSlots}}
+            <span class="slots-usage-pill" title="{{usedSlotsCount}} of {{maxSlots}} Slots Occupied">
+              {{usedSlotsCount}}/{{maxSlots}}
+            </span>
+            {{/if}}
+          </div>
+        </div><div class="wealth-tracker flexrow" title="Coins (250 gc per slot encumbrance)">
+          <i class="fas fa-coins"></i>
+          <input type="text" name="system.coins" value="{{system.coins}}" data-dtype="Number"/>
+          <span class="coin-slots">gc {{#if coinSlots}}({{coinSlots}}s){{/if}}</span>
+        </div></div>
 
       <!-- Zone 2: Dynamic Carried Slots Grid (1 to system.slots) -->
       <div class="inventory-zone slots-zone">
@@ -174,8 +194,15 @@
 
             <div class="slot-header flexrow">
               <span class="slot-dc">{{#if this.isMergedSpan}}{{this.spanStart}}–{{this.spanEnd}}{{else}}{{this.slotNum}}{{/if}}</span>
-              {{#if this.isWounded}}
-              <span class="slot-wound-badge" title="Slot is Wounded"><i class="fas fa-tint"></i> Wounded</span>
+              {{#if this.slotsCovered.length}}
+              <div class="wound-toggle-group flexrow">
+                {{#each this.slotsCovered as |cov|}}
+                <button type="button" class="wound-toggle icon-only {{#if cov.isWounded}}active{{/if}}" data-slot-num="{{cov.slotNum}}"
+                  aria-pressed="{{cov.isWounded}}" aria-label="Toggle wound in slot {{cov.slotNum}}"
+                  title="Slot {{cov.slotNum}}: {{#if cov.isWounded}}Wounded — click to clear{{else}}Click to mark a wound{{/if}}"
+                  {{#unless ../../editable}}disabled{{/unless}}><i class="fas fa-tint"></i></button>
+                {{/each}}
+              </div>
               {{/if}}
 
               {{#if this.item}}
@@ -321,75 +348,11 @@
       </div>
 
     </div>
-
-    <!-- ================= EXPERTISES & LORE TAB ================= -->
-    <div class="tab expertises flexcol" data-group="primary" data-tab="expertises">
-      <div class="inventory-section npc-expertises">
-        <div class="section-header flexrow flex-between">
-          <h3><i class="fas fa-feather-alt"></i> Expertises</h3>
-          {{#if editable}}
-          <div class="flexrow">
-            <button type="button" data-npc-expertise-action="recover" title="Restore all expertise uses">Recover All</button>
-            <button type="button" data-npc-expertise-action="add"><i class="fas fa-plus"></i> Add Expertise</button>
-          </div>
-          {{/if}}
-        </div>
-        <p>Add any expertise this NPC needs. Spend a use to improve an applicable test by one tier (maximum Tier 3); resolve the result at the table.</p>
-        {{#each system.customExpertises}}
-        <div class="npc-expertise-card">
-          <div class="flexrow npc-expertise-heading">
-            <input type="text" data-npc-expertise-field="name" data-expertise-id="{{id}}" value="{{name}}" aria-label="Expertise name" {{#unless ../editable}}disabled{{/unless}} />
-            <label>Uses <input type="number" min="0" max="{{max}}" step="1" data-npc-expertise-field="value" data-expertise-id="{{id}}" value="{{value}}" aria-label="Remaining uses" {{#unless ../editable}}disabled{{/unless}} /></label>
-            <label>Max <input type="number" min="0" step="1" data-npc-expertise-field="max" data-expertise-id="{{id}}" value="{{max}}" aria-label="Maximum uses" {{#unless ../editable}}disabled{{/unless}} /></label>
-            {{#if ../editable}}
-            <button type="button" data-npc-expertise-action="spend" data-expertise-id="{{id}}" {{#unless value}}disabled{{/unless}}>Spend</button>
-            <button type="button" data-npc-expertise-action="delete" data-expertise-id="{{id}}" title="Delete expertise" aria-label="Delete expertise"><i class="fas fa-trash"></i></button>
-            {{/if}}
-          </div>
-          <textarea data-npc-expertise-field="notes" data-expertise-id="{{id}}" aria-label="Expertise notes" placeholder="When this expertise applies…" {{#unless ../editable}}disabled{{/unless}}>{{notes}}</textarea>
-        </div>
-        {{else}}
-        <p class="empty-list-msg">No expertises yet. Use Add Expertise to create one with any name.</p>
-        {{/each}}
-      </div>
-      {{#if traits.length}}
-      <div class="inventory-section" style="margin-bottom: 12px;">
-        <div class="section-header flexrow flex-between">
-          <h3><i class="fas fa-scroll"></i> Existing Traits</h3>
-        </div>
-        <div class="traits-grid">
-          {{#each traits as |trait|}}
-          <div class="trait-card-box flexcol item" data-item-id="{{trait._id}}" draggable="true">
-            <div class="trait-card-top flexrow">
-              <img class="trait-img" src="{{trait.img}}" title="{{trait.name}}" />
-              <div class="trait-header-info flexcol">
-                <span class="trait-name">{{trait.name}}</span>
-                <div class="trait-pills flexrow">
-                  <span class="trait-pill tier-pill"><i class="fas fa-feather-alt"></i> {{#if (eq trait.system.tier "Monster Feature")}}NPC Feature{{else}}{{trait.system.tier}}{{/if}}</span>
-                  {{#if (gt trait.system.cost 0)}}
-                  <span class="trait-pill cost-pill"><i class="fas fa-coins"></i> {{trait.system.cost}} XP</span>
-                  {{/if}}
-                </div>
-              </div>
-              <div class="trait-card-actions flexrow">
-                <a class="trait-post-chat" data-item-id="{{trait._id}}" title="Post Trait to Chat"><i class="fas fa-comment-alt"></i></a>
-                <a class="item-edit" data-item-id="{{trait._id}}" title="Edit Trait"><i class="fas fa-edit"></i></a>
-                <a class="item-delete" data-item-id="{{trait._id}}" title="Delete Trait"><i class="fas fa-trash"></i></a>
-              </div>
-            </div>
-            <div class="trait-desc-body">
-              {{{trait.system.description}}}
-            </div>
-          </div>
-          {{/each}}
-        </div>
-      </div>
-      {{/if}}
-
-      <div class="bio-header flexrow flex-between" style="align-items: center; margin-bottom: 6px;">
+<div class="tab lore flexcol" data-group="primary" data-tab="lore">      <div class="bio-header flexrow flex-between" style="align-items: center; margin-bottom: 6px;">
         <h3><i class="fas fa-book-open"></i> Description, Tactics & Ecology</h3>
       </div>
-      {{editor enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}
-    </div>
-  </section>
+      {{editor enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}</div>
+      </section>
+    </main>
+  </div>
 </form>

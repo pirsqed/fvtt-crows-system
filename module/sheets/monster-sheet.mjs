@@ -1,3 +1,5 @@
+import { createRollState, rollFlags, renderRollState } from "../chat-state.mjs";
+import { showNpcExpertiseDialog } from "../apps/npc-expertise-dialog.mjs";
 import { _onQuantityAdjust, _onQuantityInput, _onPostTraitToChat } from "./inventory-actions.mjs";
 import { requestUsageDice } from "./inventory-actions.mjs";
 import { bindSupplyControls } from "../supplies.mjs";
@@ -9,14 +11,17 @@ import { showWeaponAttackDialog, showStatBlockAttackDialog } from "../attacks.mj
 import { rollPowerRoll } from "../power-roll.mjs";
 import { CrowsLoot } from "../loot.mjs";
 import { withPersistentScroll } from "./persistent-scroll.mjs";
+import { showNpcSpeedDialog } from "../apps/npc-speed-dialog.mjs";
+import { formatNpcSpeed } from "../npc-speeds.mjs";
 
 export class CrowsMonsterSheet extends withPersistentScroll(ActorSheet) {
   static get defaultOptions() {
     return foundry.utils.mergeObject(super.defaultOptions, {
       classes: ["crows", "sheet", "actor", "monster"],
       template: "systems/fvtt-crows-system/templates/monster-sheet.html",
-      width: 780,
-      height: 680,
+      width: 960,
+      height: 740,
+      scrollY: [".npc-sidebar", ".sheet-body", ".storage-item-list", ".editor-content"],
       tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "attacks" }],
       dragDrop: [{ dragSelector: ".item, .slot-card.occupied, .storage-item", dropSelector: null }]
     });
@@ -31,6 +36,8 @@ export class CrowsMonsterSheet extends withPersistentScroll(ActorSheet) {
     }
     context.owner = this.actor.isOwner;
     context.editable = this.isEditable;
+    context.baseSpeedSummary = formatNpcSpeed(this.actor.system);
+    context.currentSpeedSummary = formatNpcSpeed(this.actor.system, this.actor.system.speedPenalty || 0);
     
     // Pass attacks and traits specifically
     const items = this.actor.items.map(item => {
@@ -55,9 +62,6 @@ export class CrowsMonsterSheet extends withPersistentScroll(ActorSheet) {
     context.hasSlots = maxSlots > 0;
     context.hasWounds = woundCapacity(this.actor) > 0;
     const wounds = woundMap(this.actor);
-    context.woundSlots = Array.from({ length: woundCapacity(this.actor) }, (_, i) => ({
-      number: i + 1, wounded: !!wounds[`slot${i + 1}`]
-    }));
 
     const anchorItemsBySlot = {};
     for (const item of equipmentItems) {
@@ -113,8 +117,11 @@ export class CrowsMonsterSheet extends withPersistentScroll(ActorSheet) {
     }
 
     for (const slot of context.inventorySlots) {
-      slot.isWounded = Array.from({ length: slot.colSpan }, (_, offset) => slot.slotNum + offset)
-        .some(n => wounds[`slot${n}`]);
+      slot.slotsCovered = context.hasWounds ? Array.from({ length: slot.colSpan }, (_, offset) => ({
+        slotNum: slot.slotNum + offset,
+        isWounded: !!wounds[`slot${slot.slotNum + offset}`]
+      })) : [];
+      slot.isWounded = slot.slotsCovered.some(covered => covered.isWounded);
     }
     context.usedSlotsCount = usedSlotsCount;
 
@@ -172,18 +179,14 @@ export class CrowsMonsterSheet extends withPersistentScroll(ActorSheet) {
 
     if (!this.isEditable) return;
 
-    html.find('[data-npc-expertise-action]').click(event => this._onExpertiseAction(event));
-    html.find('[data-npc-expertise-field]').on('change', event => this._onExpertiseAction(event));
-
-    html.find('.companion-wound-toggle').click(async event => {
+    html.find('.npc-speed-edit').click(event => {
       event.preventDefault();
-      if (!this.actor.isOwner) return;
-      const n = Number(event.currentTarget.dataset.slotNum);
-      if (!Number.isInteger(n) || n < 1 || n > woundCapacity(this.actor)) return;
-      const map = woundMap(this.actor);
-      map[`slot${n}`] = !map[`slot${n}`];
-      await this.actor.update(woundUpdate(this.actor, map));
+      return showNpcSpeedDialog(this.actor);
     });
+
+    html.find('[data-npc-expertise-action]').click(event => this._onExpertiseAction(event));
+
+    html.find('.wound-toggle').click(this._onToggleWound.bind(this));
 
     // Item controls
     const resolveItemId = (ev) => {
@@ -231,40 +234,34 @@ export class CrowsMonsterSheet extends withPersistentScroll(ActorSheet) {
     html.find('.item-create').click(this._onItemCreate.bind(this));
   }
 
+  async _onToggleWound(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!this.isEditable || !this.actor.isOwner) return;
+    const n = Number(event.currentTarget.dataset.slotNum);
+    if (!Number.isInteger(n) || n < 1 || n > woundCapacity(this.actor)) return;
+    const map = woundMap(this.actor);
+    map[`slot${n}`] = !map[`slot${n}`];
+    await this.actor.update(woundUpdate(this.actor, map));
+  }
+
   async _onExpertiseAction(event) {
     event.preventDefault();
     event.stopPropagation();
     if (!this.isEditable || !this.actor.isOwner) return;
-    const target = event.currentTarget;
-    const { npcExpertiseAction: action, npcExpertiseField: field, expertiseId } = target.dataset;
-    const expertises = (this.actor.system.customExpertises ?? []).map(entry => ({ ...entry }));
-    const entry = expertises.find(entry => entry.id === expertiseId);
-    if (action === "add") {
-      expertises.push({ id: foundry.utils.randomID(), name: "New Expertise", notes: "", value: 1, max: 1 });
-    } else if (action === "recover") {
-      for (const expertise of expertises) expertise.value = expertise.max;
-    } else if (!entry) {
-      return;
-    } else if (action === "delete") {
-      expertises.splice(expertises.indexOf(entry), 1);
-    } else if (action === "spend") {
-      if (entry.value <= 0) return;
-      entry.value -= 1;
-    } else if (field === "name" || field === "notes") {
-      entry[field] = target.value.trim() || (field === "name" ? "New Expertise" : "");
-    } else if (field === "value" || field === "max") {
-      const value = Number(target.value);
-      if (!Number.isFinite(value)) return this.render(false);
-      entry[field] = Math.max(0, Math.floor(value));
-      entry.value = Math.min(entry.value, entry.max);
-    } else {
-      return;
+    const { npcExpertiseAction: action, expertiseId } = event.currentTarget.dataset;
+    if (action === "add" || action === "edit") {
+      return showNpcExpertiseDialog(this.actor, action === "edit" ? expertiseId : undefined);
     }
-    await this.actor.update({ "system.customExpertises": expertises });
+    if (action === "recover") {
+      const entries = (this.actor.system.customExpertises ?? []).map(entry => ({ ...entry, value: entry.max }));
+      await this.actor.update({ "system.customExpertises": entries });
+    }
   }
 
   async _onItemCreate(event) {
     event.preventDefault();
+    if (!this.isEditable || !this.actor.isOwner) return;
     const header = event.currentTarget;
     const type = header.dataset.type || "attack";
     const location = header.dataset.location || "backpack1";
@@ -279,12 +276,13 @@ export class CrowsMonsterSheet extends withPersistentScroll(ActorSheet) {
       itemData.img = "icons/svg/item-bag.svg";
       itemData.system = { location: location };
     } else if (type === "trait") {
+      itemData.name = "New Feature";
       itemData.img = "icons/skills/trades/academics-study-reading-book.webp";
       itemData.system = {
         tree: "General",
-        tier: "Starting",
+        tier: "NPC Feature",
         cost: 0,
-        description: "<p>Trait description and rules effect.</p>"
+        description: "<p>Feature description and rules effect.</p>"
       };
     } else if (type === "attack") {
       itemData.img = "icons/svg/sword.svg";
@@ -296,7 +294,9 @@ export class CrowsMonsterSheet extends withPersistentScroll(ActorSheet) {
       };
     }
 
-    return await Item.create(itemData, { parent: this.actor });
+    const item = await Item.create(itemData, { parent: this.actor });
+    if (type === "trait") item?.sheet.render(true);
+    return item;
   }
 
   _onQuantityAdjust(delta, event) { return _onQuantityAdjust.call(this, delta, event); }
@@ -393,22 +393,19 @@ export class CrowsMonsterSheet extends withPersistentScroll(ActorSheet) {
               tierClass = "failure";
             }
 
-            const cardHtml = `
-              <div class="crows-roll-card">
-                <div class="card-header">
-                  <i class="fas fa-dice-d20"></i> ${this.actor.name}: ${charLabel} Test (${circumstance.toUpperCase()})
-                </div>
-                <div class="card-body">
-                  <div class="dice-roll-total">Result: <strong>${total}</strong> <span class="formula">(${roll.result})</span></div>
-                  <div class="outcome ${tierClass}">${tierTitle}</div>
-                </div>
-              </div>
-            `;
+            const state = createRollState(this.actor, { kind: "test", title: `${this.actor.name}: ${charLabel} Test (${circumstance})`,
+              tier: finalTier, isDoom, total, formula: roll.result,
+              outcomes: Object.fromEntries([1, 2, 3].map(t => [t, {
+                tierTitle: ["", "Tier 1: Failure / Setback", "Tier 2: Partial / Mixed Success", "Tier 3: Superior Success"][t],
+                tierClass: t === 3 ? "crit" : t === 2 ? "success" : "failure"
+              }])),
+              special: isCrit || isDoom ? { tierTitle, tierClass } : null });
 
             await roll.toMessage({
               speaker: ChatMessage.getSpeaker({ actor: this.actor }),
               flavor: `${this.actor.name} tested ${charLabel}`,
-              content: cardHtml
+              flags: rollFlags(state),
+              content: renderRollState(state)
             });
           }
         },

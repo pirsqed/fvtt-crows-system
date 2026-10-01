@@ -306,10 +306,10 @@ export function addCharacterCreatorButton(app, html = app?.element) {
     new CrowsCharacterCreator().render(true);
   });
   row.append(button);
-  // Keep this outside Foundry's conditional native action groups.
-  const header = root.matches?.(".directory-header") ? root : root.querySelector(".directory-header");
-  if (header) header.append(row);
-  else root.prepend(row);
+  // Place system actions below the actor list, alongside directory footer actions.
+  const footer = root.matches?.(".directory-footer") ? root : root.querySelector(".directory-footer");
+  if (footer) footer.append(row);
+  else root.append(row);
 }
 
 export function addCharacterCreatorToDocumentDirectory(app, html) {

@@ -10,8 +10,13 @@ export class CrowsTravel {
   static pending = new Map();
 
   static register(onChange) {
+    game.settings.register(TRAVEL_SCOPE, "travelJournalAutoSave", {
+      name: "Automatically save travel journals",
+      hint: "Save a journal entry when finishing travel or starting the next day. Turning this off keeps existing journals but does not save future days or backfill skipped days.",
+      scope: "world", config: true, type: Boolean, default: true, onChange
+    });
     game.settings.register(TRAVEL_SCOPE, "travelJournalAudience", {
-      name: "Travel journal readers", hint: "Who can read the Travel Journal. Changing this also updates existing entries; the live travel helper remains shared.",
+      name: "Travel journal editors", hint: "Who can edit travel journals. All players can read them. Changing this updates existing travel journals; the live travel helper remains shared.",
       scope: "world", config: true, type: String, default: "all",
       choices: {all:"All players", trusted:"Trusted Players and above"},
       onChange: () => this.refreshJournalAccess()
@@ -79,7 +84,7 @@ export class CrowsTravel {
         user: game.users.get(userId), users: game.users.contents, actors: game.actors.contents,
         sessionId: foundry.utils.randomID()
       });
-      if (savingDay) {
+      if (savingDay && game.settings.get(TRAVEL_SCOPE, "travelJournalAutoSave") !== false) {
         try { await saveTravelJournalDay(current); }
         catch (error) { throw new Error(`Could not save the travel journal. Your day is still open; retry after fixing the error. ${error.message}`); }
       }

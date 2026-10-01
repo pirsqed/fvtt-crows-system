@@ -1,0 +1,21 @@
+<form class="{{cssClass}} flexcol crows-item-sheet crows-trait-sheet" autocomplete="off">
+  <header class="sheet-header flexrow">
+    <img class="profile-img" src="{{item.img}}" data-edit="img" title="{{item.name}}" />
+    <div class="header-fields flexcol">
+      <h1 class="charname"><input name="name" type="text" value="{{item.name}}" placeholder="Feature Name" /></h1>
+      <span class="badge">NPC Feature</span>
+    </div>
+  </header>
+  <nav class="sheet-tabs tabs flexrow" data-group="primary">
+    <a class="item active" data-tab="details"><i class="fas fa-book-open"></i> Feature Details</a>
+  </nav>
+  <section class="sheet-body">
+    <div class="tab details flexcol active" data-group="primary" data-tab="details">
+      <p>Describe this NPC’s ability, special rule, or passive effect.</p>
+      <div class="form-group stacked" style="flex: 1;">
+        <label><i class="fas fa-align-left"></i> Feature Rules & Description</label>
+        {{editor enrichedDescription target="system.description" button=true owner=owner editable=editable engine="prosemirror"}}
+      </div>
+    </div>
+  </section>
+</form>

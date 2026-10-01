@@ -1,7 +1,18 @@
 # Changelog
 
-## Unreleased
+## 0.2.3 — prepared
 
+Requires Foundry 14. Pair with Crows PDF Importer v0.1.2 for structured NPC speed imports. No PDFs or extracted game content are bundled.
+
+- Guide travel through party selection, pace votes, roles, encounters, rest, and completing a day, with saved multiplayer progress and Ref overrides. Reference imported Ref tables directly.
+- Save each journey to its own editable journal, including opening details, daily outcomes, encounter checks, and notes. Choose player or Trusted Player editing, or disable automatic journal saving.
+- Place new Crow and Human/Animal NPC wounds from the highest available slot downward, skipping existing wounds. Healing and moving wounds remain manual.
+- Improve character-creator navigation and preserve sheet input during routine edits.
+
+- Apply NPC expertises from new chat roll cards for characteristic tests and attacks. Spend a standard or custom expertise use to raise the tier, with coordinated duplicate-click protection and Ref/GM undo. Existing chat cards retain their original controls.
+
+- NPC speeds now have an editor for base speed and additional movement types (such as climb, swim, fly, and burrow). Wound penalties reduce every speed, to a minimum of zero.
+- **Existing NPC speeds:** Re-import the Ref book with the updated Crows PDF Importer to populate structured speeds in imported compendium entries, or use the pencil beside Speed to review and save an NPC's speeds manually. Re-importing does not update actors already copied into a world or scene; adjust those actors individually. Existing speed text is retained, and unrecognized details are carried into movement notes when edited. Review converted values and notes, especially custom or unusual movement text; locally edited compendium entries may be preserved by the import review.
 - Route backpack scattering through ordinary coordinated transfers, retaining unmoved items if scattering stops.
 - Coordinate usage-dice checks and sheet damage with chat actions; reject stale resource requests and overlapping local usage clicks.
 - Add Ref reconciliation controls for pending or uncertain chat actions, including an audit note and explicit applied/cancelled outcomes. Reconciliation never reapplies resource changes.

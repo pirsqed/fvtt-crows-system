@@ -133,7 +133,7 @@ export async function rollStatBlockAttack(actor, attack, { circumstance = "stand
     return [t, { tierTitle: `Tier ${t}`, tierClass: t === 3 ? "crit" : t === 2 ? "success" : "failure",
       damageDesc: text, numericDamage: t >= 2 ? weaponDamage(text, actor.system?.characteristics).amount : 0 }];
   }));
-  const state = createRollState(actor, { kind: "attack", itemUuid: attack.uuid, expertiseAllowed: false,
+  const state = createRollState(actor, { kind: "attack", itemUuid: attack.uuid,
     title: `${actor.name} uses ${attack.name}`, tier, isDoom, total: roll.total, formula: roll.result, outcomes,
     special: isCrit || isDoom ? { ...outcomes[tier], tierTitle: isCrit ? "Critical Hit!" : "Doom!" } : null });
 

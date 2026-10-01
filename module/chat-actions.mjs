@@ -1,3 +1,4 @@
+import { expertisePools, expertisePool, expertiseLabel, setExpertiseUses, spendChatExpertise } from "./expertise-pools.mjs";
 import { rollMiasmaEffect } from "./miasma.mjs";
 import { CHAT_SCOPE, getRollState, renderRollState, renderUndoExpertise, renderReviewActions, resolveActor, damageSnapshot, escapeHTML } from "./chat-state.mjs";
 import { rollUsageDice } from "./usage-dice.mjs";
@@ -115,14 +116,14 @@ export class CrowsChatActions {
       if (state.expertise || state.isDoom || state.tier >= 3
         || Object.values(state.actions).some(action => action.status !== "cancelled"))
         throw new Error("This roll can no longer be upgraded.");
-      const exp = actor.system.expertises?.[request.key];
+      const exp = expertisePool(actor, request.key);
       if (!exp || !(Number(exp.value) > 0)) throw new Error("No expertise uses remain.");
       key = "expertise";
       apply = async () => {
-        const result = await actor.spendExpertise(request.key);
+        const result = await spendChatExpertise(actor, request.key);
         if (!result.success) throw new Error("Could not spend expertise.");
         state.tier++;
-        state.expertise = { key: request.key, label: this.expertiseLabels?.[request.key] ?? request.key, remaining: result.remaining };
+        state.expertise = { key: request.key, label: expertiseLabel(actor, request.key, this.expertiseLabels), remaining: result.remaining };
         state.revision++;
         return result;
       };
@@ -132,13 +133,13 @@ export class CrowsChatActions {
       if (!state.expertise || state.actions.expertise?.status !== "applied"
         || Object.values(state.actions).some(action => ["pending", "needs review"].includes(action.status)))
         throw new Error("This expertise cannot be undone until pending actions have been reviewed.");
-      const exp = actor?.system.expertises?.[state.expertise.key];
+      const exp = expertisePool(actor, state.expertise.key);
       if (!exp) throw new Error("The original actor or expertise is unavailable.");
       key = "undo-expertise";
       apply = async () => {
         const remaining = Math.min(Number(exp.max), Number(exp.value) + 1);
         if (!Number.isFinite(remaining)) throw new Error("The expertise uses need GM review.");
-        await actor.update({ [`system.expertises.${state.expertise.key}.value`]: remaining });
+        await setExpertiseUses(actor, state.expertise.key, remaining);
         state.tier--;
         state.expertise = null;
         state.actions.expertise.status = "cancelled";
@@ -172,8 +173,8 @@ export class CrowsChatActions {
       expertiseUndone: state.expertiseUndone ?? false, expertiseStatus: state.actions.expertise?.status };
     let after;
     if (request.action === "expertise") after = { ...before, tier: state.tier + 1,
-      expertise: { key: request.key, label: this.expertiseLabels?.[request.key] ?? request.key,
-        remaining: Number(actor.system.expertises[request.key].value) - 1 } };
+      expertise: { key: request.key, label: expertiseLabel(actor, request.key, this.expertiseLabels),
+        remaining: Number(expertisePool(actor, request.key).value) - 1 } };
     if (request.action === "undo-expertise") after = { ...before, tier: state.tier - 1, expertise: null,
       expertiseUndone: true, expertiseStatus: "cancelled" };
     state.actions[key] = { status: "pending", userId,
@@ -241,12 +242,12 @@ export class CrowsChatActions {
     const actor = await resolveActor(state.actorUuid);
     if (data.action === "expertise") {
       if (!actor?.isOwner) throw new Error("You do not own this roll's actor.");
-      const options = Object.entries(actor.system.expertises ?? {}).filter(([, exp]) => exp.value > 0);
+      const options = expertisePools(actor).filter(([, exp]) => exp.value > 0);
       if (!options.length) throw new Error("No expertise uses remain.");
       return new Dialog({
         title: "Apply Expertise (+1 Tier)",
         content: `<form class="crows-dialog-form"><p>Choose an expertise with the Ref.</p><div class="form-group"><select name="expertise">${options.map(([key, exp]) =>
-          `<option value="${escapeHTML(key)}">${escapeHTML(this.expertiseLabels?.[key] ?? key)} (${exp.value}/${exp.max})</option>`).join("")}</select></div></form>`,
+          `<option value="${escapeHTML(key)}">${escapeHTML(expertiseLabel(actor, key, this.expertiseLabels))} (${exp.value}/${exp.max})</option>`).join("")}</select></div></form>`,
         buttons: {
           apply: {
             icon: '<i class="fas fa-check"></i>',

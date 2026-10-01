@@ -5774,7 +5774,7 @@ button.item-cast:active {
 }
 
 /* Containers share the ordinary item art and typography; only Ref preparation adds controls. */
-.crows :is(.crows-loot-sheet, .supply-settings, .npc-expertises) button,
+.crows :is(.crows-loot-sheet, .supply-settings, .npc-expertises, .npc-speed-editor, .npc-expertise-editor) button,
 .crows .slot-card button.item-edit {
   color: #f8fafc !important;
   background: #273449 !important;
@@ -5788,18 +5788,18 @@ button.item-cast:active {
   text-shadow: none;
   cursor: pointer;
 }
-.crows :is(.crows-loot-sheet, .supply-settings, .npc-expertises) button:hover,
+.crows :is(.crows-loot-sheet, .supply-settings, .npc-expertises, .npc-speed-editor, .npc-expertise-editor) button:hover,
 .crows .slot-card button.item-edit:hover {
   color: #ffffff !important;
   background: #3c506d !important;
   border-color: #b6d6ff !important;
 }
-.crows :is(.crows-loot-sheet, .supply-settings, .npc-expertises) button:focus-visible,
+.crows :is(.crows-loot-sheet, .supply-settings, .npc-expertises, .npc-speed-editor, .npc-expertise-editor) button:focus-visible,
 .crows .slot-card button.item-edit:focus-visible {
   outline: 2px solid #93c5fd;
   outline-offset: 2px;
 }
-.crows :is(.crows-loot-sheet, .supply-settings, .npc-expertises) button:disabled {
+.crows :is(.crows-loot-sheet, .supply-settings, .npc-expertises, .npc-speed-editor, .npc-expertise-editor) button:disabled {
   color: #b9c5d5 !important;
   background: #1f2937 !important;
   border-color: #64748b !important;
@@ -5840,3 +5840,80 @@ button.item-cast:active {
 .crows .npc-expertise-heading > label { flex: 0 0 64px; }
 .crows .npc-expertise-heading > button { flex: 0 0 auto; width: auto; }
 .crows .npc-expertise-card textarea { margin-top: 8px; min-height: 48px; resize: vertical; }
+.crows-monster-sheet .slot-header .wound-toggle-group {
+  position: static;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+}
+.crows-monster-sheet .slot-header .wound-toggle {
+  flex: 0 0 20px;
+  margin: 0;
+}
+.crows-monster-sheet .wound-toggle:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+.crows-monster-sheet .wound-toggle:disabled { cursor: default; }
+.crows.sheet.monster .npc-panel-layout { height: 100%; min-height: 0; overflow: hidden; }
+.crows.sheet.monster .npc-panel-layout .npc-identity { flex: 0 0 auto; min-height: 0; padding: 8px 12px; margin-bottom: 10px; }
+.crows.sheet.monster .npc-identity .profile-container { flex: 0 0 48px; height: 48px; }
+.crows.sheet.monster .npc-identity .profile-img { width: 48px; height: 48px; }
+.crows.sheet.monster .npc-identity .charname { margin: 0; height: auto; }
+.crows.sheet.monster .npc-panels { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 14px; flex: 1; min-height: 0; overflow: hidden; }
+.crows.sheet.monster .npc-sidebar { min-height: 0; overflow-y: auto; padding-right: 10px; border-right: 1px solid #475569; }
+.crows.sheet.monster .npc-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.crows.sheet.monster .npc-main > .sheet-tabs { flex: 0 0 auto; margin: 0 0 10px; }
+.crows.sheet.monster .npc-main > .sheet-body { flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px; }
+.crows.sheet.monster .npc-main .tab > .inventory-section { flex: 0 0 auto; margin-bottom: 16px; }
+.crows.sheet.monster .npc-sidebar .npc-vitals { grid-template-columns: 2fr 1fr; }
+.crows.sheet.monster .npc-sidebar .npc-secondary-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.crows.sheet.monster .npc-sidebar .npc-identity-stats { grid-template-columns: 1.5fr 1fr .7fr; margin-bottom: 16px; }
+.crows.sheet.monster .npc-sidebar .stat-group { min-width: 0; padding: 5px; }
+.crows.sheet.monster .npc-sidebar .stat-group input { min-width: 0; width: 100%; }
+.crows.sheet.monster .npc-sidebar .stamina-input-wrap input { width: 54px; }
+.crows.sheet.monster .npc-sidebar .characteristics { gap: 5px; margin: 8px 0; }
+.crows.sheet.monster .npc-sidebar .characteristic { min-width: 0; padding: 5px; }
+.crows.sheet.monster .npc-sidebar .rollable-characteristic { font-size: .7rem; }
+.crows.sheet.monster .npc-sidebar .npc-expertises .section-header { flex-wrap: wrap; gap: 6px; }
+.crows.sheet.monster .npc-sidebar .npc-expertises .section-header > div { flex: 0 0 100%; gap: 6px; }
+.crows.sheet.monster .npc-sidebar .npc-expertise-card { padding: 8px; }
+.crows.sheet.monster .npc-sidebar .npc-expertise-heading { display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 6px; align-items: end; }
+.crows.sheet.monster .npc-sidebar .npc-expertise-heading > input { grid-column: 1 / -1; min-width: 0; }
+.crows.sheet.monster .npc-sidebar .npc-expertise-heading label { min-width: 0; font-size: .7rem; }
+.crows.sheet.monster .npc-sidebar .npc-expertise-heading label input { width: 100%; }
+.crows.sheet.monster .npc-sidebar .npc-expertise-heading button { padding: 4px 6px; font-size: .75rem; }
+.crows.sheet.monster .npc-sidebar .npc-expertise-card textarea { min-height: 40px; font-size: .75rem; }
+.crows.sheet.monster .npc-main .traits-grid { grid-template-columns: minmax(0, 1fr); }
+.crows.sheet.monster .npc-main .trait-desc-body { max-height: none; }
+.crows.sheet.monster .npc-main .monster-attacks-list .item { flex-wrap: nowrap; gap: 6px; }
+.crows.sheet.monster .npc-main .monster-attacks-list .item > div { min-width: 0; overflow-wrap: anywhere; }
+.crows.sheet.monster .npc-main .monster-attacks-list .item-prop { font-size: .8rem; }
+.crows.sheet.monster .monster-attacks-list .item-thumb-micro {
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+.crows.sheet.monster .npc-inventory-settings { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.crows.sheet.monster .npc-inventory-settings .stat-group { flex: 1; }
+.crows.sheet.monster .npc-main .monster-slots-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.crows.sheet.monster .npc-main .tab.lore.active { display: flex; min-height: 100%; }
+.crows.sheet.monster .npc-main .tab.lore .editor { min-height: 280px; flex: 1; }
+
+.crows.sheet.monster .npc-sidebar .npc-speed-summary { grid-column: 1 / -1; }
+.crows.sheet.monster .npc-speed-summary strong { overflow-wrap: anywhere; line-height: 1.5; }
+.crows.sheet.monster .npc-speed-edit { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; min-height: 0; margin: 0 0 0 4px; padding: 0; color: #f8fafc; background: #273449; border: 1px solid #8295af; }
+.crows.sheet.monster .npc-speed-edit:hover { color: white; background: #3c506d; }
+.crows .npc-speed-editor .npc-speed-row { display: grid; grid-template-columns: minmax(0, 1fr) 70px 36px; gap: 8px; align-items: center; margin-bottom: 8px; }
+.crows .npc-speed-editor .npc-speed-row input { min-width: 0; width: 100%; }
+.crows .npc-speed-editor textarea { display: block; width: 100%; min-height: 64px; margin-top: 6px; }
+.crows .npc-speed-editor > label { display: block; margin-top: 12px; }
+.crows .npc-speed-editor [data-speed-error] { color: #fca5a5; }
+
+.crows.sheet.monster .npc-expertise-summary { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid #334155; }
+.crows.sheet.monster .npc-expertise-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.crows.sheet.monster .npc-expertise-count { flex: 0 0 auto; color: #cbd5e1; font-variant-numeric: tabular-nums; }
+.crows.sheet.monster .npc-expertise-summary .npc-expertise-edit { flex: 0 0 26px; width: 26px; min-height: 26px; padding: 0; margin: 0; }
+.crows .npc-expertise-editor textarea { display: block; width: 100%; min-height: 70px; margin: 6px 0 12px; }
+.crows .npc-expertise-use-actions { display: flex; gap: 8px; margin: 10px 0; }
+.crows .npc-expertise-editor [data-error] { color: #fca5a5; }

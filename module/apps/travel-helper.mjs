@@ -53,7 +53,7 @@ const STEP_COPY = {
   explore: { title: "Explore a destination", hint: "Pause to explore a point of interest, or conclude travel when you reach your destination." },
   rest: { title: "Make camp", hint: "Check for a rest encounter. Resolve food, rest activities, and recovery on character sheets." },
   miasma: { title: "Resist the Miasma", hint: "After a rest in the Miasma, resolve each human's resistance and effects on their sheet." },
-  complete: { title: "The day is done", hint: "Review the journal entry below. Finish Travel or Start next day saves it to the Travel Journal. Starting a new day then clears daily results and keeps your party and lost status." }
+  complete: { title: "The day is done", hint: "Review the day below. Starting a new day clears daily results and keeps your party and lost status. Journal saving follows the system setting." }
 };
 
 export class CrowsTravelHelper extends FormApplication {
@@ -68,6 +68,7 @@ export class CrowsTravelHelper extends FormApplication {
   }
 
   fieldKey(input) {
+    if (input?.dataset?.journey) return `journey:${input.dataset.journey}`;
     if (input?.dataset?.record) return `record:${input.dataset.member}:${input.dataset.record}`;
     if (input?.dataset?.check) return `check:${input.dataset.index}:${input.dataset.check}`;
     if (input?.dataset?.overview) return `overview:${input.dataset.overview}`;
@@ -135,12 +136,14 @@ export class CrowsTravelHelper extends FormApplication {
       this.drafts.clear();
       this.editFocus = null;
     }
+    if (this.session !== state.session || this.rosterStep !== state.step) this.rosterOpen = false;
+    this.rosterStep = state.step;
     this.session = state.session;
     const isGM = game.user.isGM;
     const roster = (state.roster ?? game.actors.filter(actor => actor.type === "crow").map(actor => actor.id))
       .filter(id => { const actor = game.actors.get(id); return actor ? !actor.system?.isDead : Object.hasOwn(state.guests, id); });
     const ownsTraveler = roster.some(id => game.actors.get(id)?.isOwner);
-    const voting = Boolean(state.session && state.step === "pace" && ownsTraveler);
+    const voting = Boolean(!isGM && state.session && state.step === "pace" && ownsTraveler);
     const counts = Object.fromEntries(TRAVEL_PACES.map(pace => [pace, Object.values(state.votes).filter(vote => vote === pace).length]));
     const stepIndex = TRAVEL_STEPS.findIndex(step => step.id === state.step);
     const members = roster.map(id => game.actors.get(id) ?? { id, name: state.guests[id], visible: true, guest: true }).filter(actor => isGM || actor.visible || actor.isOwner).map(actor => ({
@@ -174,12 +177,15 @@ export class CrowsTravelHelper extends FormApplication {
     })) : [];
     const guestCandidates = isGM ? Object.entries(state.guests).map(([id, name]) => ({id, name, selected: roster.includes(id)})) : [];
     return {
+      autoJournal: game.settings.get("fvtt-crows-system", "travelJournalAutoSave") !== false,
       journalPreview: state.step === "complete" ? travelJournalHTML({...state, notes:this.drafts.get("journalNotes") ?? state.notes}, game.actors.filter(() => true)) : "",
+      journeyFields: [["title", "Journey title"], ["origin", "Starting location"], ["goals", "Goals"], ["notes", "Journey notes"]].map(([field, label]) => ({field, label, value:this.drafts.get(`journey:${field}`) ?? state.journey[field], multiline:["goals", "notes"].includes(field)})),
+      journalTitle: state.journey.title || "Travel Journal",
       journalNotes: this.drafts.get("journalNotes") ?? state.notes,
       journalAudience: game.settings.get("fvtt-crows-system", "travelJournalAudience") === "trusted" ? "Trusted Players and above" : "all players",
       encounterRecords: state.encounters.map(record => ({...record, expected: JSON.stringify(record)})),
       state, isGM, busy: this.busy, error: this.error, hasDay: Boolean(state.session),
-      rosterOpen: Boolean(this.rosterOpen), nextDay: state.day + 1,
+      rosterOpen: Boolean(this.rosterOpen), nextDay: state.journeyId || state.session ? state.day + 1 : 1,
       showOtherTables: ["travel", "rest"].includes(state.step),
       showTables: Boolean(state.session && ["roles", "travel", "rest"].includes(state.step)),
       showDayRecord: Boolean(state.session && !["pace", "roles", "complete"].includes(state.step)),
@@ -263,6 +269,9 @@ export class CrowsTravelHelper extends FormApplication {
       const key = this.fieldKey(input);
       if (key) this.drafts.set(key, input.value);
       if (key === "journalNotes") html.find("[data-journal-preview-notes]").text(input.value || "No additional notes.");
+    });
+    html.find("[data-journey]").on("change", event => {
+      this.send({action:"journey", field:event.currentTarget.dataset.journey, value:event.currentTarget.value});
     });
     html.find("[data-overview]").on("change", event => {
       const input = event.currentTarget;
@@ -374,11 +383,22 @@ export class CrowsTravelHelper extends FormApplication {
     if (drawer) this.rosterOpen = drawer.open;
     const otherActors = this.element.find(".travel-other-actors")[0];
     if (otherActors) this.otherActorsOpen = otherActors.open;
+    if (request.action === "start" && !this.session) {
+      request.journey = Object.fromEntries(["title", "origin", "goals", "notes"].map(field => [field,
+        this.drafts.get(`journey:${field}`) ?? CrowsTravel.getState().journey?.[field] ?? ""]));
+    }
     this.busy = true;
     this.error = null;
     this.element.find("fieldset").prop("disabled", true);
+    let closeAfterSave = false;
     try {
       await CrowsTravel.request({ ...request, session: this.session });
+      if (["cancel-travel", "finish"].includes(request.action)) {
+        this.drafts.clear();
+        this.editFocus = null;
+        this.rosterOpen = false;
+        closeAfterSave = true;
+      }
       if (request.action === "delete-encounter") {
         const shifted = new Map();
         for (const [key, value] of this.drafts) {
@@ -391,11 +411,11 @@ export class CrowsTravelHelper extends FormApplication {
       const key = request.action === "record" ? `record:${request.actorId}:${request.field}`
         : request.action === "overview" ? `overview:${request.field}`
         : request.action === "encounter" && request.index !== undefined ? `check:${request.index}:${request.field}`
-        : request.action === "guest" ? "guest" : null;
+        : request.action === "journey" ? `journey:${request.field}` : request.action === "guest" ? "guest" : null;
       if (key && (request.action === "guest" || this.drafts.get(key) === String(request.value))) this.drafts.delete(key);
     }
     catch (error) { this.error = error.message; }
-    finally { this.busy = false; this.render(); }
+    finally { this.busy = false; if (closeAfterSave) await this.close(); else this.render(); }
   }
 
   async _updateObject() { /* Shared state changes are explicit, serialized requests. */ }
@@ -409,9 +429,9 @@ export function addTravelButton(app, html = app?.element) {
   button.className = "crows-open-travel";
   button.innerHTML = '<i class="fas fa-route"></i> Travel';
   button.addEventListener("click", () => CrowsTravelHelper.show());
-  const header = root.matches?.(".directory-header") ? root : root.querySelector(".directory-header");
-  if (header) header.append(button);
-  else root.prepend(button);
+  const footer = root.matches?.(".directory-footer") ? root : root.querySelector(".directory-footer");
+  if (footer) footer.append(button);
+  else root.append(button);
 }
 
 export function addTravelToDocumentDirectory(app, html) {

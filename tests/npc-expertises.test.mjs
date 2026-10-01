@@ -1,55 +1,57 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { saveNpcExpertise, showNpcExpertiseDialog } from "../module/apps/npc-expertise-dialog.mjs";
+import { EXPERTISES_CONFIG } from "../module/expertises.mjs";
 
 globalThis.ActorSheet = class {};
-globalThis.foundry = { utils: { randomID: () => "custom-id" } };
+globalThis.foundry = { utils: { randomID: () => "new-id" } };
 const { CrowsMonsterSheet } = await import("../module/sheets/monster-sheet.mjs");
-
-function fixture(entries = []) {
-  const sheet = new CrowsMonsterSheet();
-  sheet.isEditable = true;
-  sheet.actor = {
-    isOwner: true,
-    system: { customExpertises: entries },
-    async update(data) { this.system.customExpertises = data["system.customExpertises"]; }
-  };
-  const act = (dataset, value) => sheet._onExpertiseAction({
-    preventDefault() {}, stopPropagation() {}, currentTarget: { dataset, value }
-  });
-  return { sheet, act, entries: () => sheet.actor.system.customExpertises };
+function actor(entries = []) {
+  return { name: "NPC", isOwner: true, system: { customExpertises: entries },
+    async update(data) { this.system.customExpertises = data["system.customExpertises"]; } };
 }
+const draft = { name: "Crow Whispering", notes: "Communicate with corvids.", value: 1, max: 2 };
 
-test("NPC can add, rename, annotate, and delete an arbitrary expertise", async () => {
-  const { act, entries } = fixture();
-  await act({ npcExpertiseAction: "add" });
-  await act({ expertiseId: "custom-id", npcExpertiseField: "name" }, "Crow Whispering");
-  await act({ expertiseId: "custom-id", npcExpertiseField: "notes" }, "Communicate with corvids.");
-  assert.deepEqual(entries(), [{ id: "custom-id", name: "Crow Whispering", notes: "Communicate with corvids.", value: 1, max: 1 }]);
-  await act({ expertiseId: "custom-id", npcExpertiseAction: "delete" });
-  assert.deepEqual(entries(), []);
+test("add, edit, and delete preserve stable IDs and unrelated expertises", async () => {
+  const npc = actor([{ id: "other", ...draft }]);
+  await saveNpcExpertise(npc, undefined, draft);
+  assert.equal(npc.system.customExpertises.length, 2);
+  await saveNpcExpertise(npc, "new-id", { ...draft, name: "Alchemy", value: 0 });
+  assert.equal(npc.system.customExpertises[1].name, "Alchemy");
+  assert.equal(npc.system.customExpertises[0].name, draft.name);
+  await saveNpcExpertise(npc, "new-id", null);
+  assert.deepEqual(npc.system.customExpertises, [{ id: "other", ...draft }]);
 });
 
-test("NPC use counts stay bounded when spent, edited, or recovered", async () => {
-  const { act, entries } = fixture([{ id: "a", name: "Custom", notes: "", value: 2, max: 3 }]);
-  for (let i = 0; i < 3; i++) await act({ expertiseId: "a", npcExpertiseAction: "spend" });
-  assert.equal(entries()[0].value, 0);
-  await act({ npcExpertiseAction: "recover" });
-  assert.equal(entries()[0].value, 3);
-  await act({ expertiseId: "a", npcExpertiseField: "max" }, "1");
-  assert.equal(entries()[0].value, 1);
-  await act({ expertiseId: "a", npcExpertiseField: "value" }, "20");
-  assert.equal(entries()[0].value, 1);
-  await act({ expertiseId: "a", npcExpertiseField: "value" }, "-2");
-  assert.equal(entries()[0].value, 0);
+test("invalid use counts, stale entries, and observers cannot write", async () => {
+  const npc = actor();
+  for (const invalid of [{ name: " " }, { value: -1 }, { value: 3 }, { max: -1 }, { value: NaN }, { max: 1.5 }]) {
+    await assert.rejects(saveNpcExpertise(npc, undefined, { ...draft, ...invalid }));
+  }
+  await assert.rejects(saveNpcExpertise(npc, "deleted", draft), /removed/);
+  npc.isOwner = false;
+  await assert.rejects(saveNpcExpertise(npc, undefined, draft), /cannot edit/);
+  assert.deepEqual(npc.system.customExpertises, []);
 });
 
-test("stale controls and observers cannot change NPC expertises", async () => {
-  const { sheet, act, entries } = fixture();
-  await act({ expertiseId: "missing", npcExpertiseField: "name" }, "Ghost");
-  sheet.isEditable = false;
-  await act({ npcExpertiseAction: "add" });
+test("editor includes every Crow expertise and preserves custom names without writing on open", () => {
+  let config;
+  globalThis.Dialog = class { constructor(data) { config = data; } render() { return this; } };
+  const npc = actor([{ id: "a", ...draft }]);
+  npc.update = () => assert.fail("Opening or cancelling must not write");
+  showNpcExpertiseDialog(npc, "a");
+  for (const choice of Object.values(EXPERTISES_CONFIG).flat()) assert.ok(config.content.includes(`value="${choice.key}"`));
+  assert.match(config.content, /value="custom" selected/);
+  assert.ok(config.content.includes(draft.name));
+  showNpcExpertiseDialog(npc);
+  assert.ok(config.buttons.cancel);
+  assert.doesNotMatch(config.content, /data-delete/);
+});
+
+test("Recover All still restores every expertise from the sheet", async () => {
+  const sheet = new CrowsMonsterSheet();
+  sheet.actor = actor([{ id: "a", ...draft, value: 0 }]);
   sheet.isEditable = true;
-  sheet.actor.isOwner = false;
-  await act({ npcExpertiseAction: "add" });
-  assert.deepEqual(entries(), []);
+  await sheet._onExpertiseAction({ preventDefault() {}, stopPropagation() {}, currentTarget: { dataset: { npcExpertiseAction: "recover" } } });
+  assert.equal(sheet.actor.system.customExpertises[0].value, 2);
 });

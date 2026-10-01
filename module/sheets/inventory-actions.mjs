@@ -109,6 +109,17 @@ export async function _onPostTraitToChat(event) {
     const prereqs = trait.system.prerequisites || "";
     const description = trait.system.description || "<em>No description provided.</em>";
 
+    if (this.actor.type === "monster") {
+      const escape = value => String(value).replace(/[&<>"']/g, char => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[char]);
+      return ChatMessage.create({
+        speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+        flavor: `${escape(this.actor.name)} shared the <strong>${escape(trait.name)}</strong> feature`,
+        content: `<div class="crows-item-card trait-card"><div class="card-header"><h3>${escape(trait.name)}</h3><span>NPC Feature</span></div><div class="trait-description">${description}</div></div>`
+      });
+    }
+
     const cardHtml = `
       <div class="crows-item-card trait-card">
         <div class="card-header trait-header flexrow" style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">

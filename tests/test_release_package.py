@@ -14,8 +14,8 @@ class ReleaseTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             keep = [PDF_NOTE, "system.json", "crows.mjs", "README.md", "MANUAL-PLAY.md",
-                    "SUPPLIES.md", "CHANGELOG.md", "LICENSE", "templates/setup-guide.html",
-                    "templates/pdf-importer.html", "styles/crows.css", "module/apps/pdf-importer.mjs"]
+                    "SUPPLIES.md", "TRAVEL.md", "CHANGELOG.md", "LICENSE", "templates/setup-guide.html",
+                    "templates/pdf-importer.html", "styles/crows.css", "module/apps/pdf-importer.mjs", "lang/en.json"]
             exclude = ["pdfs/packet.zip", "pdfs/README-secret.pdf", "pdfs/Packet/Characters.PDF",
                        "pdfs/Packet/Inventory Cards/cards.pdf", "pdfs/README-from-packet.txt",
                        "packs/traits.json", "assets/monsters/crow.webp", "tools/out/build.log",
